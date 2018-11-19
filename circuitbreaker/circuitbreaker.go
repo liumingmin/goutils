@@ -1,0 +1,136 @@
+package circuitbreaker
+
+import (
+	"strings"
+	"github.com/gin-gonic/gin"
+	"encoding/json"
+	"bytes"
+	"fmt"
+	"sync"
+	"github.com/liumingmin/lighttimer"
+	"time"
+)
+
+var (
+	reqCountMap  = make(map[string]uint32)
+	reqCountMapMutex sync.Mutex
+
+	reqBlockMap sync.Map
+)
+
+type CircuitBreakerOptions struct{
+	MaxQps   uint32
+	KeyName  string
+	CheckSecond uint32
+	RecoverSecond uint32
+}
+
+func cbUri(c *gin.Context, keyValue string) string {
+	method := c.Request.Method
+	path := c.Request.URL.Path
+
+	endchar := strings.Index(path,"?")
+	if endchar<0 {
+		endchar = len(path)
+	}
+
+	reqPath :=path[0:endchar]
+
+	sb := bytes.Buffer{}
+	sb.WriteString(method)
+	sb.WriteString("-")
+	sb.WriteString(reqPath)
+
+	if len(keyValue) > 0{
+		sb.WriteString("-")
+		sb.WriteString(keyValue)
+	}
+
+	result := sb.String()
+
+	//fmt.Println(result)
+	return result
+}
+
+func CircuitBreaker(options CircuitBreakerOptions) gin.HandlerFunc {
+	if options.CheckSecond == 0{
+		options.CheckSecond = 1
+	}
+
+	if options.RecoverSecond == 0{
+		options.RecoverSecond = 5
+	}
+
+	return func(c *gin.Context) {
+		cbDone := c.GetHeader("__cb_done__")
+		if len(cbDone)>0{
+			c.Next()
+			return
+		}
+
+		defer c.Header("__cb_done__","done")
+
+		keyValue := ""
+		if len(options.KeyName) > 0{
+			reqMap := make(map[string]interface{})
+			decoder := json.NewDecoder(c.Request.Body)
+			if err := decoder.Decode(&reqMap); err == nil {
+				if value,isok := reqMap[options.KeyName];isok{
+					keyValue=value.(string)
+				}
+			}
+		}
+
+		cburi := cbUri(c,keyValue)
+
+		if blocked,isok := reqBlockMap.Load(cburi);isok{
+			if blocked.(bool) {
+				c.Abort()
+				return
+			}
+		}
+
+		reqCountMapMutex.Lock()
+		if count,isok := reqCountMap[cburi];isok{
+			reqCountMap[cburi]=count+1
+
+		}else{
+			reqCountMap[cburi]=1
+			lighttimer.AddTimer(time.Second*time.Duration(options.CheckSecond), func(i uint) bool{
+				return checkIsBlocked(cburi,options)
+			})
+		}
+		reqCountMapMutex.Unlock()
+
+		c.Next()
+		return
+	}
+
+}
+
+func checkIsBlocked(cburi string, options CircuitBreakerOptions) bool {
+	reqCountMapMutex.Lock()
+	defer reqCountMapMutex.Unlock()
+
+	if count,isok := reqCountMap[cburi];isok{
+		if count/options.CheckSecond > options.MaxQps{
+			fmt.Println("cb!!")
+			reqBlockMap.Store(cburi,true)
+
+			lighttimer.AddCallback(time.Second*time.Duration(options.RecoverSecond), func() {
+				reqCountMapMutex.Lock()
+				delete(reqCountMap, cburi)
+				reqCountMapMutex.Unlock()
+
+				reqBlockMap.Store(cburi,false)
+			})
+
+			return true
+		}
+	}
+
+	return false
+}
+
+
+
