@@ -7,6 +7,7 @@ import (
 	"sync"
 	"github.com/liumingmin/goutils/lighttimer"
 	"time"
+	"net/http"
 )
 
 var (
@@ -85,6 +86,7 @@ func CircuitBreaker(options CircuitBreakerOptions) gin.HandlerFunc {
 
 		if blocked,isok := reqBlockMap.Load(cburi);isok{
 			if blocked.(bool) {
+				c.String(http.StatusServiceUnavailable,"To many requests in a second")
 				c.Abort()
 				return
 			}
