@@ -3,7 +3,6 @@ package circuitbreaker
 import (
 	"strings"
 	"github.com/gin-gonic/gin"
-	"encoding/json"
 	"bytes"
 	"fmt"
 	"sync"
@@ -16,13 +15,15 @@ var (
 	reqCountMapMutex sync.Mutex
 
 	reqBlockMap sync.Map
+
+	lightTimer *lighttimer.LightTimer
 )
 
 type CircuitBreakerOptions struct{
 	MaxQps   uint32
-	KeyName  string
 	CheckSecond uint32
 	RecoverSecond uint32
+	ReqTagFunc  func(c *gin.Context)(string)
 }
 
 func cbUri(c *gin.Context, keyValue string) string {
@@ -53,6 +54,10 @@ func cbUri(c *gin.Context, keyValue string) string {
 }
 
 func CircuitBreaker(options CircuitBreakerOptions) gin.HandlerFunc {
+	if lightTimer == nil{
+		lightTimer =lighttimer.NewLightTimer()
+	}
+
 	if options.CheckSecond == 0{
 		options.CheckSecond = 1
 	}
@@ -70,18 +75,12 @@ func CircuitBreaker(options CircuitBreakerOptions) gin.HandlerFunc {
 
 		defer c.Header("__cb_done__","done")
 
-		keyValue := ""
-		if len(options.KeyName) > 0{
-			reqMap := make(map[string]interface{})
-			decoder := json.NewDecoder(c.Request.Body)
-			if err := decoder.Decode(&reqMap); err == nil {
-				if value,isok := reqMap[options.KeyName];isok{
-					keyValue=value.(string)
-				}
-			}
+		tag :=""
+		if options.ReqTagFunc != nil{
+			tag = options.ReqTagFunc(c)
 		}
 
-		cburi := cbUri(c,keyValue)
+		cburi := cbUri(c,tag)
 
 		if blocked,isok := reqBlockMap.Load(cburi);isok{
 			if blocked.(bool) {
@@ -96,7 +95,7 @@ func CircuitBreaker(options CircuitBreakerOptions) gin.HandlerFunc {
 
 		}else{
 			reqCountMap[cburi]=1
-			lighttimer.AddTimer(time.Second*time.Duration(options.CheckSecond), func(i uint) bool{
+			lightTimer.AddTimer(time.Second*time.Duration(options.CheckSecond), func(i uint) bool{
 				return checkIsBlocked(cburi,options)
 			})
 		}
@@ -117,7 +116,7 @@ func checkIsBlocked(cburi string, options CircuitBreakerOptions) bool {
 			fmt.Println("cb!!")
 			reqBlockMap.Store(cburi,true)
 
-			lighttimer.AddCallback(time.Second*time.Duration(options.RecoverSecond), func() {
+			lightTimer.AddCallback(time.Second*time.Duration(options.RecoverSecond), func() {
 				reqCountMapMutex.Lock()
 				delete(reqCountMap, cburi)
 				reqCountMapMutex.Unlock()
