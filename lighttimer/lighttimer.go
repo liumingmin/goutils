@@ -13,17 +13,14 @@ const (
 	MIN_TIMER_INTERVAL = 1 * time.Millisecond
 )
 
-var (
-	nextAddSeq uint = 1
-)
-
 type LightTimer struct{
 	timerHeap     _TimerHeap
 	timerHeapLock sync.Mutex
+	nextAddSeq uint
 }
 
 func NewLightTimer() *LightTimer{
-	lt := &LightTimer{}
+	lt := &LightTimer{nextAddSeq:1}
 	heap.Init(&lt.timerHeap)
 
 	return lt
@@ -104,8 +101,8 @@ func (lt *LightTimer)AddCallback(d time.Duration, callback SimpleCallbackFunc) *
 		repeat:   false,
 	}
 	lt.timerHeapLock.Lock()
-	t.addseq = nextAddSeq // set addseq when locked
-	nextAddSeq += 1
+	t.addseq = lt.nextAddSeq // set addseq when locked
+	lt.nextAddSeq += 1
 
 	heap.Push(&lt.timerHeap, t)
 	lt.timerHeapLock.Unlock()
@@ -125,8 +122,8 @@ func (lt *LightTimer)AddTimer(d time.Duration, callback CallbackFunc) *Timer {
 		repeat:   true,
 	}
 	lt.timerHeapLock.Lock()
-	t.addseq = nextAddSeq // set addseq when locked
-	nextAddSeq += 1
+	t.addseq = lt.nextAddSeq // set addseq when locked
+	lt.nextAddSeq += 1
 
 	heap.Push(&lt.timerHeap, t)
 	lt.timerHeapLock.Unlock()
@@ -174,8 +171,8 @@ func (lt *LightTimer)tick() {
 			if !t.fireTime.After(now) { // might happen when interval is very small
 				t.fireTime = now.Add(t.interval)
 			}
-			t.addseq = nextAddSeq
-			nextAddSeq += 1
+			t.addseq = lt.nextAddSeq
+			lt.nextAddSeq += 1
 			heap.Push(&lt.timerHeap, t)
 		}
 	}
