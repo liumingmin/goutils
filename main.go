@@ -4,10 +4,14 @@ import (
 	"time"
 	"github.com/liumingmin/goutils/async"
 	"fmt"
+	"github.com/gin-gonic/gin"
+	"net/http"
+	"github.com/liumingmin/goutils/circuitbreaker"
+	"encoding/json"
 )
 
 func main(){
-	testAsyncInvoke()
+	testCircuitBreaker()
 
 	time.Sleep(time.Hour)
 }
@@ -27,4 +31,28 @@ func testAsyncInvoke(){
 	})
 
 	fmt.Println("1alldone:",result)
+}
+
+func testCircuitBreaker(){
+	router := gin.New()
+	router.Use(circuitbreaker.CircuitBreaker(circuitbreaker.CircuitBreakerOptions{MaxQps:100}))
+	router.GET("/testurl", func(c *gin.Context) {
+		time.Sleep(time.Second)
+		c.String(http.StatusOK,"ok!!")
+	})
+
+	router.Run(":8080")
+}
+
+func reqTag(c *gin.Context) string {
+	keyValue := ""
+	reqMap := make(map[string]interface{})
+	decoder := json.NewDecoder(c.Request.Body)
+	if err := decoder.Decode(&reqMap); err == nil {
+		if value,isok := reqMap["personId"];isok{
+			keyValue=value.(string)
+		}
+	}
+
+	return keyValue
 }
