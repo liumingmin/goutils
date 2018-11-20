@@ -4,14 +4,14 @@ import (
 	"strings"
 	"github.com/gin-gonic/gin"
 	"bytes"
-	"fmt"
 	"sync"
-	"github.com/liumingmin/lighttimer"
+	"github.com/liumingmin/goutils/lighttimer"
 	"time"
 )
 
 var (
 	reqCountMap  = make(map[string]uint32)
+	reqLastTimeMap  = make(map[string]time.Time)
 	reqCountMapMutex sync.Mutex
 
 	reqBlockMap sync.Map
@@ -56,6 +56,7 @@ func cbUri(c *gin.Context, keyValue string) string {
 func CircuitBreaker(options CircuitBreakerOptions) gin.HandlerFunc {
 	if lightTimer == nil{
 		lightTimer =lighttimer.NewLightTimer()
+		lightTimer.StartTicks(time.Millisecond)
 	}
 
 	if options.CheckSecond == 0{
@@ -89,15 +90,17 @@ func CircuitBreaker(options CircuitBreakerOptions) gin.HandlerFunc {
 			}
 		}
 
+		//fmt.Println(cburi)
+
 		reqCountMapMutex.Lock()
 		if count,isok := reqCountMap[cburi];isok{
-			reqCountMap[cburi]=count+1
+			count = count+1
+			reqCountMap[cburi]=count
 
+			checkIsBlocked(cburi,count,options)
 		}else{
 			reqCountMap[cburi]=1
-			lightTimer.AddTimer(time.Second*time.Duration(options.CheckSecond), func(i uint) bool{
-				return checkIsBlocked(cburi,options)
-			})
+			reqLastTimeMap[cburi]=time.Now()
 		}
 		reqCountMapMutex.Unlock()
 
@@ -107,29 +110,25 @@ func CircuitBreaker(options CircuitBreakerOptions) gin.HandlerFunc {
 
 }
 
-func checkIsBlocked(cburi string, options CircuitBreakerOptions) bool {
-	reqCountMapMutex.Lock()
-	defer reqCountMapMutex.Unlock()
-
-	if count,isok := reqCountMap[cburi];isok{
-		if count/options.CheckSecond > options.MaxQps{
-			fmt.Println("cb!!")
+func checkIsBlocked(cburi string, count uint32, options CircuitBreakerOptions)  {
+	timeinterval := uint32(time.Since(reqLastTimeMap[cburi])/time.Second)
+	if timeinterval > options.CheckSecond{
+		if  count/timeinterval >options.MaxQps{
+			//fmt.Println(count/timeinterval)
 			reqBlockMap.Store(cburi,true)
 
 			lightTimer.AddCallback(time.Second*time.Duration(options.RecoverSecond), func() {
 				reqCountMapMutex.Lock()
 				delete(reqCountMap, cburi)
+				delete(reqLastTimeMap,cburi)
 				reqCountMapMutex.Unlock()
 
 				reqBlockMap.Store(cburi,false)
 			})
-
-			return true
+		}else{
+			reqCountMap[cburi]=1
+			reqLastTimeMap[cburi]=time.Now()
 		}
 	}
-
-	return false
 }
-
-
 
