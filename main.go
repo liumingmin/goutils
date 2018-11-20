@@ -8,11 +8,12 @@ import (
 	"net/http"
 	"github.com/liumingmin/goutils/circuitbreaker"
 	"encoding/json"
+	"strings"
 )
 
 func main(){
 	testCircuitBreaker()
-
+	
 	time.Sleep(time.Hour)
 }
 
@@ -35,7 +36,7 @@ func testAsyncInvoke(){
 
 func testCircuitBreaker(){
 	router := gin.New()
-	router.Use(circuitbreaker.CircuitBreaker(circuitbreaker.CircuitBreakerOptions{MaxQps:100}))
+	router.Use(circuitbreaker.CircuitBreaker(circuitbreaker.CircuitBreakerOptions{MaxQps:100,ReqTagFunc:reqTag1}))
 	router.GET("/testurl", func(c *gin.Context) {
 		time.Sleep(time.Second)
 		c.String(http.StatusOK,"ok!!")
@@ -55,4 +56,9 @@ func reqTag(c *gin.Context) string {
 	}
 
 	return keyValue
+}
+
+func reqTag1(c *gin.Context) string {
+
+	return strings.Split(c.Request.RemoteAddr,":")[0]
 }
