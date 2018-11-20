@@ -7,9 +7,10 @@ import (
 )
 
 func TStartTicks() {
-	StartTicks(time.Millisecond)
+	lt := NewLightTimer()
+	lt.StartTicks(time.Millisecond)
 
-	AddTimer(time.Second* time.Duration(2), func(fireSeqNo uint) bool {
+	lt.AddTimer(time.Second* time.Duration(2), func(fireSeqNo uint) bool {
 		fmt.Println("callback",fireSeqNo,"-")
 		if fireSeqNo == 4{
 			return true
@@ -21,9 +22,10 @@ func TStartTicks() {
 }
 
 func TStartTicks2() {
-	StartTicks(time.Millisecond)
+	lt := NewLightTimer()
+	lt.StartTicks(time.Millisecond)
 
-	AddCallback(time.Second* time.Duration(3), func() {
+	lt.AddCallback(time.Second* time.Duration(3), func() {
 		fmt.Println("invoke once")
 	})
 
@@ -31,12 +33,13 @@ func TStartTicks2() {
 }
 
 func BStartTicks(){
-	StartTicks(time.Millisecond)
+	lt := NewLightTimer()
+	lt.StartTicks(time.Millisecond)
 
 	for i:=0;i<100000;i++{
 		tmp := i
 		timeout:=1+rand.Intn(20)
-		AddTimer(time.Second* time.Duration(timeout), func(fireSeqNo uint) bool {
+		lt.AddTimer(time.Second* time.Duration(timeout), func(fireSeqNo uint) bool {
 			fmt.Println("callback",tmp,"-",timeout)
 			return true
 		})
