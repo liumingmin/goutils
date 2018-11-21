@@ -6,14 +6,14 @@ import (
 	"fmt"
 	"github.com/gin-gonic/gin"
 	"net/http"
-	"github.com/liumingmin/goutils/circuitbreaker"
+	"github.com/liumingmin/goutils/cbk"
 	"encoding/json"
 	"strings"
 )
 
 func main(){
 	testCircuitBreaker()
-	
+
 	time.Sleep(time.Hour)
 }
 
@@ -36,12 +36,25 @@ func testAsyncInvoke(){
 
 func testCircuitBreaker(){
 	router := gin.New()
-	router.Use(circuitbreaker.CircuitBreaker(circuitbreaker.CircuitBreakerOptions{MaxQps:100,ReqTagFunc:reqTag1}))
+	router.Use(cbk.CircuitBreaker(cbk.Options{MaxQps:100,ReqTagFunc:reqTag1}))
 	router.GET("/testurl", func(c *gin.Context) {
 		time.Sleep(time.Second)
 		c.String(http.StatusOK,"ok!!")
 	})
 
+	router.Run(":8080")
+}
+
+func testWeb(){
+	router := gin.New()
+	router.Use(func(c *gin.Context) {
+		c.Abort()
+		c.String(http.StatusServiceUnavailable,"To many requests in a second")
+		return
+	})
+	router.GET("/testurl1", func(c *gin.Context) {
+		c.String(http.StatusOK,"2222")
+	})
 	router.Run(":8080")
 }
 

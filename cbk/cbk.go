@@ -1,4 +1,4 @@
-package circuitbreaker
+package cbk
 
 import (
 	"strings"
@@ -20,7 +20,7 @@ var (
 	lightTimer *lighttimer.LightTimer
 )
 
-type CircuitBreakerOptions struct{
+type Options struct{
 	MaxQps   uint32
 	CheckSecond uint32
 	RecoverSecond uint32
@@ -54,7 +54,7 @@ func cbUri(c *gin.Context, keyValue string) string {
 	return result
 }
 
-func CircuitBreaker(options CircuitBreakerOptions) gin.HandlerFunc {
+func CircuitBreaker(options Options) gin.HandlerFunc {
 	if lightTimer == nil{
 		lightTimer =lighttimer.NewLightTimer()
 		lightTimer.StartTicks(time.Millisecond)
@@ -112,7 +112,7 @@ func CircuitBreaker(options CircuitBreakerOptions) gin.HandlerFunc {
 
 }
 
-func checkIsBlocked(cburi string, count uint32, options CircuitBreakerOptions)  {
+func checkIsBlocked(cburi string, count uint32, options Options)  {
 	timeinterval := uint32(time.Since(reqLastTimeMap[cburi])/time.Second)
 	if timeinterval > options.CheckSecond{
 		if  count/timeinterval >options.MaxQps{
