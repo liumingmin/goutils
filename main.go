@@ -9,12 +9,18 @@ import (
 	"github.com/liumingmin/goutils/cbk"
 	"encoding/json"
 	"strings"
+	"github.com/liumingmin/goutils/log4go"
 )
 
 func main(){
-	testCircuitBreaker()
+	//testWeb()
+	//fmt.Println(rune("?"[0]))
+	//time.Sleep(time.Hour)
 
-	time.Sleep(time.Hour)
+	fmt.Println(1111)
+	log4go.Finest("dddd %v",2321)
+
+	time.Sleep(time.Second)
 }
 
 func testAsyncInvoke(){
@@ -47,13 +53,17 @@ func testCircuitBreaker(){
 
 func testWeb(){
 	router := gin.New()
-	router.Use(func(c *gin.Context) {
-		c.Abort()
-		c.String(http.StatusServiceUnavailable,"To many requests in a second")
-		return
-	})
-	router.GET("/testurl1", func(c *gin.Context) {
+	//router.Use(func(c *gin.Context) {
+	//	c.Abort()
+	//	c.String(http.StatusServiceUnavailable,"To many requests in a second")
+	//	return
+	//})
+	router.GET("/testurl1", func(context *gin.Context) {
+		fmt.Println("brefore testurl1")
+	},func(c *gin.Context) {
 		c.String(http.StatusOK,"2222")
+	}, func(context *gin.Context) {
+		fmt.Println("end testurl1")
 	})
 	router.Run(":8080")
 }
