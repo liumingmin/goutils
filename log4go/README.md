@@ -10,7 +10,7 @@ I hava change some features and done with some bugfixes. Include:
 
 4. More accurate log time
 
-5. Exclude specified log by adding the exclude pattern, which will match the *source* field. See &lt;exclude&gt; attribute in [example.xml](https://github.com/kimiazhu/log4go/blob/master/example.xml)
+5. Exclude specified log by adding the exclude pattern, which will match the *source* field. See &lt;exclude&gt; attribute in [example.xml]
 
 6. Auto load configuration in init() method, when the `log4go.xml` placed in exec dir or `{exec_dir}/conf` dir.
 
@@ -41,12 +41,6 @@ I hava change some features and done with some bugfixes. Include:
 
 9. Add Setup() to load config by passing a xml config string
 
-### Installation:
-- Run `go get github.com/kimiazhu/log4go`
-
-### Usage:
-- Add the following import:
-import log "github.com/kimiazhu/log4go"
 
 ### TODO:
 
