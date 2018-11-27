@@ -1,4 +1,4 @@
-This project forked from [alecthomas/log4go](http://github.com/alecthomas/log4go) and adapted with golang v1.5.3.
+This project from kimiazhu and  forked from [alecthomas/log4go](http://github.com/alecthomas/log4go) and adapted with golang v1.5.3.
 
 I hava change some features and done with some bugfixes. Include:
 
