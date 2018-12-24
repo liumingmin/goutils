@@ -60,3 +60,21 @@ func TestBitmapBitInverse(t *testing.T) {
 	t.Log(bitmap.Exists(66))
 
 }
+
+func BenchmarkBitmap_Exists(b *testing.B) {
+	bitmap := Bitmap{}
+	bitmap.Init(1000000000)
+	for i := 0; i < 1000000000; i++ {
+		if i%3 == 0 {
+			bitmap.Set(uint32(i)) //3333w
+		}
+	}
+
+	//b.Log("start compare")
+	//b.StartTimer()
+	b.N = 1000000000
+	for i := 0; i < b.N; i++ {
+		bitmap.Exists(uint32(i))
+	}
+	b.StopTimer()
+}
