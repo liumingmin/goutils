@@ -9,8 +9,8 @@ func initTestData() Bitmap {
 	bitmap := Bitmap{}
 	bitmap.Init(65)
 	fmt.Println(bitmap)
-	bitmap.SetAll([]uint32{4, 16, 66, 64, 32, 128, 122})
-
+	bitmap.Sets([]uint32{4, 16, 66, 64, 32, 128, 122})
+	fmt.Println(bitmap)
 	return bitmap
 }
 
@@ -41,7 +41,7 @@ func TestBitmapUnionOr(t *testing.T) {
 	bitmap2 := initTestData()
 	bitmap2.Set(256)
 
-	bitmap3 := bitmap.UnionOr(&bitmap2)
+	bitmap3 := bitmap.Union(&bitmap2)
 	t.Log(bitmap3.Exists(256))
 
 	bitmap3.Set(562)
@@ -55,7 +55,7 @@ func TestBitmapBitInverse(t *testing.T) {
 
 	t.Log(bitmap.Exists(66))
 
-	bitmap.BitInverse()
+	bitmap.Inverse()
 
 	t.Log(bitmap.Exists(66))
 
