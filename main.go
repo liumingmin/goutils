@@ -11,6 +11,13 @@ import (
 	"time"
 	//"github.com/liumingmin/goutils/log4go"
 	//"sync/atomic"
+	//"sort"
+)
+
+const (
+	x1 = iota + 100
+	x2
+	x3
 )
 
 func main() {
@@ -26,8 +33,10 @@ func main() {
 	//fmt.Println(result,isOutPool)
 	//time.Sleep(time.Second)
 
-	var x uint = 1
-	fmt.Println(x >> 3)
+	//	sort.Reverse()
+
+	//var x uint = 1
+	fmt.Println(x3)
 }
 
 func testAsyncInvoke() {
