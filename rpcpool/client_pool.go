@@ -7,6 +7,11 @@ import (
 	"sync"
 	"sync/atomic"
 
+	"fmt"
+
+	"time"
+
+	"github.com/liumingmin/goutils/async"
 	"github.com/liumingmin/goutils/safego"
 )
 
@@ -54,12 +59,42 @@ func (c *Client) borrow(refSize int32) bool {
 func (c *Client) Call(serviceMethod string, args interface{}, reply interface{}) error {
 	err := c.Client.Call(serviceMethod, args, reply)
 	if err != nil {
-		result := atomic.AddInt32(&c.failCnt, 1)
-		if result > 3 {
+		if err == rpc.ErrShutdown {
 			safego.Go(func() {
 				c.pool.swapBadClient(c)
 			})
 		}
+	}
+
+	return err
+}
+
+func (c *Client) CallWithTimeout(serviceMethod string, args interface{}, reply interface{}) error {
+	var err error
+	var failCnt int32
+
+	for i := 0; i < 3; i++ {
+		ok := async.AsyncInvokeWithTimeout(time.Millisecond*100, func() {
+			err = c.Client.Call(serviceMethod, args, reply)
+		})
+
+		if ok {
+			break
+		}
+
+		failCnt = atomic.AddInt32(&c.failCnt, 1)
+	}
+
+	if err == rpc.ErrShutdown {
+		safego.Go(func() {
+			c.pool.swapBadClient(c)
+		})
+	}
+
+	if failCnt > 6 {
+		safego.Go(func() {
+			c.pool.swapBadClient(c)
+		})
 	}
 
 	return err
@@ -174,7 +209,10 @@ func (p *Pool) swapBadClient(client *Client) {
 			break
 		}
 	}
+
 	client.close()
 
 	p.growPool()
+
+	fmt.Println("repair a client")
 }

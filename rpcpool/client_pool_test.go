@@ -2,6 +2,7 @@ package rpcpool
 
 import (
 	//"fmt"
+
 	"net"
 	"sync"
 	"testing"
@@ -24,7 +25,7 @@ func BenchmarkPool(b *testing.B) {
 	b.StopTimer()
 	b.StartTimer()
 
-	b.N = 100000
+	b.N = 1000
 
 	wg := &sync.WaitGroup{}
 	for i := 0; i < b.N; i++ {
@@ -43,6 +44,8 @@ func BenchmarkPool(b *testing.B) {
 
 	wg.Wait()
 	b.StopTimer()
+
+	//fmt.Println(len(pool.clientIdles))
 }
 
 func TestPool1(t *testing.T) {
@@ -62,7 +65,7 @@ func TestPool1(t *testing.T) {
 		go func() {
 			defer wg.Done()
 			if c, err := pool.Get(); err == nil {
-				err = c.Call("SArith.Multiply", args, &reply)
+				err = c.CallWithTimeout("SArith.Multiply", args, &reply)
 				if err != nil {
 					t.Log("arith error:", err)
 				}
