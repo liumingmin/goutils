@@ -9,8 +9,15 @@ import (
 	"sort"
 	"strconv"
 
+	"strings"
+
+	"github.com/google/uuid"
 	"github.com/liumingmin/goutils/log4go"
 )
+
+func NewUUID() string {
+	return strings.Replace(uuid.New().String(), "-", "", -1)
+}
 
 func MD5(origStr string) string {
 	md5Ctx := md5.New()
