@@ -79,6 +79,7 @@ type Pool struct {
 	mutx        *sync.Mutex
 	cond        *sync.Cond
 	clientIdles []*Client
+	rollIdx     int
 }
 
 func (p *Pool) newClient() (*Client, error) {
@@ -118,22 +119,44 @@ func (p *Pool) Get() (*Client, error) {
 	p.mutx.Lock()
 	defer p.mutx.Unlock()
 
+	clientNum := len(p.clientIdles)
+
 	if p.option.Wait {
 		for {
-			for i := 0; i < len(p.clientIdles); i++ {
-				client := p.clientIdles[i]
+			circle := 0
+			for {
+				p.rollIdx++
+				circle++
+
+				idx := p.rollIdx % clientNum
+				client := p.clientIdles[idx]
+
 				if client.borrow(int32(p.option.RefSize)) {
 					return client, nil
+				}
+
+				if circle >= clientNum {
+					break
 				}
 			}
 
 			p.cond.Wait()
 		}
 	} else {
-		for i := 0; i < len(p.clientIdles); i++ {
-			client := p.clientIdles[i]
+		circle := 0
+		for {
+			p.rollIdx++
+			circle++
+
+			idx := p.rollIdx % clientNum
+			client := p.clientIdles[idx]
+
 			if client.borrow(int32(p.option.RefSize)) {
 				return client, nil
+			}
+
+			if circle >= clientNum {
+				break
 			}
 		}
 
