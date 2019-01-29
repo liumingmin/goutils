@@ -74,7 +74,7 @@ func (c *Client) CallWithTimeout(serviceMethod string, args interface{}, reply i
 	var failCnt int32
 
 	for i := 0; i < 3; i++ {
-		ok := async.AsyncInvokeWithTimeout(time.Millisecond*100, func() {
+		ok := async.AsyncInvokeWithTimeout(time.Second, func() {
 			err = c.Client.Call(serviceMethod, args, reply)
 		})
 

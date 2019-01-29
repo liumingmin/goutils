@@ -14,7 +14,7 @@ type Args struct {
 
 func BenchmarkPool(b *testing.B) {
 	pool := &Pool{}
-	pool.Init(Option{50, 3000, true},
+	pool.Init(Option{5, 1000, true},
 		func() (net.Conn, error) {
 			return net.Dial("tcp", "127.0.0.1:12340")
 		})
@@ -25,7 +25,7 @@ func BenchmarkPool(b *testing.B) {
 	b.StopTimer()
 	b.StartTimer()
 
-	b.N = 1000
+	b.N = 10000
 
 	wg := &sync.WaitGroup{}
 	for i := 0; i < b.N; i++ {
@@ -33,7 +33,7 @@ func BenchmarkPool(b *testing.B) {
 		go func() {
 			defer wg.Done()
 			if c, err := pool.Get(); err == nil {
-				err = c.Call("SArith.Multiply", args, &reply)
+				err = c.CallWithTimeout("SArith.Multiply", args, &reply)
 				if err != nil {
 					b.Log("arith error:", err)
 				}
