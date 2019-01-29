@@ -2,12 +2,12 @@ package rpcpool
 
 import (
 	"errors"
-	"fmt"
 	"net"
 	"net/rpc"
 	"sync"
 	"sync/atomic"
-	"unsafe"
+
+	"github.com/liumingmin/goutils/safego"
 )
 
 var ErrClosed = errors.New("pool is closed")
@@ -29,13 +29,37 @@ type Client struct {
 }
 
 func (c *Client) Release() {
-	c.pool.release(c)
+	if c.refCnt > 0 {
+		result := atomic.AddInt32(&c.refCnt, -1)
+		if result < 0 {
+			atomic.StoreInt32(&c.refCnt, 0)
+		}
+	}
+
+	c.pool.cond.Broadcast()
+	//fmt.Printf("%v:%v\n", unsafe.Pointer(client), client.refCnt)
+}
+
+func (c *Client) borrow(refSize int32) bool {
+	if c.refCnt < refSize {
+		result := atomic.AddInt32(&c.refCnt, 1)
+		if result <= refSize {
+			return true
+		}
+	}
+
+	return false
 }
 
 func (c *Client) Call(serviceMethod string, args interface{}, reply interface{}) error {
 	err := c.Client.Call(serviceMethod, args, reply)
 	if err != nil {
-		atomic.AddInt32(&c.failCnt, 1)
+		result := atomic.AddInt32(&c.failCnt, 1)
+		if result > 3 {
+			safego.Go(func() {
+				c.pool.swapBadClient(c)
+			})
+		}
 	}
 
 	return err
@@ -47,6 +71,7 @@ func (c *Client) close() {
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
+
 type Pool struct {
 	option  Option
 	factory func() (net.Conn, error)
@@ -97,8 +122,7 @@ func (p *Pool) Get() (*Client, error) {
 		for {
 			for i := 0; i < len(p.clientIdles); i++ {
 				client := p.clientIdles[i]
-				if client.refCnt <= int32(p.option.RefSize) {
-					client.refCnt++
+				if client.borrow(int32(p.option.RefSize)) {
 					return client, nil
 				}
 			}
@@ -108,8 +132,7 @@ func (p *Pool) Get() (*Client, error) {
 	} else {
 		for i := 0; i < len(p.clientIdles); i++ {
 			client := p.clientIdles[i]
-			if client.refCnt <= int32(p.option.RefSize) {
-				client.refCnt++
+			if client.borrow(int32(p.option.RefSize)) {
 				return client, nil
 			}
 		}
@@ -118,30 +141,17 @@ func (p *Pool) Get() (*Client, error) {
 	}
 }
 
-func (p *Pool) release(client *Client) {
-	if client == nil {
-		return
-	}
-
+func (p *Pool) swapBadClient(client *Client) {
 	p.mutx.Lock()
 	defer p.mutx.Unlock()
 
-	if client.failCnt > 3 {
-		for i := 0; i < len(p.clientIdles); i++ {
-			if client == p.clientIdles[i] {
-				p.clientIdles = append(p.clientIdles[:i], p.clientIdles[i+1:]...)
-				break
-			}
-		}
-		client.close()
-
-		p.growPool()
-	} else {
-		if client.refCnt > 0 {
-			client.refCnt--
+	for i := 0; i < len(p.clientIdles); i++ {
+		if client == p.clientIdles[i] {
+			p.clientIdles = append(p.clientIdles[:i], p.clientIdles[i+1:]...)
+			break
 		}
 	}
+	client.close()
 
-	fmt.Printf("%v:%v\n", unsafe.Pointer(client), client.refCnt)
-	p.cond.Broadcast()
+	p.growPool()
 }
