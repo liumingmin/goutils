@@ -3,18 +3,25 @@ package cache
 import "errors"
 
 type CacheStore interface {
-	Get(key string) (string, error)
+	Exists(key string) bool
 
-	Set(key string, value string, expire int64) error
+	Get(key string) (interface{}, error)
+
+	Set(key string, value interface{}, expire int64) error
 
 	Delete(key string) error
 
 	Flush() error
 }
 
-type SimpleMemCache map[string]string
+type SimpleMemCache map[string]interface{}
 
-func (c *SimpleMemCache) Get(key string) (string, error) {
+func (c *SimpleMemCache) Exists(key string) bool {
+	_, ok := (*c)[key]
+	return ok
+}
+
+func (c *SimpleMemCache) Get(key string) (interface{}, error) {
 	result, isok := (*c)[key]
 	if isok {
 		return result, nil
@@ -23,7 +30,7 @@ func (c *SimpleMemCache) Get(key string) (string, error) {
 	}
 }
 
-func (c *SimpleMemCache) Set(key string, value string, expire int64) error {
+func (c *SimpleMemCache) Set(key string, value interface{}, expire int64) error {
 	(*c)[key] = value
 	return nil
 }

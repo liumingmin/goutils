@@ -2,15 +2,31 @@ package utils
 
 import (
 	"bytes"
+	"crypto/sha1"
 	"errors"
 	"io"
 	"io/ioutil"
 	"net"
 	"net/http"
+	"net/url"
 	"time"
 )
 
 var gTransport *http.Client
+
+func UrlEscape(prefix string, u string) string {
+	key := url.QueryEscape(u)
+	if len(key) > 200 {
+		h := sha1.New()
+		io.WriteString(h, u)
+		key = string(h.Sum(nil))
+	}
+	var buffer bytes.Buffer
+	buffer.WriteString(prefix)
+	buffer.WriteString(":")
+	buffer.WriteString(key)
+	return buffer.String()
+}
 
 func drainBody(b io.ReadCloser) (r1, r2 io.ReadCloser, err error) {
 	var buf bytes.Buffer
