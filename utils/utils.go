@@ -32,6 +32,11 @@ func ConsistArgs(args ...interface{}) string {
 	for _, arg := range args {
 		b.WriteString("^")
 
+		argv := reflect.ValueOf(arg)
+		if argv.Kind() == reflect.Ptr {
+			arg = reflect.Indirect(argv).Interface()
+		}
+
 		switch arg.(type) {
 		case []string:
 			s := arg.([]string)
@@ -59,6 +64,9 @@ func ConsistArgs(args ...interface{}) string {
 			if t.Kind() == reflect.Map {
 				b.WriteString(MapToOrderStr(arg))
 				continue
+			} else if t.Kind() == reflect.Slice || t.Kind() == reflect.Array {
+				b.WriteString(SliceToOrderStr(arg))
+				continue
 			}
 
 			b.WriteString(fmt.Sprintf("%#v", arg))
@@ -66,6 +74,18 @@ func ConsistArgs(args ...interface{}) string {
 	}
 
 	return b.String()
+}
+
+func SliceToOrderStr(arg interface{}) string {
+	value := reflect.ValueOf(arg)
+	var md5s = make([]string, value.Len())
+	for i := 0; i < value.Len(); i++ {
+		md5s[i] = MD5(fmt.Sprintf("%#v", reflect.Indirect(value.Index(i)).Interface()))
+	}
+
+	sort.Strings(md5s)
+
+	return strings.Join(md5s, ":")
 }
 
 func MapToOrderStr(arg interface{}) string {
@@ -89,7 +109,7 @@ func MapToOrderStr(arg interface{}) string {
 			elem := value.MapIndex(reflect.ValueOf(s))
 			b.WriteString(s)
 			b.WriteString(":")
-			b.WriteString(fmt.Sprintf("%#v", elem.Interface()))
+			b.WriteString(fmt.Sprintf("%#v", reflect.Indirect(elem).Interface()))
 			b.WriteString(",")
 		}
 		break
@@ -109,7 +129,7 @@ func MapToOrderStr(arg interface{}) string {
 			elem := value.MapIndex(reflect.ValueOf(s))
 			b.WriteString(strconv.Itoa(s))
 			b.WriteString(":")
-			b.WriteString(fmt.Sprintf("%#v", elem.Interface()))
+			b.WriteString(fmt.Sprintf("%#v", reflect.Indirect(elem).Interface()))
 			b.WriteString(",")
 		}
 		break
