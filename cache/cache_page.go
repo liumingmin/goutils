@@ -4,6 +4,8 @@ import (
 	"net/http"
 	"time"
 
+	"encoding/json"
+
 	"github.com/gin-gonic/gin"
 	"github.com/liumingmin/goutils/log4go"
 	"github.com/liumingmin/goutils/utils"
@@ -14,15 +16,19 @@ func CachePage(store CacheStore, expire time.Duration, reqProc func(r *http.Requ
 
 	return func(c *gin.Context) {
 		newkey := reqProc(c.Request)
-		if cache, err := store.Get(newkey); err != nil {
+		if bsValue, err := store.Get(newkey); err != nil {
 			// replace writer
 			log4go.Debug("Cache not hit...")
 			writer := NewCachedWriterGin(store, expire, c.Writer, newkey)
 			c.Writer = writer
 			handle(c)
 		} else {
-			respCache := cache.(responseCache)
-			c.JSON(http.StatusOK, respCache.Data)
+			var respCache responseCache
+			if err := json.Unmarshal(bsValue, &respCache); err == nil {
+				c.Data(http.StatusOK, "application/json", respCache.Data)
+			} else {
+				c.String(http.StatusInternalServerError, "cache error")
+			}
 		}
 	}
 }

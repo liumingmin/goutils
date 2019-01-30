@@ -1,12 +1,16 @@
 package cache
 
 import (
+	"fmt"
+	"net/http/httptest"
 	"testing"
 
 	"time"
 
+	"github.com/gin-gonic/gin"
 	"github.com/liumingmin/goutils/utils"
 	"github.com/pkg/errors"
+	"gotest.tools/assert"
 )
 
 func cachefunctest(a int, s []string, b map[string]string) (map[string]string, error) {
@@ -66,4 +70,31 @@ func TestTCacheFunc(t *testing.T) {
 
 	result, err = tcf.Cache(1, cachefunctest, 222, []string{"aaa", "222"}, map[string]string{"aaa": "bbb", "111": "ddd"})
 	t.Log("2", result, err)
+}
+
+func TestCachePage(t *testing.T) {
+	router := gin.New()
+
+	memcache := SimpleMemCache{}
+
+	router.GET("/cache_ping", CachePage(&memcache, time.Second*2, SimpleRequestFunc, func(c *gin.Context) {
+		c.String(200, "pong "+fmt.Sprint(time.Now().UnixNano()))
+	}))
+
+	w1 := performRequest("GET", "/cache_ping", router)
+	time.Sleep(time.Second * 3)
+	w2 := performRequest("GET", "/cache_ping", router)
+
+	fmt.Println(w1.Body.String(), w2.Body.String())
+
+	assert.Equal(t, 200, w1.Code)
+	assert.Equal(t, 200, w2.Code)
+	assert.Equal(t, w1.Body.String(), w2.Body.String())
+}
+
+func performRequest(method, target string, router *gin.Engine) *httptest.ResponseRecorder {
+	r := httptest.NewRequest(method, target, nil)
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, r)
+	return w
 }

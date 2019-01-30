@@ -67,8 +67,13 @@ func (w *CachedWriterGin) Write(data []byte) (int, error) {
 func (w *CachedWriterGin) WriteString(data string) (n int, err error) {
 	ret, err := w.ResponseWriter.WriteString(data)
 	if err == nil {
-		//cache response
 		store := w.store
+		if store.Exists(w.key) {
+			log4go.Debug("No need cache...")
+			return ret, err
+		}
+
+		//cache response
 		val := responseCache{
 			w.status,
 			w.Header(),
