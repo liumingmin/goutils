@@ -1,0 +1,11 @@
+ext:
+  redis:
+    host: 10.11.135.61:6379
+    password:
+    dbs:
+    ext:
+      maxIdle: 32
+      idleTimeout: 240s
+      testOnBorrow: PING
+      notifyKeyspaceEvents: Ex
+      #distlockdb: 0

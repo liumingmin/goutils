@@ -3,12 +3,13 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/gin-gonic/gin"
-	"github.com/liumingmin/goutils/async"
-	"github.com/liumingmin/goutils/cbk"
 	"net/http"
+	"os"
 	"strings"
 	"time"
+
+	"github.com/gin-gonic/gin"
+	"github.com/liumingmin/goutils/async"
 	//"github.com/liumingmin/goutils/log4go"
 	//"sync/atomic"
 	//"sort"
@@ -36,7 +37,15 @@ func main() {
 	//	sort.Reverse()
 
 	//var x uint = 1
-	fmt.Println(x3)
+	//fmt.Println(x3)
+
+	//var is = []interface{}{"1", "2"}
+
+	//var iis interface{}
+	//iis = ""
+	//
+	//v, ok := iis.([]interface{})
+	fmt.Println(os.Args[0])
 }
 
 func testAsyncInvoke() {
@@ -54,17 +63,6 @@ func testAsyncInvoke() {
 	})
 
 	fmt.Println("1alldone:", result)
-}
-
-func testCircuitBreaker() {
-	router := gin.New()
-	router.Use(cbk.CircuitBreaker(cbk.Options{MaxQps: 100, ReqTagFunc: reqTag1}))
-	router.GET("/testurl", func(c *gin.Context) {
-		time.Sleep(time.Second)
-		c.String(http.StatusOK, "ok!!")
-	})
-
-	router.Run(":8080")
 }
 
 func testWeb() {

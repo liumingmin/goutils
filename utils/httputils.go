@@ -8,8 +8,11 @@ import (
 	"io/ioutil"
 	"net"
 	"net/http"
+	"net/http/httptest"
 	"net/url"
 	"time"
+
+	"github.com/gin-gonic/gin"
 )
 
 var gTransport *http.Client
@@ -74,6 +77,13 @@ func defaultPooledTransport() *http.Transport {
 
 func DefaultPooledClient() *http.Client {
 	return gTransport
+}
+
+func PerformTestRequest(method, target string, router *gin.Engine) *httptest.ResponseRecorder {
+	r := httptest.NewRequest(method, target, nil)
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, r)
+	return w
 }
 
 func init() {
