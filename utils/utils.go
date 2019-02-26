@@ -58,7 +58,6 @@ func ConsistArgs(args ...interface{}) string {
 			f := arg.([]float64)
 			sort.Float64s(f)
 			b.WriteString(fmt.Sprintf("%v", f))
-		case struct{}:
 		default:
 			t := reflect.TypeOf(arg)
 			if t.Kind() == reflect.Map {
@@ -113,12 +112,7 @@ func MapToOrderStr(arg interface{}) string {
 			b.WriteString(",")
 		}
 		break
-	case reflect.Int:
-	case reflect.Uint:
-	case reflect.Int32:
-	case reflect.Uint32:
-	case reflect.Int64:
-	case reflect.Uint64:
+	case reflect.Int, reflect.Uint, reflect.Int32, reflect.Uint32, reflect.Int64:
 		var ss []int
 		for _, key := range keys {
 			ss = append(ss, int(key.Int()))
