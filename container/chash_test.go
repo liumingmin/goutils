@@ -27,4 +27,10 @@ func TestNewChash(t *testing.T) {
 
 	c.AddNode("aaaaa")
 	t.Log(c.GetNode("fdsafdwfe"))
+
+	c.AddNode("bbbbb")
+	t.Log(c.GetNode("fdsafdwfe"))
+
+	c.AddNode("ccccc")
+	t.Log(c.GetNode("fdsafdwfe"))
 }
