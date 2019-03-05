@@ -69,10 +69,11 @@ func (c *Chash) AddNode(node NodeHealth) {
 func (c *Chash) GetNode(key string) NodeHealth {
 	c.lock.RLock()
 	defer c.lock.RUnlock()
+	cursor := c.nodeRing
 
 	c32 := crc32.ChecksumIEEE([]byte(key))
 
-	currSlot := c.nodeRing.Value.(*chashSlot)
+	currSlot := cursor.Value.(*chashSlot)
 	if c32 >= currSlot.start && c32 < currSlot.end {
 		return currSlot.node
 	}
@@ -80,7 +81,7 @@ func (c *Chash) GetNode(key string) NodeHealth {
 	currStep := currSlot.end - currSlot.start
 	distance := (int64(c32) - int64(currSlot.start)) / int64(currStep)
 
-	cursor := c.nodeRing.Move(int(distance))
+	cursor = cursor.Move(int(distance))
 
 	moveCnt := 0
 	for {
