@@ -2,35 +2,44 @@ package container
 
 import "testing"
 
+type Node string
+
+func (n Node) Health() bool {
+	if n == "3333" || n == "4444" || n == "5555" {
+		return false
+	}
+	return true
+}
+
 func TestNewChash(t *testing.T) {
-	strs := []string{"111", "222", "3333", "4444", "5555"}
+	strs := []NodeHealth{Node("111"), Node("222"), Node("3333"), Node("4444"), Node("5555")}
 	var configs []interface{}
 	for _, str := range strs {
 		configs = append(configs, str)
 	}
-	c := NewChash(configs)
+	c := NewChash(strs)
 	//t.Log(c.ring.Value)
 
 	t.Log(c.GetNode("fdsafdwfe"))
 
-	c.AddNode("66666")
+	c.AddNode(Node("66666"))
 	t.Log(c.GetNode("fdsafdwfe"))
 	//
-	c.AddNode("777777")
+	c.AddNode(Node("777777"))
 	t.Log(c.GetNode("fdsafdwfe"))
 
-	c.AddNode("8888")
+	c.AddNode(Node("8888"))
 	t.Log(c.GetNode("fdsafdwfe"))
 
-	c.AddNode("99999")
+	c.AddNode(Node("99999"))
 	t.Log(c.GetNode("fdsafdwfe"))
 
-	c.AddNode("aaaaa")
+	c.AddNode(Node("aaaaa"))
 	t.Log(c.GetNode("fdsafdwfe"))
 
-	c.AddNode("bbbbb")
+	c.AddNode(Node("bbbbb"))
 	t.Log(c.GetNode("fdsafdwfe"))
 
-	c.AddNode("ccccc")
+	c.AddNode(Node("ccccc"))
 	t.Log(c.GetNode("fdsafdwfe"))
 }
