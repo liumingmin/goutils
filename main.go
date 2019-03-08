@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"os"
 	"strings"
 	"time"
 
@@ -45,7 +44,7 @@ func main() {
 	//iis = ""
 	//
 	//v, ok := iis.([]interface{})
-	fmt.Println(os.Args[0])
+	fmt.Println(fmt.Sprintf("%v:%v", "aaa", "bbb", "cccc"))
 }
 
 func testAsyncInvoke() {

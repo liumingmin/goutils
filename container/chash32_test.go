@@ -8,7 +8,16 @@ import (
 	"github.com/liumingmin/goutils/safego"
 )
 
-func TestNewChash(t *testing.T) {
+type Node string
+
+func (n Node) Health() bool {
+	if n == "3333" || n == "4444" || n == "5555" {
+		return false
+	}
+	return true
+}
+
+func TestNewChash32(t *testing.T) {
 	strs := []NodeHealth{Node("111"), Node("222"), Node("3333"), Node("4444"), Node("5555")}
 	var configs []interface{}
 	for _, str := range strs {
@@ -41,7 +50,7 @@ func TestNewChash(t *testing.T) {
 	t.Log(c.GetNode("fdsafdwfe"))
 }
 
-func TestNewChash2(t *testing.T) {
+func TestNewChash322(t *testing.T) {
 	strs := []NodeHealth{Node("111"), Node("222"), Node("3333"), Node("4444"), Node("5555")}
 	var configs []interface{}
 	for _, str := range strs {

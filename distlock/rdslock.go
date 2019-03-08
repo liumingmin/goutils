@@ -1,24 +1,33 @@
 package distlock
 
 import (
-	"net"
 	"time"
 
-	"os"
-
 	"github.com/garyburd/redigo/redis"
+	"github.com/google/uuid"
 	"github.com/liumingmin/goutils/conf"
+	"github.com/liumingmin/goutils/safego"
 )
 
 var gRdsPool *redis.Pool
 
-func AquireLock(res string, timeout int) bool {
+type RdsLuaLock struct {
+	key    string
+	value  string
+	expire int
+}
+
+func NewRdsLuaLock(key string, expire int) (*RdsLuaLock, error) {
+	return &RdsLuaLock{key: key, value: uuid.New().String(), expire: expire}, nil
+}
+
+func (l *RdsLuaLock) TryLock() bool {
 	c := gRdsPool.Get()
 	defer c.Close()
 
 	val, err := redis.Int(c.Do("EVAL",
 		`if(redis.call("EXISTS",KEYS[1])==1)then if(redis.call("GET",KEYS[1])==ARGV[2])then redis.call("EXPIRE",KEYS[1],ARGV[1]);return 1;else return 0;end;else redis.call("SETEX",KEYS[1],ARGV[1],ARGV[2]);return 1;end`,
-		1, res, timeout, gLocakKey))
+		1, l.key, l.expire, l.value))
 	if err != nil {
 		return false
 	}
@@ -26,24 +35,35 @@ func AquireLock(res string, timeout int) bool {
 	return val == 1
 }
 
-var gLocakKey = func() string {
-	localKey := os.Args[0]
+func (l *RdsLuaLock) Lock(timeout int) bool {
+	t := time.NewTicker(time.Second)
+	defer t.Stop()
 
-	addrs, err := net.InterfaceAddrs()
-	if err != nil {
-		return localKey
-	}
+	stopChan := make(chan struct{})
+	safego.Go(func() {
+		time.Sleep(time.Second * time.Duration(timeout))
+		stopChan <- struct{}{}
+	})
 
-	for _, address := range addrs {
-		// 检查ip地址判断是否回环地址
-		if ipnet, ok := address.(*net.IPNet); ok && !ipnet.IP.IsLoopback() {
-			if ipnet.IP.To4() != nil {
-				localKey += "~" + ipnet.IP.String()
+	for {
+		select {
+		case <-stopChan:
+			return false
+		case <-t.C:
+			result := l.TryLock()
+			if result {
+				return true
 			}
 		}
 	}
-	return localKey
-}()
+}
+
+func (l *RdsLuaLock) Unlock() {
+	c := gRdsPool.Get()
+	defer c.Close()
+
+	c.Do("DEL", l.key)
+}
 
 func init() {
 	gRdsPool = &redis.Pool{

@@ -3,63 +3,58 @@ package container
 import (
 	"container/ring"
 	"fmt"
+	"hash/crc32"
 	"sync"
-
-	"github.com/liumingmin/goutils/utils"
 )
 
-type NodeHealth interface {
-	Health() bool
-}
-
-type Chash struct {
+type Chash32 struct {
 	ring      *ring.Ring
 	nodeRing  *ring.Ring
 	nodeCount int
 	lock      sync.RWMutex
 }
 
-type chashSlot struct {
-	start uint16
-	end   uint16
+type chashSlot32 struct {
+	start uint32
+	end   uint32
 	node  NodeHealth
 }
 
-func NewChash(nodes []NodeHealth) *Chash {
+func NewChash32(nodes []NodeHealth) *Chash32 {
 	initLen := len(nodes)
 	r := ring.New(initLen)
-	step := ^uint16(0) / uint16(initLen)
+	step := ^uint32(0) / uint32(initLen)
 
 	next := r
 	for i := 0; i < initLen; i++ {
 		next = next.Next()
-		slot := &chashSlot{start: uint16(i) * step, end: uint16(i+1) * step, node: nodes[i]}
+		slot := &chashSlot32{start: uint32(i) * step, end: uint32(i+1) * step, node: nodes[i]}
 
 		if i == initLen-1 {
-			slot.end = ^uint16(0)
+			slot.end = ^uint32(0)
 		}
 
 		next.Value = slot
 	}
 
-	return &Chash{
+	return &Chash32{
 		ring:      r,
 		nodeRing:  r,
 		nodeCount: initLen,
 	}
 }
 
-func (c *Chash) AddNode(node NodeHealth) {
+func (c *Chash32) AddNode(node NodeHealth) {
 	c.lock.Lock()
 	defer c.lock.Unlock()
 
 	next := c.ring.Next()
 
-	slot := next.Value.(*chashSlot)
+	slot := next.Value.(*chashSlot32)
 	newstep := (slot.end - slot.start) / 2
 
 	r := ring.New(1)
-	r.Value = &chashSlot{start: slot.start, end: slot.start + newstep, node: node}
+	r.Value = &chashSlot32{start: slot.start, end: slot.start + newstep, node: node}
 
 	c.ring.Link(r)
 	c.nodeCount++
@@ -67,27 +62,27 @@ func (c *Chash) AddNode(node NodeHealth) {
 	c.ring = next
 }
 
-func (c *Chash) GetNode(key string) NodeHealth {
+func (c *Chash32) GetNode(key string) NodeHealth {
 	c.lock.RLock()
 	defer c.lock.RUnlock()
 	cursor := c.nodeRing
 
-	c16 := utils.Crc16([]byte(key))
+	c32 := crc32.ChecksumIEEE([]byte(key))
 
-	currSlot := cursor.Value.(*chashSlot)
-	if c16 >= currSlot.start && c16 < currSlot.end {
+	currSlot := cursor.Value.(*chashSlot32)
+	if c32 >= currSlot.start && c32 < currSlot.end {
 		return currSlot.node
 	}
 
 	currStep := currSlot.end - currSlot.start
-	distance := (int64(c16) - int64(currSlot.start)) / int64(currStep)
+	distance := (int64(c32) - int64(currSlot.start)) / int64(currStep)
 
 	cursor = cursor.Move(int(distance))
 
 	moveCnt := 0
 	for {
-		slot := cursor.Value.(*chashSlot)
-		if c16 >= slot.start && c16 < slot.end {
+		slot := cursor.Value.(*chashSlot32)
+		if c32 >= slot.start && c32 < slot.end {
 			for {
 				if slot.node.Health() {
 					return slot.node
@@ -98,15 +93,15 @@ func (c *Chash) GetNode(key string) NodeHealth {
 				}
 
 				cursor = cursor.Next()
-				slot = cursor.Value.(*chashSlot)
+				slot = cursor.Value.(*chashSlot32)
 				moveCnt++
 			}
 		}
 
 		fmt.Println("no hit,skip ", slot.node)
-		if c16 < slot.start {
+		if c32 < slot.start {
 			cursor = cursor.Prev()
-		} else if c16 >= slot.end {
+		} else if c32 >= slot.end {
 			cursor = cursor.Next()
 		}
 
