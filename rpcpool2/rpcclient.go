@@ -7,17 +7,17 @@ import (
 	"time"
 
 	"github.com/liumingmin/goutils/async"
-	"github.com/liumingmin/goutils/log4go"
 )
 
 type Client struct {
 	*rpc.Client
-	addr string
-	tcp  *net.TCPConn
-	ctx  context.Context
-	cnl  context.CancelFunc
-	err  error
-	pool *Pool
+	addr        string
+	tcp         *net.TCPConn
+	ctx         context.Context
+	cnl         context.CancelFunc
+	err         error
+	refCnt      int
+	releaseFunc func(*Client, error)
 }
 
 func (c *Client) Call(serviceMethod string, args interface{}, reply interface{}) error {
@@ -52,7 +52,9 @@ func (c *Client) CallWithTimeout(serviceMethod string, args interface{}, reply i
 }
 
 func (c *Client) Release() {
-	c.pool.Put(c, c.err)
+	if c.releaseFunc != nil {
+		c.releaseFunc(c, c.err)
+	}
 }
 
 func (c *Client) Close() (err error) {
@@ -69,13 +71,12 @@ func (c *Client) Close() (err error) {
 	return
 }
 
-func newClient(opt *Option, pool *Pool) (c *Client, err error) {
-	log4go.Debug("Start to connect to server. addr: %s", opt.Addr)
+func newClient(opt *Option) (c *Client, err error) {
+	//log4go.Debug("Start to connect to server. addr: %s", opt.Addr)
 
 	c = &Client{
 		addr: opt.Addr,
 		err:  nil,
-		pool: pool,
 	}
 
 	defer func() {
@@ -108,9 +109,9 @@ func newClient(opt *Option, pool *Pool) (c *Client, err error) {
 
 	c.ctx, c.cnl = context.WithCancel(context.Background())
 
-	log4go.Debug("Success connect to server. addr: %s", c.addr)
+	//log4go.Debug("Success connect to server. addr: %s", c.addr)
 
 	c.Client = rpc.NewClient(c.tcp)
-	log4go.Debug("Success NewClient . addr: %s", c.addr)
+	//log4go.Debug("Success NewClient . addr: %s", c.addr)
 	return
 }

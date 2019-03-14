@@ -11,6 +11,7 @@ import (
 type Option struct {
 	Addr      string // 连接地址
 	Size      int    // 连接数
+	RefSize   int
 	KeepAlive time.Duration
 }
 
@@ -33,7 +34,8 @@ func NewPool(opt *Option) (p *Pool, err error) {
 
 	var conn *Client
 	for i := 0; i < opt.Size; i++ {
-		conn, err = newClient(opt, p)
+		conn, err = newClient(opt)
+		conn.releaseFunc = p.Put
 		if err != nil {
 			for e := idle.Front(); e != nil; e = e.Next() {
 				e.Value.(*Client).Close()
@@ -67,7 +69,8 @@ func (p *Pool) Get() (c *Client, err error) {
 	if p.idle.Len() > 0 {
 		c = p.idle.Remove(p.idle.Front()).(*Client)
 	} else {
-		c, err = newClient(p.Option, p)
+		c, err = newClient(p.Option)
+		c.releaseFunc = p.Put
 		if err == nil {
 			p.actives++
 		}
