@@ -8,7 +8,7 @@ import (
 )
 
 func BenchmarkPool(b *testing.B) {
-	pool, _ := NewPool(&Option{Addr: "127.0.0.1:12340", Size: 500,
+	pool, _ := NewPool(&Option{Addr: "127.0.0.1:12340", Size: 200,
 		KeepAlive: time.Hour * 4})
 
 	args := &Args{7, 8}
@@ -19,22 +19,22 @@ func BenchmarkPool(b *testing.B) {
 
 	b.N = 10000
 
-	//wg := &sync.WaitGroup{}
+	wg := &sync.WaitGroup{}
 	for i := 0; i < b.N; i++ {
-		//wg.Add(1)
-		//go func() {
-		//	defer wg.Done()
-		if c, err := pool.Get(); err == nil {
-			err = c.CallWithTimeout("SArith.Multiply", args, &reply)
-			if err != nil {
-				//b.Log("arith error:", err)
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			if c, err := pool.Get(); err == nil {
+				err = c.CallWithTimeout("SArith.Multiply", args, &reply)
+				if err != nil {
+					//b.Log("arith error:", err)
+				}
+				c.Release()
 			}
-			c.Release()
-		}
-		//}()
+		}()
 	}
 
-	//wg.Wait()
+	wg.Wait()
 	b.StopTimer()
 
 	//fmt.Println(len(pool.clientIdles))

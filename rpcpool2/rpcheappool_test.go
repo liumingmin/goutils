@@ -7,7 +7,7 @@ import (
 )
 
 func BenchmarkHeapPool(b *testing.B) {
-	pool, _ := NewHeapPool(&Option{Addr: "127.0.0.1:12340", Size: 100, RefSize: 1000,
+	pool, _ := NewHeapPool(&Option{Addr: "127.0.0.1:12340", Size: 100, RefSize: 20,
 		KeepAlive: time.Hour * 4})
 
 	args := &Args{7, 8}
@@ -16,7 +16,7 @@ func BenchmarkHeapPool(b *testing.B) {
 	b.StopTimer()
 	b.StartTimer()
 
-	b.N = 100000
+	b.N = 10000
 
 	wg := &sync.WaitGroup{}
 	for i := 0; i < b.N; i++ {

@@ -113,7 +113,7 @@ func (p *HeapPool) Get() (c *Client, err error) {
 			heap.Push(p.idle, con)
 		}
 
-		if con.refCnt >= p.Option.RefSize {
+		if con.refCnt > p.Option.RefSize {
 			p.cond.Wait()
 		} else {
 			c = con
@@ -128,6 +128,9 @@ func (p *HeapPool) Get() (c *Client, err error) {
 }
 
 func (p *HeapPool) Put(c *Client, err error) {
+	//if c.refCnt >= p.RefSize {
+	//	fmt.Println(c, "reach max ref")
+	//}
 	p.mutx.Lock()
 	c.refCnt--
 	p.cond.Signal()
