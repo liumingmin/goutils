@@ -44,7 +44,7 @@ func main() {
 	//iis = ""
 	//
 	//v, ok := iis.([]interface{})
-	fmt.Println(fmt.Sprintf("%v:%v", "aaa", "bbb", "cccc"))
+	//fmt.Println(fmt.Sprintf("%v:%v", "aaa", "bbb", "cccc"))
 }
 
 func testAsyncInvoke() {

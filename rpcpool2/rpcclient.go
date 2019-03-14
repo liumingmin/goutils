@@ -1,7 +1,6 @@
 package rpcpool2
 
 import (
-	"bufio"
 	"context"
 	"net"
 	"net/rpc"
@@ -13,12 +12,12 @@ import (
 
 type Client struct {
 	*rpc.Client
-	addr   string
-	tcp    *net.TCPConn
-	writer *bufio.Writer
-	ctx    context.Context
-	cnl    context.CancelFunc
-	err    error // 最后发生的错误
+	addr string
+	tcp  *net.TCPConn
+	ctx  context.Context
+	cnl  context.CancelFunc
+	err  error
+	pool *Pool
 }
 
 func (c *Client) Call(serviceMethod string, args interface{}, reply interface{}) error {
@@ -52,6 +51,10 @@ func (c *Client) CallWithTimeout(serviceMethod string, args interface{}, reply i
 	return err
 }
 
+func (c *Client) Release() {
+	c.pool.Put(c, c.err)
+}
+
 func (c *Client) Close() (err error) {
 	if c.cnl != nil {
 		c.cnl()
@@ -66,12 +69,13 @@ func (c *Client) Close() (err error) {
 	return
 }
 
-func NewConn(opt *Option) (c *Client, err error) {
+func newClient(opt *Option, pool *Pool) (c *Client, err error) {
 	log4go.Debug("Start to connect to server. addr: %s", opt.Addr)
 
 	c = &Client{
 		addr: opt.Addr,
 		err:  nil,
+		pool: pool,
 	}
 
 	defer func() {
@@ -88,8 +92,6 @@ func NewConn(opt *Option) (c *Client, err error) {
 	} else {
 		c.tcp = conn.(*net.TCPConn)
 	}
-
-	c.writer = bufio.NewWriter(c.tcp)
 
 	if err = c.tcp.SetKeepAlive(true); err != nil {
 		return
