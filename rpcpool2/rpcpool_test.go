@@ -17,7 +17,7 @@ func BenchmarkPool(b *testing.B) {
 	b.StopTimer()
 	b.StartTimer()
 
-	b.N = 10000
+	b.N = 100000
 
 	wg := &sync.WaitGroup{}
 	for i := 0; i < b.N; i++ {
