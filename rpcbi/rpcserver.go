@@ -50,19 +50,19 @@ func (s *RpcServer) Start(network, address string) {
 			continue
 		}
 
-		stream, err := session.Accept()
-		if err != nil {
-			log4go.Error("session.Accept:", err.Error())
-			continue
-		}
-
 		s.lock.Lock()
 		s.sessions[unsafe.Pointer(session)] = ""
 		s.lock.Unlock()
 
 		log4go.Debug("connected!")
 		safego.Go(func() {
+			stream, err := session.Accept()
+			if err != nil {
+				log4go.Error("session.Accept:", err.Error())
+				return
+			}
 			s.ServeConn(stream)
+
 			log4go.Debug("run done")
 
 			session.Close()

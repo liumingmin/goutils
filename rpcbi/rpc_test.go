@@ -2,6 +2,7 @@ package rpcbi
 
 import (
 	"fmt"
+	"net"
 	"testing"
 	"time"
 )
@@ -34,6 +35,45 @@ func TestNewRpcServer(t *testing.T) {
 
 func TestNewRpcClient(t *testing.T) {
 	c, err := NewRpcClient("127.0.0.1:12345", 10)
+	//fmt.Println(c.Handshake("0001", 2))
+	//fmt.Println(err)
+	//time.Sleep(time.Second * 3)
+
+	args := &Args{7, 100}
+	var reply int
+	err = c.Call("Arith.Multiply", args, &reply)
+	if err != nil {
+		fmt.Println("arith error:", err)
+	}
+	fmt.Println(reply)
+
+	args2 := &Args{6, 100}
+	var reply2 int
+	err = c.Call("Arith.Multiply", args2, &reply2)
+	if err != nil {
+		fmt.Println("arith2 error:", err)
+	}
+	fmt.Println(reply2)
+
+	time.Sleep(time.Hour)
+}
+
+func TestNewRpcJsonServer(t *testing.T) {
+	s := NewRpcJsonServer()
+	s.RegisterService("Arith", new(Arith))
+
+	lis, _ := net.Listen("tcp", "127.0.0.1:12345")
+	s.Serve(lis)
+}
+
+func TestNewRpcJsonClient(t *testing.T) {
+	conn, _ := net.Dial("tcp", "127.0.0.1:12345")
+	c := NewRpcJsonClient()
+	err := c.Start(conn)
+	if err != nil {
+		t.Log(err)
+		return
+	}
 	//fmt.Println(c.Handshake("0001", 2))
 	//fmt.Println(err)
 	//time.Sleep(time.Second * 3)

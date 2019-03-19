@@ -39,17 +39,17 @@ func NewRpcClient(addr string, keepalive time.Duration) (*RpcClient, error) {
 	}
 
 	tcp := conn.(*net.TCPConn)
-	if err = tcp.SetKeepAlive(true); err != nil {
-		return nil, err
-	}
-
-	if err = tcp.SetKeepAlivePeriod(keepalive); err != nil {
-		return nil, err
-	}
-
-	if err = tcp.SetLinger(0); err != nil {
-		return nil, err
-	}
+	//if err = tcp.SetKeepAlive(true); err != nil {
+	//	return nil, err
+	//}
+	//
+	//if err = tcp.SetKeepAlivePeriod(keepalive); err != nil {
+	//	return nil, err
+	//}
+	//
+	//if err = tcp.SetLinger(0); err != nil {
+	//	return nil, err
+	//}
 
 	session, err := yamux.Client(conn, nil)
 	if err != nil {
