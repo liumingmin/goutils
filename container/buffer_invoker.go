@@ -1,6 +1,7 @@
 package container
 
 import (
+	"fmt"
 	"sync"
 	"time"
 
@@ -38,7 +39,7 @@ func (b *BufferInvoker) Invoke(key, item interface{}) {
 			safego.Go(func() {
 				defer func() {
 					(*b).Delete(key)
-					//fmt.Println("exit gorruntine")
+					fmt.Println("exit gorruntine")
 				}()
 
 				var waitCnt = 0
@@ -49,10 +50,9 @@ func (b *BufferInvoker) Invoke(key, item interface{}) {
 							return
 						}
 						b.Func(procItem)
-					default:
-						time.Sleep(time.Second)
+						waitCnt = 0
+					case <-time.After(time.Second):
 						waitCnt++
-
 						if waitCnt > 5 {
 							return
 						}
