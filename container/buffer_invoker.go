@@ -52,10 +52,10 @@ func (b *BufferInvoker) Invoke(key, item interface{}) {
 					default:
 						time.Sleep(time.Second)
 						waitCnt++
-					}
 
-					if waitCnt > 5 {
-						return
+						if waitCnt > 5 {
+							return
+						}
 					}
 				}
 			})
