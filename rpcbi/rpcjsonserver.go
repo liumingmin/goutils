@@ -11,13 +11,14 @@ import (
 
 	"errors"
 
+	"fmt"
+
 	"github.com/hashicorp/yamux"
 	"github.com/liumingmin/goutils/safego"
 	"github.com/liumingmin/goutils/utils"
 )
 
 type RpcJsonServer struct {
-	clientid  int32
 	sessions  sync.Map // map[id]*Session
 	rpcServer *rpc.Server
 }
@@ -29,20 +30,20 @@ func NewRpcJsonServer() *RpcJsonServer {
 }
 
 type RpcJsonSession struct {
-	masterConn net.Conn
+	socketConn net.Conn
 	*rpc.Client
 }
 
-func NewRpcJsonSession(masterConn, clientConn net.Conn) *RpcJsonSession {
+func newRpcJsonSession(socketConn, sessionConn net.Conn) *RpcJsonSession {
 	return &RpcJsonSession{
-		masterConn: masterConn,
-		Client:     rpc.NewClientWithCodec(jsonrpc.NewClientCodec(clientConn)),
+		socketConn: socketConn,
+		Client:     rpc.NewClientWithCodec(jsonrpc.NewClientCodec(sessionConn)),
 	}
 }
 
 func (s *RpcJsonSession) Close() {
 	s.Client.Close()
-	s.masterConn.Close()
+	s.socketConn.Close()
 }
 
 func (s *RpcJsonSession) ConnFinished() {
@@ -63,15 +64,18 @@ func (s *RpcJsonServer) serveRpc(sess *yamux.Session) {
 }
 
 func (c *RpcJsonServer) doHandshake(conn net.Conn) (*HandshakeReq, error) {
-	req := &utils.ControlPacket{}
-	req.Unpack(conn)
+	req := &utils.DataPacket{}
+	err := req.Unpack(conn)
+	if err != nil {
+		return nil, err
+	}
 
 	if req.ProtocolId != PROTOCOL_HANDSHAKE {
 		return nil, errors.New("protocol not handshake")
 	}
 
 	handReq := &HandshakeReq{}
-	err := json.Unmarshal(req.Data, handReq)
+	err = json.Unmarshal(req.Data, handReq)
 	if err != nil {
 		return nil, err
 	}
@@ -93,8 +97,8 @@ func (c *RpcJsonServer) handshake(conn net.Conn) (*HandshakeReq, error) {
 	}
 
 	bs, _ := json.Marshal(resp)
-	handshake := &utils.ControlPacket{ProtocolId: PROTOCOL_HANDSHAKE_ACK, Data: bs}
-	handshake.Pack(conn)
+	handshake := &utils.DataPacket{PacketHeader: utils.PacketHeader{ProtocolId: PROTOCOL_HANDSHAKE_ACK}, Data: bs}
+	err = handshake.Pack(conn)
 
 	return req, err
 }
@@ -109,7 +113,7 @@ func (s *RpcJsonServer) handleConn(conn net.Conn) {
 	defer conn.Close()
 
 	id := req.Id
-	log.Printf("allocated %s for %s", id, conn.RemoteAddr())
+	fmt.Printf("client connected:%s,%s\n", id, conn.RemoteAddr())
 
 	sess, err := yamux.Server(conn, nil)
 	if err != nil {
@@ -122,7 +126,7 @@ func (s *RpcJsonServer) handleConn(conn net.Conn) {
 		log.Print(err)
 		return
 	}
-	session := NewRpcJsonSession(conn, clientConn)
+	session := newRpcJsonSession(conn, clientConn)
 	s.sessions.Store(id, session)
 	session.ConnFinished()
 
@@ -130,7 +134,7 @@ func (s *RpcJsonServer) handleConn(conn net.Conn) {
 
 	s.sessions.Delete(id)
 	session.DisconnFinished()
-	log.Printf("%s(%s) closed connection", conn.RemoteAddr(), id)
+	fmt.Printf("client disconnected:%s,%s\n", id, conn.RemoteAddr())
 }
 
 func (s *RpcJsonServer) RegisterService(name string, service interface{}) error {

@@ -18,13 +18,14 @@ import (
 type RpcJsonClient struct {
 	rpcServer *rpc.Server
 
-	ClientId int32
+	ClientId string
 	*rpc.Client
 }
 
-func NewRpcJsonClient() *RpcJsonClient {
+func NewRpcJsonClient(id string) *RpcJsonClient {
 	return &RpcJsonClient{
 		rpcServer: rpc.NewServer(),
+		ClientId:  id,
 	}
 }
 
@@ -66,19 +67,25 @@ func (c *RpcJsonClient) Start(conn net.Conn) error {
 }
 
 func (c *RpcJsonClient) handshake(conn net.Conn) error {
-	bs, _ := json.Marshal(&HandshakeReq{Version: PROTOCOL_VERSION, Id: "11"})
-	handshake := &utils.ControlPacket{ProtocolId: PROTOCOL_HANDSHAKE, Data: bs}
-	handshake.Pack(conn)
+	bs, _ := json.Marshal(&HandshakeReq{Version: PROTOCOL_VERSION, Id: c.ClientId})
+	handshake := &utils.DataPacket{PacketHeader: utils.PacketHeader{ProtocolId: PROTOCOL_HANDSHAKE}, Data: bs}
+	err := handshake.Pack(conn)
+	if err != nil {
+		return err
+	}
 
-	handshakeAck := &utils.ControlPacket{}
-	handshakeAck.Unpack(conn)
+	handshakeAck := &utils.DataPacket{}
+	err = handshakeAck.Unpack(conn)
+	if err != nil {
+		return err
+	}
 
 	if handshakeAck.ProtocolId != PROTOCOL_HANDSHAKE_ACK {
 		return errors.New("protocol not match")
 	}
 
 	resp := &HandshakeResp{}
-	err := json.Unmarshal(handshakeAck.Data, resp)
+	err = json.Unmarshal(handshakeAck.Data, resp)
 	if err != nil {
 		return err
 	}

@@ -4,68 +4,64 @@ import (
 	"bytes"
 	"encoding/binary"
 	"io"
+
+	"github.com/pkg/errors"
 )
 
-type ControlPacket struct {
-	Length     uint16
+var (
+	RPC_PACKET_FLAG = [2]byte{0xEF, 0xEE}
+)
+
+type PacketHeader struct {
+	flag       [2]byte
+	length     uint16
 	ProtocolId uint16
-	Data       []byte
 }
 
-func (p *ControlPacket) Unpack(reader io.Reader) {
-	var lengthByte [2]byte
-	var protocolIdByte [2]byte
+type DataPacket struct {
+	PacketHeader
+	Data []byte
+}
 
-	reader.Read(lengthByte[:])
-	reader.Read(protocolIdByte[:])
+func (p *DataPacket) Unpack(reader io.Reader) error {
+	var headerBytes [6]byte
+	_, err := io.ReadAtLeast(reader, headerBytes[:], 6)
+	if err != nil {
+		return err
+	}
 
-	binary.Read(bytes.NewBuffer(lengthByte[:]), binary.LittleEndian, &p.Length)
+	flagBytes := headerBytes[:2]
+	if flagBytes[0] != RPC_PACKET_FLAG[0] || flagBytes[1] != RPC_PACKET_FLAG[1] {
+		return errors.New("packet flag error")
+	}
+
+	lengthByte := headerBytes[2:4]
+	protocolIdByte := headerBytes[4:6]
+
+	binary.Read(bytes.NewBuffer(lengthByte[:]), binary.LittleEndian, &p.length)
 	binary.Read(bytes.NewBuffer(protocolIdByte[:]), binary.LittleEndian, &p.ProtocolId)
 
-	p.Data = make([]byte, p.Length-4)
+	p.Data = make([]byte, p.length)
 	reader.Read(p.Data)
+	return nil
 }
 
-func (p *ControlPacket) Pack(writer io.Writer) error {
+func (p *DataPacket) Pack(writer io.Writer) error {
 	var err error
 
 	var lengthByte [2]byte
 	var protocolIdByte [2]byte
 
-	p.Length = uint16(len(p.Data) + 4)
+	p.length = uint16(len(p.Data))
 
-	binary.LittleEndian.PutUint16(lengthByte[:], p.Length)
+	binary.LittleEndian.PutUint16(lengthByte[:], p.length)
 	binary.LittleEndian.PutUint16(protocolIdByte[:], p.ProtocolId)
 
-	dataPack := append(protocolIdByte[:], p.Data...)
-	dataPack = append(lengthByte[:], dataPack...)
+	flagBytes := []byte{RPC_PACKET_FLAG[0], RPC_PACKET_FLAG[1]}
+	dataPack := append(flagBytes, lengthByte[:]...)
+	dataPack = append(dataPack, protocolIdByte[:]...)
+	dataPack = append(dataPack, p.Data...)
 
 	err = binary.Write(writer, binary.BigEndian, &dataPack)
 	return err
-}
-
-func ReadPacketLength16(r io.Reader) (uint16, error) {
-	var lengthByte [2]byte
-	_, err := io.ReadAtLeast(r, lengthByte[:], 2)
-	if err != nil {
-		return 0, err
-	}
-
-	var length uint16
-	binary.Read(bytes.NewBuffer(lengthByte[:]), binary.LittleEndian, &length)
-
-	return length, nil
-}
-
-func ReadPacketLength(r io.Reader) (uint32, error) {
-	var lengthByte [4]byte
-	_, err := io.ReadAtLeast(r, lengthByte[:], 4)
-	if err != nil {
-		return 0, err
-	}
-
-	var length uint32
-	binary.Read(bytes.NewBuffer(lengthByte[:]), binary.LittleEndian, &length)
-
-	return length, nil
 }

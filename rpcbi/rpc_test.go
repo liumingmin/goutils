@@ -68,7 +68,7 @@ func TestNewRpcJsonServer(t *testing.T) {
 
 func TestNewRpcJsonClient(t *testing.T) {
 	conn, _ := net.Dial("tcp", "127.0.0.1:12345")
-	c := NewRpcJsonClient()
+	c := NewRpcJsonClient("22345")
 	err := c.Start(conn)
 	if err != nil {
 		t.Log(err)
