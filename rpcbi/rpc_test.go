@@ -2,9 +2,11 @@ package rpcbi
 
 import (
 	"fmt"
-	"net"
 	"testing"
 	"time"
+
+	"crypto/rand"
+	"crypto/tls"
 
 	"github.com/liumingmin/goutils/safego"
 )
@@ -59,14 +61,36 @@ func TestNewRpcServer(t *testing.T) {
 	c.server = s
 	s.RegisterService("Arith", new(Arith))
 
-	lis, _ := net.Listen("tcp", "127.0.0.1:12345")
+	crt, err := tls.LoadX509KeyPair("server.crt", "server.key")
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	tlsConfig := &tls.Config{}
+	tlsConfig.Certificates = []tls.Certificate{crt}
+	tlsConfig.Time = time.Now
+	tlsConfig.Rand = rand.Reader
+
+	lis, _ := tls.Listen("tcp", ":12345", tlsConfig)
 	s.Serve(lis)
 }
 
 func TestNewRpcClient(t *testing.T) {
-	conn, _ := net.Dial("tcp", "127.0.0.1:12345")
+	//crt, err := tls.LoadX509KeyPair("server.crt", "server.key")
+	//if err != nil {
+	//	t.Fatal(err.Error())
+	//}
+	tlsConfig := &tls.Config{}
+	//tlsConfig.Certificates = []tls.Certificate{crt}
+	//tlsConfig.Time = time.Now
+	//tlsConfig.Rand = rand.Reader
+	tlsConfig.InsecureSkipVerify = true
+
+	conn, err := tls.Dial("tcp", "10.11.134.34:12345", tlsConfig)
+	if err != nil {
+		t.Fatal(err)
+	}
 	c := NewRpcClient(PROTOCOL_FORMAT_JSON, "22345")
-	err := c.Start(conn)
+	err = c.Start(conn)
 	if err != nil {
 		t.Log(err)
 		return
