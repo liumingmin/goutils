@@ -70,7 +70,7 @@ func TestNewRpcServer(t *testing.T) {
 	tlsConfig.Time = time.Now
 	tlsConfig.Rand = rand.Reader
 
-	lis, _ := tls.Listen("tcp", ":12345", tlsConfig)
+	lis, _ := tls.Listen("tcp", ":12345", tlsConfig) //tlsConfig
 	s.Serve(lis)
 }
 

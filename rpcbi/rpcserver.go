@@ -3,14 +3,16 @@ package rpcbi
 import (
 	"encoding/json"
 	"errors"
-	"fmt"
-	"log"
 	"net"
 	"net/rpc"
 	"net/rpc/jsonrpc"
 	"sync"
 
+	"time"
+
 	"github.com/hashicorp/yamux"
+	"github.com/liumingmin/goutils/async"
+	"github.com/liumingmin/goutils/log4go"
 	"github.com/liumingmin/goutils/safego"
 	"github.com/liumingmin/goutils/utils"
 )
@@ -61,7 +63,7 @@ func (s *RpcServer) newRpcSession(socketConn, sessionConn net.Conn) *RpcSession 
 func (s *RpcServer) serveRpc(sess *yamux.Session) {
 	conn, err := sess.Accept()
 	if err != nil {
-		log.Print(err)
+		log4go.Error("Session accept connection failed.error: %v", err)
 		return
 	}
 
@@ -115,7 +117,18 @@ func (c *RpcServer) handshake(conn net.Conn) (*HandshakeReq, error) {
 }
 
 func (s *RpcServer) handleConn(conn net.Conn) {
-	req, err := s.handshake(conn)
+	var req *HandshakeReq
+	var err error
+	ok := async.AsyncInvokeWithTimeout(time.Second*5, func() {
+		req, err = s.handshake(conn)
+	})
+
+	if !ok {
+		log4go.Info("client handshake timeout:%s\n", conn.RemoteAddr())
+		conn.Close()
+		return
+	}
+
 	if err != nil {
 		conn.Close()
 		return
@@ -124,17 +137,17 @@ func (s *RpcServer) handleConn(conn net.Conn) {
 	defer conn.Close()
 
 	id := req.Id
-	fmt.Printf("client connected:%s,%s\n", id, conn.RemoteAddr())
+	log4go.Info("client connected:%s,%s\n", id, conn.RemoteAddr())
 
-	sess, err := yamux.Server(conn, nil)
+	sess, err := yamux.Server(conn, nil) //default config  keepalive ...
 	if err != nil {
-		log.Print(err)
+		log4go.Error("Create session failed.error: %v", err)
 		return
 	}
 
 	clientConn, err := sess.Open()
 	if err != nil {
-		log.Print(err)
+		log4go.Error("Open session failed.error: %v", err)
 		return
 	}
 	session := s.newRpcSession(conn, clientConn)
@@ -151,7 +164,7 @@ func (s *RpcServer) handleConn(conn net.Conn) {
 		s.connCallback.DisconnFinished(id)
 	}
 
-	fmt.Printf("client disconnected:%s,%s\n", id, conn.RemoteAddr())
+	log4go.Info("client disconnected:%s,%s\n", id, conn.RemoteAddr())
 }
 
 func (s *RpcServer) RegisterService(name string, service interface{}) error {
@@ -176,7 +189,7 @@ func (s *RpcServer) Serve(l net.Listener) {
 	for {
 		conn, err := l.Accept()
 		if err != nil {
-			log.Print(err)
+			log4go.Error("Accept connection failed.error: %v", err)
 			continue
 		}
 		safego.Go(func() {
