@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/liumingmin/goutils/async"
+	"github.com/liumingmin/goutils/utils"
 	//"github.com/liumingmin/goutils/log4go"
 	//"sync/atomic"
 	//"sort"
@@ -46,11 +46,12 @@ func main() {
 	//v, ok := iis.([]interface{})
 	//fmt.Println(fmt.Sprintf("%v:%v", "aaa", "bbb", "cccc"))
 
+	fmt.Println(fmt.Sprint(222))
 }
 
 func testAsyncInvoke() {
 	var respInfos []string
-	result := async.AsyncInvokeWithTimeout(time.Second*4, func() {
+	result := utils.AsyncInvokeWithTimeout(time.Second*4, func() {
 		time.Sleep(time.Second * 2)
 		respInfos = []string{"we add1", "we add2"}
 		fmt.Println("1done")
