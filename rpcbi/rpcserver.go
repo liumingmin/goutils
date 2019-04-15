@@ -11,7 +11,6 @@ import (
 	"time"
 
 	"github.com/hashicorp/yamux"
-	"github.com/liumingmin/goutils/async"
 	"github.com/liumingmin/goutils/log4go"
 	"github.com/liumingmin/goutils/safego"
 	"github.com/liumingmin/goutils/utils"
@@ -119,7 +118,7 @@ func (c *RpcServer) handshake(conn net.Conn) (*HandshakeReq, error) {
 func (s *RpcServer) handleConn(conn net.Conn) {
 	var req *HandshakeReq
 	var err error
-	ok := async.AsyncInvokeWithTimeout(time.Second*5, func() {
+	ok := utils.AsyncInvokeWithTimeout(time.Second*5, func() {
 		req, err = s.handshake(conn)
 	})
 

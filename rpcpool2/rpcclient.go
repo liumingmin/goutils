@@ -6,7 +6,7 @@ import (
 	"net/rpc"
 	"time"
 
-	"github.com/liumingmin/goutils/async"
+	"github.com/liumingmin/goutils/utils"
 )
 
 type Client struct {
@@ -35,7 +35,7 @@ func (c *Client) CallWithTimeout(serviceMethod string, args interface{}, reply i
 	var err error
 
 	for i := 0; i < 3; i++ {
-		ok := async.AsyncInvokeWithTimeout(time.Second, func() {
+		ok := utils.AsyncInvokeWithTimeout(time.Second, func() {
 			err = c.Client.Call(serviceMethod, args, reply)
 		})
 

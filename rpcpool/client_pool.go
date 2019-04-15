@@ -11,8 +11,8 @@ import (
 
 	"time"
 
-	"github.com/liumingmin/goutils/async"
 	"github.com/liumingmin/goutils/safego"
+	"github.com/liumingmin/goutils/utils"
 )
 
 var ErrClosed = errors.New("pool is closed")
@@ -74,7 +74,7 @@ func (c *Client) CallWithTimeout(serviceMethod string, args interface{}, reply i
 	var failCnt int32
 
 	for i := 0; i < 3; i++ {
-		ok := async.AsyncInvokeWithTimeout(time.Second, func() {
+		ok := utils.AsyncInvokeWithTimeout(time.Second, func() {
 			err = c.Client.Call(serviceMethod, args, reply)
 		})
 
