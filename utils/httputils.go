@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -90,4 +91,8 @@ func init() {
 	gTransport = &http.Client{
 		Transport: defaultPooledTransport(),
 	}
+}
+
+func ReqHostIp(c *gin.Context) string {
+	return strings.Split(c.Request.RemoteAddr, ":")[0]
 }

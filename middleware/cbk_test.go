@@ -9,11 +9,11 @@ import (
 	"github.com/gin-gonic/gin"
 
 	"encoding/json"
-	"strings"
 
 	"fmt"
 
 	"github.com/liumingmin/goutils/safego"
+	"github.com/liumingmin/goutils/utils"
 )
 
 func reqTag(c *gin.Context) string {
@@ -29,13 +29,9 @@ func reqTag(c *gin.Context) string {
 	return keyValue
 }
 
-func reqTagIP(c *gin.Context) string {
-	return strings.Split(c.Request.RemoteAddr, ":")[0]
-}
-
 func TestCircuitBreaker(t *testing.T) {
 	router := gin.New()
-	router.Use(CircuitBreaker(Options{MaxQps: 100, ReqTagFunc: reqTagIP}))
+	router.Use(CircuitBreaker(Options{MaxQps: 100, ReqTagFunc: utils.ReqHostIp}))
 	router.GET("/testurl", func(c *gin.Context) {
 		time.Sleep(time.Second)
 		c.String(http.StatusOK, "ok!!")

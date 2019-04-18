@@ -8,11 +8,12 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/liumingmin/goutils/safego"
+	"github.com/liumingmin/goutils/utils"
 )
 
 func TestLimitReq(t *testing.T) {
 	router := gin.New()
-	lr := &LimitReq{KeyFunc: reqTagIP}
+	lr := &LimitReq{KeyFunc: utils.ReqHostIp}
 
 	router.Use(lr.Incoming(10, 4))
 	router.GET("/testurl", func(c *gin.Context) {
