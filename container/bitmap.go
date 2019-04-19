@@ -1,7 +1,7 @@
 package container
 
 import (
-	"github.com/liumingmin/goutils/math"
+	"github.com/liumingmin/goutils/utils"
 )
 
 type Bitmap []uint32
@@ -40,7 +40,7 @@ func (b *Bitmap) Sets(items []uint32) {
 
 	max := uint32(0)
 	for _, item := range items {
-		max = math.MaxU(max, item)
+		max = utils.MaxU(max, item)
 	}
 
 	index := b.calcIndex(max)
@@ -61,7 +61,7 @@ func (b *Bitmap) Union(b2 *Bitmap) *Bitmap {
 		maxData = b2.Clone()
 	}
 
-	minLen := math.Min(len(*b), len(*b2))
+	minLen := utils.Min(len(*b), len(*b2))
 
 	for i := 0; i < minLen; i++ {
 		(*maxData)[i] = (*b)[i] | (*b2)[i]
