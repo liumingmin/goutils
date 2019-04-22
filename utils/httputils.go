@@ -70,6 +70,7 @@ func defaultPooledTransport() *http.Transport {
 		IdleConnTimeout:       90 * time.Second,
 		TLSHandshakeTimeout:   10 * time.Second,
 		ExpectContinueTimeout: 1 * time.Second,
+		ResponseHeaderTimeout: 5 * time.Second,
 		MaxIdleConnsPerHost:   2048,
 		//MaxIdleConnsPerHost:   runtime.GOMAXPROCS(0) + 1,
 	}

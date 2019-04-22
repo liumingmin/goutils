@@ -1,139 +1,115 @@
 package middleware
 
 import (
-	"bytes"
-	"net/http"
-	"strings"
 	"sync"
 	"time"
 
-	"github.com/gin-gonic/gin"
-	"github.com/liumingmin/goutils/lighttimer"
+	"github.com/liumingmin/goutils/conf"
+	"github.com/liumingmin/goutils/utils"
 )
 
-var (
-	reqCountMap      = make(map[string]uint32)
-	reqLastTimeMap   = make(map[string]time.Time)
-	reqCountMapMutex sync.Mutex
+type cbkParam struct {
+	isBreaker  bool
+	errCount   int64
+	totalCount int64
 
-	reqBlockMap sync.Map
-
-	lightTimer     *lighttimer.LightTimer
-	lightTimerOnce sync.Once
-)
-
-type Options struct {
-	MaxQps        uint32
-	CheckSecond   uint32
-	RecoverSecond uint32
-	ReqTagFunc    func(c *gin.Context) string
+	accessLast int64
+	simpleLast int64
 }
 
-func cbUri(c *gin.Context, keyValue string) string {
-	method := c.Request.Method
-	path := c.Request.URL.Path
+type CircuitBreaker struct {
+	Name        string
+	cbkParamMap map[string]*cbkParam
+	lock        sync.RWMutex
 
-	endchar := strings.Index(path, "?")
-	if endchar < 0 {
-		endchar = len(path)
-	}
-
-	reqPath := path[0:endchar]
-
-	sb := bytes.Buffer{}
-	sb.WriteString(method)
-	sb.WriteString("-")
-	sb.WriteString(reqPath)
-
-	if len(keyValue) > 0 {
-		sb.WriteString("-")
-		sb.WriteString(keyValue)
-	}
-
-	result := sb.String()
-
-	//fmt.Println(result)
-	return result
+	isTurnOn            bool
+	simpleInterval      time.Duration
+	testRecoverInterval time.Duration
+	totalThreshold      int64
+	errorRateThreshold  float64
 }
 
-func CircuitBreaker(options Options) gin.HandlerFunc {
-	lightTimerOnce.Do(func() {
-		if lightTimer == nil {
-			lightTimer = lighttimer.NewLightTimer()
-			lightTimer.StartTicks(time.Millisecond)
-		}
-	})
+func (c *CircuitBreaker) Init() {
+	c.cbkParamMap = make(map[string]*cbkParam)
 
-	if options.CheckSecond == 0 {
-		options.CheckSecond = 1
+	confPrefix := "cbk"
+	if c.Name != "" {
+		confPrefix += "." + c.Name
 	}
 
-	if options.RecoverSecond == 0 {
-		options.RecoverSecond = 5
+	c.isTurnOn = conf.ExtBool(confPrefix+".isTurnOn", true)
+	c.simpleInterval = conf.ExtDuration(confPrefix+".simpleInterval", time.Second*10)
+	c.testRecoverInterval = conf.ExtDuration(confPrefix+".simpleInterval", time.Second*30)
+	c.totalThreshold = conf.ExtInt64(confPrefix+".totalThreshold", 100)
+	c.errorRateThreshold = conf.ExtFloat64(confPrefix+".errorRateThreshold", 0.9)
+}
+
+func (c *CircuitBreaker) Check(key string) bool {
+	if !c.isTurnOn {
+		return true
 	}
 
-	return func(c *gin.Context) {
-		cbDone := c.GetHeader("__cb_done__")
-		if len(cbDone) > 0 {
-			c.Next()
-			return
-		}
+	c.lock.RLock()
+	defer c.lock.RUnlock()
 
-		defer c.Header("__cb_done__", "done")
-
-		tag := ""
-		if options.ReqTagFunc != nil {
-			tag = options.ReqTagFunc(c)
-		}
-
-		cburi := cbUri(c, tag)
-
-		if blocked, isok := reqBlockMap.Load(cburi); isok {
-			if blocked.(bool) {
-				c.String(http.StatusServiceUnavailable, "To many requests in a second")
-				c.Abort()
-				return
+	if param, ok := c.cbkParamMap[key]; ok {
+		if param.isBreaker {
+			if utils.Abs64(time.Now().UnixNano()-param.accessLast) < int64(c.testRecoverInterval) {
+				return false
 			}
 		}
+	}
 
-		//fmt.Println(cburi)
+	return true
+}
 
-		reqCountMapMutex.Lock()
-		if count, isok := reqCountMap[cburi]; isok {
-			count = count + 1
-			reqCountMap[cburi] = count
+func (c *CircuitBreaker) accessed(param *cbkParam) {
+	now := time.Now().UnixNano()
+	if utils.Abs64(now-param.simpleLast) > int64(c.simpleInterval) {
+		param.errCount = 0
+		param.totalCount = 0
+		param.simpleLast = now
+	}
+	param.totalCount++
+	param.accessLast = now
+}
 
-			checkIsBlocked(cburi, count, options)
-		} else {
-			reqCountMap[cburi] = 1
-			reqLastTimeMap[cburi] = time.Now()
-		}
-		reqCountMapMutex.Unlock()
-
-		c.Next()
+func (c *CircuitBreaker) Succeed(key string) {
+	if !c.isTurnOn {
 		return
 	}
 
+	c.lock.Lock()
+	defer c.lock.Unlock()
+
+	if param, ok := c.cbkParamMap[key]; ok {
+		c.accessed(param)
+
+		if param.isBreaker {
+			param.isBreaker = false
+		}
+	}
 }
 
-func checkIsBlocked(cburi string, count uint32, options Options) {
-	timeinterval := uint32(time.Since(reqLastTimeMap[cburi]) / time.Second)
-	if timeinterval > options.CheckSecond {
-		if count/timeinterval > options.MaxQps {
-			//fmt.Println(count/timeinterval)
-			reqBlockMap.Store(cburi, true)
+func (c *CircuitBreaker) Failed(key string) {
+	if !c.isTurnOn {
+		return
+	}
 
-			lightTimer.AddCallback(time.Second*time.Duration(options.RecoverSecond), func() {
-				reqCountMapMutex.Lock()
-				delete(reqCountMap, cburi)
-				delete(reqLastTimeMap, cburi)
-				reqCountMapMutex.Unlock()
+	c.lock.Lock()
+	defer c.lock.Unlock()
 
-				reqBlockMap.Store(cburi, false)
-			})
-		} else {
-			reqCountMap[cburi] = 1
-			reqLastTimeMap[cburi] = time.Now()
+	if param, ok := c.cbkParamMap[key]; ok {
+		c.accessed(param)
+		param.errCount++
+
+		if param.totalCount > c.totalThreshold && float64(param.errCount)/float64(param.totalCount) > c.errorRateThreshold {
+			param.isBreaker = true
 		}
+	} else {
+		param := &cbkParam{}
+		c.accessed(param)
+		param.errCount++
+		c.cbkParamMap[key] = param
 	}
 }
