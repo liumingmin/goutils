@@ -5,7 +5,7 @@ import (
 	"encoding/binary"
 	"io"
 
-	"github.com/pkg/errors"
+	"errors"
 )
 
 var (
