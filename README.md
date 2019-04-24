@@ -1,9 +1,9 @@
 # goutils
-├── cache
+```├── cache
 │   ├── cached_writer_gin.go
-│   ├── cache_func.go             函数接口缓存
-│   ├── cache_page.go             web接口缓存
-│   ├── cache_store.go            缓存接口
+│   ├── cache_func.go             函数接口缓存 
+│   ├── cache_page.go             web接口缓存 
+│   ├── cache_store.go            缓存接口 
 ├── conf
 │   └── conf.go                   YML读取
 ├── container
@@ -53,3 +53,4 @@
     ├── packet.go                    二进制网络包封装
     ├── stringutils.go               字符串处理
     └── utils.go                     其他
+```
