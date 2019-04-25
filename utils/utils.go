@@ -105,8 +105,8 @@ func MapToOrderStr(arg interface{}) string {
 		var ss []string
 		for _, key := range keys {
 			ss = append(ss, key.String())
-			sort.Strings(ss)
 		}
+		sort.Strings(ss)
 
 		for _, s := range ss {
 			elem := value.MapIndex(reflect.ValueOf(s))
@@ -120,8 +120,8 @@ func MapToOrderStr(arg interface{}) string {
 		var ss []int
 		for _, key := range keys {
 			ss = append(ss, int(key.Int()))
-			sort.Ints(ss)
 		}
+		sort.Ints(ss)
 
 		for _, s := range ss {
 			elem := value.MapIndex(reflect.ValueOf(s))
