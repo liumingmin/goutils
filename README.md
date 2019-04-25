@@ -52,5 +52,6 @@
     ├── models.go                    反射创建对象
     ├── packet.go                    二进制网络包封装
     ├── stringutils.go               字符串处理
-    └── utils.go                     其他
+    ├── struct.go                    结构体工具(拷贝...)    
+    └── utils.go                     其他工具类
 ```
