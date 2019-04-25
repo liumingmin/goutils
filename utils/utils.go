@@ -209,3 +209,36 @@ func WriteImage(img image.Image, filePath string) error {
 
 	return jpeg.Encode(out, img, nil)
 }
+
+type TAG_STYLE = int
+
+var (
+	TAG_STYLE_NONE      = 0
+	TAG_STYLE_ORIG      = 1
+	TAG_STYLE_SNAKE     = 2
+	TAG_STYLE_UNDERLINE = 3
+)
+
+func ConvertFieldStyle(str string, style TAG_STYLE) string {
+	switch style {
+	case TAG_STYLE_NONE:
+		return ""
+	case TAG_STYLE_ORIG:
+		return str
+	case TAG_STYLE_SNAKE:
+		return strings.ToLower(str[:1]) + str[1:]
+	case TAG_STYLE_UNDERLINE:
+		tmpStr := str[1:]
+		resultStr := make([]rune, 0, len(tmpStr))
+		for _, r := range tmpStr {
+			if r >= 65 && r <= 90 {
+				resultStr = append(resultStr, '_', r+32)
+			} else {
+				resultStr = append(resultStr, r)
+			}
+		}
+		return strings.ToLower(str[:1]) + string(resultStr)
+	}
+
+	return ""
+}
