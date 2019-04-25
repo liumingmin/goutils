@@ -29,14 +29,18 @@ func TestCopyStruct(t *testing.T) {
 }
 
 func TestCopyStructs(t *testing.T) {
-	var vos []*ConfItemVo
+	var vos []ConfItemVo
 	var dos = []*ConfItem{
+		{Id: 1234, ServiceName: "test", Body: "testBody", Version: 2, UpdateTime: time.Now()},
+		{Id: 1234, ServiceName: "test", Body: "testBody", Version: 2, UpdateTime: time.Now()},
+		{Id: 1234, ServiceName: "test", Body: "testBody", Version: 2, UpdateTime: time.Now()},
+		{Id: 1234, ServiceName: "test", Body: "testBody", Version: 2, UpdateTime: time.Now()},
 		{Id: 1234, ServiceName: "test", Body: "testBody", Version: 2, UpdateTime: time.Now()},
 	}
 
 	err := CopyStructs(&dos, &vos)
 	t.Log(err)
-	t.Log(vos[0])
+	t.Log(vos)
 }
 
 func TestConvertFieldStyle(t *testing.T) {
