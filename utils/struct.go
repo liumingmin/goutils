@@ -86,7 +86,7 @@ func CopyStructs(src, dest interface{}) error {
 		}
 	}
 
-	ptrDestValue.Elem().Set(destValue.Slice(0, srcValue.Len()))
+	ptrDestValue.Elem().Set(destValue.Slice(0, destValue.Len()))
 	return nil
 }
 
