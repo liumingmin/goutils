@@ -116,13 +116,8 @@ func AutoGenTags(vo interface{}, tagDefs map[string]TAG_STYLE) string {
 			}
 		}
 
-		pkgStr := ""
-		if dstField.Type.PkgPath() != "" {
-			pkgStr = dstField.Type.PkgPath() + "."
-		}
-
 		buffer.WriteString(fmt.Sprintf("%s %s `%s`\n", dstField.Name,
-			pkgStr+dstField.Type.Name(), tagBuffer.String()))
+			dstField.Type.String(), tagBuffer.String())) //pkgStr+dstField.Type.Name()
 	}
 
 	buffer.WriteString("}")
