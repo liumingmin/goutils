@@ -36,7 +36,7 @@ func CopyStruct(src, dest interface{}) error {
 }
 
 //dest 必须是数组的指针
-func CopyStructs(src, dest interface{}) error {
+func CopyStructs(src, dest interface{}, f func(interface{}, reflect.Type) interface{}) error {
 	srcType := reflect.TypeOf(src)
 	if srcType.Kind() != reflect.Ptr && srcType.Kind() != reflect.Slice {
 		return errors.New("src type must be slice or a slice address")
@@ -71,10 +71,19 @@ func CopyStructs(src, dest interface{}) error {
 			dstElemTypeField := destElemType.Field(j)
 
 			srcElemField := srcElemValue.FieldByName(dstElemTypeField.Name) //TODO cache
-			if srcElemField.IsValid() && srcElemField.Type() == dstElemTypeField.Type {
+			if srcElemField.IsValid() {
 				dstFieldValue := destElemValue.FieldByIndex(dstElemTypeField.Index)
 				if dstFieldValue.CanSet() {
-					dstFieldValue.Set(srcElemField)
+					if srcElemField.Type() == dstElemTypeField.Type {
+						dstFieldValue.Set(srcElemField)
+					} else {
+						if f != nil {
+							convSrcElemField := f(srcElemField.Interface(), dstElemTypeField.Type)
+							if convSrcElemField != nil {
+								dstFieldValue.Set(reflect.ValueOf(convSrcElemField))
+							}
+						}
+					}
 				}
 			}
 		}

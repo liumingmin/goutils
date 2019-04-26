@@ -1,16 +1,20 @@
 package utils
 
 import (
+	"reflect"
 	"testing"
 	"time"
+
+	"github.com/globalsign/mgo/bson"
 )
 
 type ConfItem struct {
-	Id          int       `bson:"_id,omitempty" json:"id"`
-	ServiceName string    `bson:"service_name" json:"service_name"`
-	Body        string    `bson:"body" json:"body"`
-	Version     int       `bson:"version" json:"version"`
-	UpdateTime  time.Time `bson:"update_time" json:"update_time"`
+	Id          bson.ObjectId `bson:"_id,omitempty" json:"id"`
+	ServiceName string        `bson:"service_name" json:"service_name"`
+	Body        string        `bson:"body" json:"body"`
+	Version     int           `bson:"version" json:"version"`
+	UpdateTime  time.Time     `bson:"update_time" json:"update_time"`
+	Test        int
 }
 
 type ConfItemVo struct {
@@ -19,11 +23,12 @@ type ConfItemVo struct {
 	Body        string    `form:"body" json:"body"`
 	Version     int       `form:"version" json:"version"`
 	UpdateTime  time.Time `form:"updateTime" json:"updateTime"`
+	Test        string
 }
 
 func TestCopyStruct(t *testing.T) {
 	vo := &ConfItemVo{}
-	do := ConfItem{Id: 12345, ServiceName: "test", Body: "testBody", Version: 2, UpdateTime: time.Now()}
+	do := ConfItem{Id: bson.NewObjectId(), ServiceName: "test", Body: "testBody", Version: 2, UpdateTime: time.Now()}
 	CopyStruct(do, vo)
 	t.Log(vo)
 }
@@ -31,14 +36,19 @@ func TestCopyStruct(t *testing.T) {
 func TestCopyStructs(t *testing.T) {
 	var vos []ConfItemVo
 	var dos = []*ConfItem{
-		{Id: 1234, ServiceName: "test", Body: "testBody", Version: 2, UpdateTime: time.Now()},
-		{Id: 1234, ServiceName: "test", Body: "testBody", Version: 2, UpdateTime: time.Now()},
-		{Id: 1234, ServiceName: "test", Body: "testBody", Version: 2, UpdateTime: time.Now()},
-		{Id: 1234, ServiceName: "test", Body: "testBody", Version: 2, UpdateTime: time.Now()},
-		{Id: 1234, ServiceName: "test", Body: "testBody", Version: 2, UpdateTime: time.Now()},
+		{Id: bson.NewObjectId(), ServiceName: "test", Body: "testBody", Version: 2, UpdateTime: time.Now(), Test: 111},
+		{Id: bson.NewObjectId(), ServiceName: "test", Body: "testBody", Version: 2, UpdateTime: time.Now(), Test: 111},
+		{Id: bson.NewObjectId(), ServiceName: "test", Body: "testBody", Version: 2, UpdateTime: time.Now(), Test: 111},
+		{Id: bson.NewObjectId(), ServiceName: "test", Body: "testBody", Version: 2, UpdateTime: time.Now(), Test: 111},
+		{Id: bson.NewObjectId(), ServiceName: "test", Body: "testBody", Version: 2, UpdateTime: time.Now(), Test: 111},
 	}
 
-	err := CopyStructs(&dos, &vos)
+	err := CopyStructs(&dos, &vos, func(src interface{}, dstType reflect.Type) interface{} {
+		if bid, ok := src.(bson.ObjectId); ok && dstType.Kind() == reflect.String {
+			return bid.Hex()
+		}
+		return nil
+	})
 	t.Log(err)
 	t.Log(vos)
 }
