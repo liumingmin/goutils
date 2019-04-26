@@ -44,7 +44,20 @@ func TestCopyStructs(t *testing.T) {
 }
 
 func TestConvertFieldStyle(t *testing.T) {
-	t.Log(ConvertFieldStyle("TAestConvertFieldStyleAddZd", TAG_STYLE_UNDERLINE))
+	t.Log(ConvertFieldStyle("", TAG_STYLE_UNDERLINE))
+	t.Log(ConvertFieldStyle("a", TAG_STYLE_UNDERLINE))
+	t.Log(ConvertFieldStyle("aB", TAG_STYLE_UNDERLINE))
+	t.Log(ConvertFieldStyle("AB", TAG_STYLE_UNDERLINE))
+
+	t.Log("------------------------------------------")
+	t.Log(ConvertFieldStyle("", TAG_STYLE_SNAKE))
+	t.Log(ConvertFieldStyle("a", TAG_STYLE_SNAKE))
+	t.Log(ConvertFieldStyle("aB", TAG_STYLE_SNAKE))
+	t.Log(ConvertFieldStyle("AB", TAG_STYLE_SNAKE))
+
+	t.Log("------------------------------------------")
+	t.Log(ConvertFieldStyle("TAestConvertFieldStyleAddZd$sT好z", TAG_STYLE_UNDERLINE))
+	t.Log(ConvertFieldStyle("TAestConvertFieldStyleAddZd$sT好z", TAG_STYLE_SNAKE))
 }
 
 func TestDoToVo(t *testing.T) {

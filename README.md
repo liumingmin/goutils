@@ -47,8 +47,8 @@
     ├── async.go                     带超时异步调用
     ├── crc16.go                     查表法crc16
     ├── crc16-kermit.go              算法实现crc16
-    ├── httputils.go                 
-    ├── math.go
+    ├── httputils.go                 httpClient工具
+    ├── math.go                      数学
     ├── models.go                    反射创建对象
     ├── packet.go                    二进制网络包封装
     ├── stringutils.go               字符串处理

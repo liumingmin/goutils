@@ -31,14 +31,26 @@ var (
 )
 
 func ConvertFieldStyle(str string, style TAG_STYLE) string {
+	if len(str) == 0 {
+		return str
+	}
+
 	switch style {
 	case TAG_STYLE_NONE:
 		return ""
 	case TAG_STYLE_ORIG:
 		return str
 	case TAG_STYLE_SNAKE:
+		if len(str) == 1 {
+			return strings.ToLower(str)
+		}
+
 		return strings.ToLower(str[:1]) + str[1:]
 	case TAG_STYLE_UNDERLINE:
+		if len(str) == 1 {
+			return strings.ToLower(str)
+		}
+
 		tmpStr := str[1:]
 		resultStr := make([]rune, 0, len(tmpStr))
 		for _, r := range tmpStr {
