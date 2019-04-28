@@ -71,18 +71,22 @@ func CopyStructs(src, dest interface{}, f func(interface{}, reflect.Type) interf
 			dstElemTypeField := destElemType.Field(j)
 
 			srcElemField := srcElemValue.FieldByName(dstElemTypeField.Name) //TODO cache
-			if srcElemField.IsValid() {
-				dstFieldValue := destElemValue.FieldByIndex(dstElemTypeField.Index)
-				if dstFieldValue.CanSet() {
-					if srcElemField.Type() == dstElemTypeField.Type {
-						dstFieldValue.Set(srcElemField)
-					} else {
-						if f != nil {
-							convSrcElemField := f(srcElemField.Interface(), dstElemTypeField.Type)
-							if convSrcElemField != nil {
-								dstFieldValue.Set(reflect.ValueOf(convSrcElemField))
-							}
-						}
+			if !srcElemField.IsValid() {
+				continue //not found
+			}
+
+			dstFieldValue := destElemValue.FieldByIndex(dstElemTypeField.Index)
+			if !dstFieldValue.CanSet() {
+				continue //cannot set
+			}
+
+			if srcElemField.Type() == dstElemTypeField.Type {
+				dstFieldValue.Set(srcElemField)
+			} else {
+				if f != nil {
+					convSrcElemField := f(srcElemField.Interface(), dstElemTypeField.Type)
+					if convSrcElemField != nil {
+						dstFieldValue.Set(reflect.ValueOf(convSrcElemField))
 					}
 				}
 			}
