@@ -1,4 +1,4 @@
-package middleware
+package cbk
 
 import (
 	"fmt"
@@ -7,22 +7,20 @@ import (
 )
 
 func TestCbkFailed(t *testing.T) {
-	cbkone := &CircuitBreaker{}
-	cbkone.Init()
-	cbkone.isTurnOn = false
-
 	var ok bool
 	var lastBreaked bool
-	for i := 0; i < 200; i++ {
-		ok = cbkone.Check("test") //30s 返回一次true尝试
+	for j := 0; j < 200; j++ {
+		i := j
+		//safego.Go(func() {
+		err := Impls[SIMPLE].Check("test") //30s 返回一次true尝试
 		fmt.Println(i, "Check:", ok)
 
-		if ok {
+		if err == nil {
 			time.Sleep(time.Millisecond * 10)
-			cbkone.Failed("test")
+			Impls[SIMPLE].Failed("test")
 
 			if i > 105 && lastBreaked {
-				cbkone.Succeed("test")
+				Impls[SIMPLE].Succeed("test")
 				lastBreaked = false
 				fmt.Println(i, "Succeed")
 			}
@@ -33,5 +31,6 @@ func TestCbkFailed(t *testing.T) {
 				lastBreaked = true
 			}
 		}
+		//})
 	}
 }

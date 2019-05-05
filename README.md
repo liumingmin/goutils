@@ -1,9 +1,13 @@
 # goutils
-```├── cache
+```
+├── cache
 │   ├── cached_writer_gin.go
 │   ├── cache_func.go             函数接口缓存 
 │   ├── cache_page.go             web接口缓存 
 │   ├── cache_store.go            缓存接口 
+├── cbk
+│   ├── cbk.go                    熔断接口
+│   ├── cbk_simple.go             熔断简易实现
 ├── conf
 │   └── conf.go                   YML读取
 ├── container
