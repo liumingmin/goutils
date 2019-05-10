@@ -44,6 +44,8 @@
 ├── safego
 │   ├── safego.go                 安全的goruntine
 │   └── stack.go
+├── session
+│   └── redistore.go              session的redistore扩展读写
 ├── tcppool
 │   ├── conn.go                   tcp连接池
 │   └── pool.go                   tcp连接池
