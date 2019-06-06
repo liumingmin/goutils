@@ -13,8 +13,7 @@
 ├── container
 │   ├── bitmap.go                 比特位表
 │   ├── buffer_invoker.go         缓冲异步调用
-│   ├── chash32.go                一致性HASH32位
-│   ├── chash.go                  一致性HASH16位
+│   ├── const_hash.go             一致性HASH32位
 ├── distlock
 │   ├── consullock.go             consul实现的分布式锁
 │   ├── filelock.go               Linux文件锁
