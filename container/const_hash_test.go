@@ -6,13 +6,24 @@ import (
 	"testing"
 )
 
+type TestNode string
+
+func (n TestNode) Id() string {
+	return string(n)
+}
+
+func (n TestNode) Health() bool {
+	//keyC32 := crc32.ChecksumIEEE([]byte(string(n)))
+	return "node8" != string(n)
+}
+
 func TestConstHash(t *testing.T) {
 
 	var ringchash CHashRing
 
-	var configs []interface{}
+	var configs []CHashNode
 	for i := 0; i < 10; i++ {
-		configs = append(configs, "node"+strconv.Itoa(i))
+		configs = append(configs, TestNode("node"+strconv.Itoa(i)))
 	}
 
 	ringchash.Adds(configs)
@@ -31,9 +42,9 @@ func TestConstHash(t *testing.T) {
 
 	fmt.Println(ringchash.Get("xvd:fs:xcvd"))
 
-	var configs2 []interface{}
+	var configs2 []CHashNode
 	for i := 0; i < 2; i++ {
-		configs2 = append(configs2, "node"+strconv.Itoa(10+i))
+		configs2 = append(configs2, TestNode("node"+strconv.Itoa(10+i)))
 	}
 	ringchash.Adds(configs2)
 	fmt.Println("==================================")

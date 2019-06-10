@@ -9,14 +9,19 @@ import (
 	"sync"
 )
 
+type CHashNode interface {
+	Id() string
+	Health() bool
+}
+
 type CHash interface {
-	Adds([]interface{})
-	Del(interface{})
-	Get(key string) interface{}
+	Adds([]CHashNode)
+	Del(id string)
+	Get(key string) CHashNode
 }
 
 type cHashSlot struct {
-	node interface{}
+	node CHashNode
 	slot uint32
 }
 
@@ -25,7 +30,7 @@ type CHashRing struct {
 	lock sync.RWMutex
 }
 
-func (c *CHashRing) Adds(nodes []interface{}) {
+func (c *CHashRing) Adds(nodes []CHashNode) {
 	c.lock.Lock()
 	defer c.lock.Unlock()
 
@@ -57,17 +62,20 @@ func (c *CHashRing) Adds(nodes []interface{}) {
 	}
 }
 
-func (c *CHashRing) Del(node interface{}) {
+func (c *CHashRing) Del(nodeId string) {
 	if c.ring == nil {
 		return
 	}
 
 	if c.ring == c.ring.Prev() {
-		return
+		return //one node cannot delete
 	}
 
+	c.lock.Lock()
+	defer c.lock.Unlock()
+
 	slot := c.ring.Value.(*cHashSlot)
-	if slot.node == node {
+	if slot.node.Id() == nodeId {
 		prev := c.ring.Prev()
 		prev.Unlink(1)
 		c.ring = prev
@@ -76,7 +84,7 @@ func (c *CHashRing) Del(node interface{}) {
 
 	for p := c.ring.Next(); p != c.ring; p = p.Next() {
 		slot := p.Value.(*cHashSlot)
-		if slot.node == node {
+		if slot.node.Id() == nodeId {
 			prev := p.Prev()
 			prev.Unlink(1)
 			return
@@ -84,16 +92,20 @@ func (c *CHashRing) Del(node interface{}) {
 	}
 }
 
-func (c *CHashRing) Get(key string) interface{} {
+func (c *CHashRing) Get(key string) CHashNode {
 	c.lock.RLock()
 	defer c.lock.RUnlock()
 
 	keyC32 := crc32.ChecksumIEEE([]byte(key))
 	var nearDistance = float64(^uint32(0))
-	var nearNode interface{}
+	var nearNode CHashNode
 
 	c.ring.Do(func(r interface{}) {
 		hslot := r.(*cHashSlot)
+		if !hslot.node.Health() {
+			return
+		}
+
 		distance := math.Abs(float64(keyC32) - float64(hslot.slot))
 
 		if distance < nearDistance {
