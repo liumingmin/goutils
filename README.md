@@ -23,6 +23,8 @@
 │   └── fsm.go                    状态机
 ├── lighttimer
 │   ├── lighttimer.go             轻量级计时器
+├── mdb
+│   ├── mdb.go                    轻量级内存表
 ├── middleware
 │   ├── captcha.go                验证码中间件
 │   ├── cbk_deprecated.go         熔断(废弃)
