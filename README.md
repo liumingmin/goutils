@@ -54,6 +54,7 @@
     ├── async.go                     带超时异步调用
     ├── crc16.go                     查表法crc16
     ├── crc16-kermit.go              算法实现crc16
+    ├── csv_parse.go                 csv解析封装                            
     ├── httputils.go                 httpClient工具
     ├── math.go                      数学
     ├── models.go                    反射创建对象

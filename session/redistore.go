@@ -3,11 +3,13 @@ package session
 import (
 	"errors"
 	"net/http"
+	"sync"
 
 	"github.com/boj/redistore"
 	ginsessions "github.com/gin-gonic/contrib/sessions"
 	"github.com/gomodule/redigo/redis"
 	"github.com/gorilla/sessions"
+
 	"github.com/liumingmin/goutils/log4go"
 )
 
@@ -19,6 +21,7 @@ type RedisStoreOptions struct {
 	Password        string
 	Db              string
 	SecureCookieKey string
+	BizKey          string
 }
 
 type RedisStore struct {
@@ -28,6 +31,8 @@ type RedisStore struct {
 	maxLength   int
 	keyPrefix   string
 	serializer  redistore.SessionSerializer
+	bizIdMap    sync.Map
+	bizKey      string
 }
 
 func NewRediStoreWithDB(opt RedisStoreOptions) (*RedisStore, error) {
@@ -59,6 +64,7 @@ func NewRediStoreWithDB(opt RedisStoreOptions) (*RedisStore, error) {
 		serializer:  redistore.GobSerializer{},
 		maxLength:   4096,
 		keyPrefix:   "session_",
+		bizKey:      opt.BizKey,
 	}
 
 	store.SetSerializer(rdsStore.serializer)
@@ -82,17 +88,26 @@ func (c *RedisStore) SessionName() string {
 	return c.sessionName
 }
 
-func (s *RedisStore) GetSessionId(r *http.Request) string {
-	if userSession, err := s.RediStore.Get(r, s.sessionName); err == nil {
-		if !userSession.IsNew {
-			return userSession.ID
+func (s *RedisStore) Get(r *http.Request, name string) (*sessions.Session, error) {
+	session, err := s.RediStore.Get(r, name)
+	if err == nil {
+		if value, ok := session.Values[s.bizKey]; ok {
+			if bizId, ok2 := value.(string); ok2 {
+				s.bizIdMap.Store(bizId, session.ID)
+			}
 		}
 	}
-	return ""
+	return session, err
 }
 
-func (s *RedisStore) SetKV(id, key string, value interface{}) error {
-	session, err := s.getSession(id)
+func (s *RedisStore) SetKV(bizId, key string, value interface{}) error {
+	id, ok := s.bizIdMap.Load(bizId)
+	if !ok {
+		log4go.Error("sessionId is empty: %v", bizId)
+		return nil
+	}
+
+	session, err := s.getSession(id.(string))
 	if err != nil {
 		return err
 	}
@@ -106,8 +121,14 @@ func (s *RedisStore) SetKV(id, key string, value interface{}) error {
 	return s.saveSession(session)
 }
 
-func (s *RedisStore) SetKVs(id string, kvs map[string]interface{}) error {
-	session, err := s.getSession(id)
+func (s *RedisStore) SetKVs(bizId string, kvs map[string]interface{}) error {
+	id, ok := s.bizIdMap.Load(bizId)
+	if !ok {
+		log4go.Error("sessionId is empty: %v", bizId)
+		return nil
+	}
+
+	session, err := s.getSession(id.(string))
 	if err != nil {
 		return err
 	}
