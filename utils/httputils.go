@@ -94,6 +94,6 @@ func init() {
 	}
 }
 
-func ReqHostIp(c *gin.Context) string {
-	return strings.Split(c.Request.RemoteAddr, ":")[0]
+func ReqHostIp(c *gin.Context) (string, error) {
+	return strings.Split(c.Request.RemoteAddr, ":")[0], nil
 }

@@ -13,10 +13,9 @@ import (
 
 func TestLimitReq(t *testing.T) {
 	router := gin.New()
-	lr := &LimitReq{KeyFunc: utils.ReqHostIp}
-	lr.Init()
+	lr := NewLimitReq(utils.ReqHostIp)
 
-	router.Use(lr.Incoming(10, 4))
+	router.Use(lr.Incoming(nil, 10, 4))
 	router.GET("/testurl", func(c *gin.Context) {
 		time.Sleep(time.Second)
 		fmt.Println("enter")

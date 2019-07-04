@@ -13,15 +13,14 @@ import (
 
 func TestLimitConn(t *testing.T) {
 	router := gin.New()
-	lr := &LimitConn{KeyFunc: utils.ReqHostIp}
-	lr.Init()
+	lr := NewLimitConn(utils.ReqHostIp)
 
-	router.Use(lr.Incoming(10, 4))
+	router.Use(lr.Incoming(nil, 10, 4))
 	router.GET("/testurl", func(c *gin.Context) {
 		time.Sleep(time.Second)
 		fmt.Println("enter")
 		c.String(http.StatusOK, "ok!!")
-	}, lr.Leaving())
+	}, lr.Leaving(nil))
 
 	safego.Go(func() {
 		router.Run(":8081")

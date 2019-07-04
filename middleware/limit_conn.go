@@ -8,24 +8,36 @@ import (
 )
 
 type LimitConn struct {
-	KeyFunc func(*gin.Context) string
+	keyFunc LimitKeyFunc
 	store   map[string]int
 	lock    sync.Mutex
 }
 
-func (l *LimitConn) Init() {
-	l.store = make(map[string]int)
+func NewLimitConn(keyFunc LimitKeyFunc) *LimitConn {
+	lr := &LimitConn{
+		keyFunc: keyFunc,
+		store:   make(map[string]int),
+	}
+	return lr
 }
 
-func (l *LimitConn) Incoming(max, burst int) gin.HandlerFunc {
+func (l *LimitConn) Incoming(keyFunc LimitKeyFunc, max, burst int) gin.HandlerFunc {
+	if keyFunc == nil {
+		keyFunc = l.keyFunc
+	}
 
 	return func(c *gin.Context) {
-		if l.KeyFunc == nil {
+		if keyFunc == nil {
 			c.Next()
 			return
 		}
 
-		key := l.KeyFunc(c)
+		key, err := keyFunc(c)
+		if err != nil {
+			c.AbortWithStatus(http.StatusServiceUnavailable)
+			return
+		}
+
 		if key == "" {
 			c.Next()
 			return
@@ -57,14 +69,23 @@ func (l *LimitConn) Incoming(max, burst int) gin.HandlerFunc {
 	}
 }
 
-func (l *LimitConn) Leaving() gin.HandlerFunc {
+func (l *LimitConn) Leaving(keyFunc LimitKeyFunc) gin.HandlerFunc {
+	if keyFunc == nil {
+		keyFunc = l.keyFunc
+	}
+
 	return func(c *gin.Context) {
-		if l.KeyFunc == nil {
+		if keyFunc == nil {
 			c.Next()
 			return
 		}
 
-		key := l.KeyFunc(c)
+		key, err := keyFunc(c)
+		if err != nil {
+			c.AbortWithStatus(http.StatusServiceUnavailable)
+			return
+		}
+
 		if key == "" {
 			c.Next()
 			return

@@ -31,7 +31,10 @@ func reqTag(c *gin.Context) string {
 
 func TestCircuitBreaker(t *testing.T) {
 	router := gin.New()
-	router.Use(CircuitBreakerD(Options{MaxQps: 100, ReqTagFunc: utils.ReqHostIp}))
+	router.Use(CircuitBreakerD(Options{MaxQps: 100, ReqTagFunc: func(c *gin.Context) string {
+		ip, _ := utils.ReqHostIp(c)
+		return ip
+	}}))
 	router.GET("/testurl", func(c *gin.Context) {
 		time.Sleep(time.Second)
 		c.String(http.StatusOK, "ok!!")

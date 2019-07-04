@@ -2,18 +2,20 @@ package middleware
 
 import (
 	"net/http"
-	"time"
-
 	"sync"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/liumingmin/goutils/utils"
 )
 
+type LimitKeyFunc func(*gin.Context) (string, error)
+
 type LimitReq struct {
-	KeyFunc func(*gin.Context) string
-	store   map[string]*limitReqRec
-	lock    sync.Mutex
+	keyFunc LimitKeyFunc
+
+	store map[string]*limitReqRec
+	lock  sync.Mutex
 }
 
 type limitReqRec struct {
@@ -21,21 +23,34 @@ type limitReqRec struct {
 	last   int64
 }
 
-func (l *LimitReq) Init() {
-	l.store = make(map[string]*limitReqRec)
+func NewLimitReq(keyFunc LimitKeyFunc) *LimitReq {
+	lr := &LimitReq{
+		keyFunc: keyFunc,
+		store:   make(map[string]*limitReqRec),
+	}
+	return lr
 }
 
-func (l *LimitReq) Incoming(rate, burst int) gin.HandlerFunc {
+func (l *LimitReq) Incoming(keyFunc LimitKeyFunc, rate float64, burst int) gin.HandlerFunc {
 	rate = rate * 1000
 	burst = burst * 1000
 
+	if keyFunc == nil {
+		keyFunc = l.keyFunc
+	}
+
 	return func(c *gin.Context) {
-		if l.KeyFunc == nil {
+		if keyFunc == nil {
 			c.Next()
 			return
 		}
 
-		key := l.KeyFunc(c)
+		key, err := keyFunc(c)
+		if err != nil {
+			c.AbortWithStatus(http.StatusServiceUnavailable)
+			return
+		}
+
 		if key == "" {
 			c.Next()
 			return
