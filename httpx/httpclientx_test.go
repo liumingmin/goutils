@@ -14,7 +14,7 @@ func TestHttpXGet(t *testing.T) {
 	clientX := getHcx()
 
 	for i := 0; i < 3; i++ {
-		resp, err := clientX.Get("http://120.92.169.81:8049") //http://10.11.253.5:8080
+		resp, err := clientX.Get("http://127.0.0.1:8049")
 		if err != nil {
 			t.Fatal(fmt.Errorf("error making request: %v", err))
 		}
@@ -27,7 +27,7 @@ func TestHttpXPost(t *testing.T) {
 	clientX := getHcx()
 
 	for i := 0; i < 3; i++ {
-		resp, err := clientX.Get("http://120.92.169.81:8881") //http://10.11.253.5:8080
+		resp, err := clientX.Get("http://127.0.0.1:8881")
 		if err != nil {
 			t.Fatal(fmt.Errorf("error making request: %v", err))
 		}
@@ -56,7 +56,7 @@ func BenchmarkHttpx(b *testing.B) {
 	//b.ResetTimer()
 	b.N = 1000
 	for i := 0; i < b.N; i++ {
-		_, err := clientX.Get("http://120.92.169.81:8049") //http://10.11.253.5:8080
+		_, err := clientX.Get("http://127.0.0.1:8049")
 		if err != nil {
 			b.Fatal(fmt.Errorf("error making request: %v", err))
 		}

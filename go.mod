@@ -16,6 +16,7 @@ require (
 	github.com/hashicorp/yamux v0.0.0-20181012175058-2f1d1f20f75d
 	github.com/nfnt/resize v0.0.0-20180221191011-83c6a9932646
 	github.com/pkg/errors v0.8.1
+	golang.org/x/net v0.0.0-20190503192946-f4e77d36d62c
 	golang.org/x/text v0.3.2
 	gopkg.in/yaml.v2 v2.2.2
 	gotest.tools v2.3.0+incompatible
