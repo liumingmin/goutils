@@ -21,6 +21,8 @@
 │   ├── rdslock.go                redis实现分布式锁
 ├── fsm
 │   └── fsm.go                    状态机
+├── httpx
+│   └── httpx.go                  httpx兼容1.1和2.0
 ├── lighttimer
 │   ├── lighttimer.go             轻量级计时器
 ├── mdb
