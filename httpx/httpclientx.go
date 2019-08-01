@@ -6,10 +6,12 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"strings"
 	"sync"
 )
 
 const (
+	HTTP_CLIENT_H10 = "HTTP/1.0"
 	HTTP_CLIENT_H11 = "HTTP/1.1"
 	HTTP_CLIENT_H20 = "HTTP/2.0"
 )
@@ -21,6 +23,10 @@ type HttpClientX struct {
 }
 
 func (c *HttpClientX) checkProto(u *url.URL) string {
+	if strings.HasPrefix(strings.ToLower(u.Scheme), "https") {
+		return HTTP_CLIENT_H11
+	}
+
 	baseUrl := fmt.Sprintf("%s://%s", u.Scheme, u.Host) //[scheme:][//[userinfo@]host]
 	if v, ok := c.protoCache.Load(baseUrl); ok {
 		//fmt.Println("hit cache:", baseUrl)
@@ -41,13 +47,26 @@ func (c *HttpClientX) checkProto(u *url.URL) string {
 	return ""
 }
 
-func (c *HttpClientX) Do(req *http.Request) (*http.Response, error) {
-	spec := c.checkProto(req.URL)
-	if spec == HTTP_CLIENT_H11 {
-		return c.Hc11.Do(req)
-	} else if spec == HTTP_CLIENT_H20 {
-		return c.Hc20.Do(req)
+func (c *HttpClientX) getClient(proto string) *http.Client {
+	if proto == HTTP_CLIENT_H11 || proto == HTTP_CLIENT_H10 {
+		return c.Hc11
+	} else if proto == HTTP_CLIENT_H20 {
+		return c.Hc20
 	}
+	return nil
+}
+
+func (c *HttpClientX) Do(req *http.Request) (*http.Response, error) {
+	proto := c.checkProto(req.URL)
+	if proto == HTTP_CLIENT_H20 && req != nil {
+		req.Header.Del("Connection")
+	}
+
+	client := c.getClient(proto)
+	if client != nil {
+		return client.Do(req)
+	}
+
 	return nil, errors.New("unknown protocol")
 }
 
@@ -56,11 +75,10 @@ func (c *HttpClientX) Get(urlsr string) (resp *http.Response, err error) {
 	if err != nil {
 		return nil, err
 	}
-	spec := c.checkProto(urlp)
-	if spec == HTTP_CLIENT_H11 {
-		return c.Hc11.Get(urlsr)
-	} else if spec == HTTP_CLIENT_H20 {
-		return c.Hc20.Get(urlsr)
+	proto := c.checkProto(urlp)
+	client := c.getClient(proto)
+	if client != nil {
+		return client.Get(urlsr)
 	}
 	return nil, errors.New("unknown protocol")
 }
@@ -70,12 +88,12 @@ func (c *HttpClientX) Head(urlsr string) (resp *http.Response, err error) {
 	if err != nil {
 		return nil, err
 	}
-	spec := c.checkProto(urlp)
-	if spec == HTTP_CLIENT_H11 {
-		return c.Hc11.Head(urlsr)
-	} else if spec == HTTP_CLIENT_H20 {
-		return c.Hc20.Head(urlsr)
+	proto := c.checkProto(urlp)
+	client := c.getClient(proto)
+	if client != nil {
+		return client.Head(urlsr)
 	}
+
 	return nil, errors.New("unknown protocol")
 }
 
@@ -84,11 +102,10 @@ func (c *HttpClientX) Post(urlsr, contentType string, body io.Reader) (resp *htt
 	if err != nil {
 		return nil, err
 	}
-	spec := c.checkProto(urlp)
-	if spec == HTTP_CLIENT_H11 {
-		return c.Hc11.Post(urlsr, contentType, body)
-	} else if spec == HTTP_CLIENT_H20 {
-		return c.Hc20.Post(urlsr, contentType, body)
+	proto := c.checkProto(urlp)
+	client := c.getClient(proto)
+	if client != nil {
+		return client.Post(urlsr, contentType, body)
 	}
 	return nil, errors.New("unknown protocol")
 }
@@ -98,11 +115,11 @@ func (c *HttpClientX) PostForm(urlsr string, data url.Values) (resp *http.Respon
 	if err != nil {
 		return nil, err
 	}
-	spec := c.checkProto(urlp)
-	if spec == HTTP_CLIENT_H11 {
-		return c.Hc11.PostForm(urlsr, data)
-	} else if spec == HTTP_CLIENT_H20 {
-		return c.Hc20.PostForm(urlsr, data)
+	proto := c.checkProto(urlp)
+	client := c.getClient(proto)
+	if client != nil {
+		return client.PostForm(urlsr, data)
 	}
+
 	return nil, errors.New("unknown protocol")
 }
