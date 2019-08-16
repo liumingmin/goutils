@@ -38,13 +38,9 @@ func (c *HttpClientX) checkProto(u *url.URL) string {
 			return resp.Proto
 		}
 
-		resp, err = c.Hc11.Head(baseUrl)
-		if err == nil && resp != nil {
-			c.protoCache.Store(baseUrl, resp.Proto)
-			return resp.Proto
-		}
+		c.protoCache.Store(baseUrl, HTTP_CLIENT_H11)
+		return HTTP_CLIENT_H11
 	}
-	return ""
 }
 
 func (c *HttpClientX) getClient(proto string) *http.Client {
