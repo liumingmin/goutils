@@ -12,7 +12,6 @@ import (
 	"os"
 	"reflect"
 	"sort"
-	"strconv"
 	"strings"
 
 	"github.com/google/uuid"
@@ -88,49 +87,32 @@ func SliceToOrderStr(arg interface{}) string {
 
 	sort.Strings(md5s)
 
-	return strings.Join(md5s, ":")
+	return strings.Join(md5s, ",")
 }
 
 func MapToOrderStr(arg interface{}) string {
-	var b bytes.Buffer
-
 	value := reflect.ValueOf(arg)
 	keys := value.MapKeys()
 	if len(keys) == 0 {
 		return ""
 	}
 
-	switch keys[0].Kind() {
-	case reflect.String:
-		var ss []string
-		for _, key := range keys {
-			ss = append(ss, key.String())
-		}
-		sort.Strings(ss)
+	var b bytes.Buffer
+	var keyStrs []string
+	tmpMap := make(map[string]string)
+	for _, key := range keys {
+		keyStr := fmt.Sprint(key.Interface())
+		keyStrs = append(keyStrs, keyStr)
 
-		for _, s := range ss {
-			elem := value.MapIndex(reflect.ValueOf(s))
-			b.WriteString(s)
-			b.WriteString(":")
-			b.WriteString(fmt.Sprintf("%#v", reflect.Indirect(elem).Interface()))
-			b.WriteString(",")
-		}
-		break
-	case reflect.Int, reflect.Uint, reflect.Int32, reflect.Uint32, reflect.Int64:
-		var ss []int
-		for _, key := range keys {
-			ss = append(ss, int(key.Int()))
-		}
-		sort.Ints(ss)
-
-		for _, s := range ss {
-			elem := value.MapIndex(reflect.ValueOf(s))
-			b.WriteString(strconv.Itoa(s))
-			b.WriteString(":")
-			b.WriteString(fmt.Sprintf("%#v", reflect.Indirect(elem).Interface()))
-			b.WriteString(",")
-		}
-		break
+		elem := value.MapIndex(key)
+		tmpMap[keyStr] = fmt.Sprintf("%#v", reflect.Indirect(elem).Interface())
+	}
+	sort.Strings(keyStrs)
+	for _, keyStr := range keyStrs {
+		b.WriteString(keyStr)
+		b.WriteString(":")
+		b.WriteString(tmpMap[keyStr])
+		b.WriteString(",")
 	}
 
 	return b.String()
