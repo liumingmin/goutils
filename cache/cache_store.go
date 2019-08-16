@@ -1,14 +1,13 @@
 package cache
 
 import (
-	"encoding/json"
 	"errors"
 )
 
 type CacheStore interface {
 	Exists(key string) bool
 
-	Get(key string) ([]byte, error)
+	Get(key string) (interface{}, error)
 
 	Set(key string, value interface{}, expire int64) error
 
@@ -17,25 +16,25 @@ type CacheStore interface {
 	Flush() error
 }
 
-type SimpleMemCache map[string][]byte
+type SimpleMemCache map[string]interface{}
 
 func (c *SimpleMemCache) Exists(key string) bool {
 	_, ok := (*c)[key]
 	return ok
 }
 
-func (c *SimpleMemCache) Get(key string) ([]byte, error) {
+func (c *SimpleMemCache) Get(key string) (interface{}, error) {
 	result, isok := (*c)[key]
 	if isok {
 		return result, nil
 	} else {
-		return []byte{}, errors.New("cannot found ")
+		return nil, errors.New("cannot found ")
 	}
 }
 
 func (c *SimpleMemCache) Set(key string, value interface{}, expire int64) error {
-	bs, _ := json.Marshal(value)
-	(*c)[key] = bs
+	//bs, _ := json.Marshal(value)
+	(*c)[key] = value
 	return nil
 }
 

@@ -1,6 +1,7 @@
 package cache
 
 import (
+	"encoding/json"
 	"net/http"
 	"time"
 
@@ -79,7 +80,9 @@ func (w *CachedWriterGin) WriteString(data string) (n int, err error) {
 			w.Header(),
 			[]byte(data),
 		}
-		store.Set(w.key, val, int64(w.expire/time.Second))
+
+		bs, _ := json.Marshal(val)
+		store.Set(w.key, string(bs), int64(w.expire/time.Second))
 	}
 	return ret, err
 }

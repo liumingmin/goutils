@@ -23,8 +23,10 @@ func CachePage(store CacheStore, expire time.Duration, reqProc func(r *http.Requ
 			c.Writer = writer
 			handle(c)
 		} else {
+			log4go.Debug("Cache hit...")
+			jsonStr, _ := bsValue.(string)
 			var respCache responseCache
-			if err := json.Unmarshal(bsValue, &respCache); err == nil {
+			if err := json.Unmarshal([]byte(jsonStr), &respCache); err == nil {
 				c.Data(http.StatusOK, "application/json", respCache.Data)
 			} else {
 				c.String(http.StatusInternalServerError, "cache error")

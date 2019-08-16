@@ -57,7 +57,8 @@ func CacheFunc(store CacheStore, expire int64, cf func(...interface{}) string,
 		}
 		return result, err
 	} else {
-		log4go.Debug("CacheFunc hit cache : %v", string(cacheVal))
+		cacheStr, _ := cacheVal.(string)
+		log4go.Debug("CacheFunc hit cache : %v", cacheStr)
 		//fmt.Printf("CacheFunc hit cache : %v\n", ss)
 
 		origRetType := ft.Out(0)
@@ -72,7 +73,7 @@ func CacheFunc(store CacheStore, expire int64, cf func(...interface{}) string,
 
 		var result interface{}
 
-		err = json.Unmarshal(cacheVal, retValueInterface)
+		err = json.Unmarshal([]byte(cacheStr), retValueInterface)
 		if err == nil {
 			if origRetType.Kind() == reflect.Ptr {
 				result = retValueInterface
