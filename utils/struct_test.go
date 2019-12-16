@@ -29,7 +29,7 @@ type ConfItemVo struct {
 func TestCopyStruct(t *testing.T) {
 	vo := &ConfItemVo{}
 	do := ConfItem{Id: bson.NewObjectId(), ServiceName: "test", Body: "testBody", Version: 2, UpdateTime: time.Now()}
-	CopyStruct(do, vo)
+	CopyStructDefault(do, vo)
 	t.Log(vo)
 }
 

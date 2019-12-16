@@ -1,15 +1,35 @@
 package utils
 
 import (
-	"bytes"
 	"errors"
-	"fmt"
 	"reflect"
-	"sort"
+	"time"
+
+	"github.com/globalsign/mgo/bson"
 )
 
+var (
+	StructTimeType     = reflect.TypeOf(time.Now())
+	StructBsonObjectId = reflect.TypeOf(bson.NewObjectId())
+)
+
+const (
+	STRUCT_DATE_TIME_FORMAT_LAYOUT = "2006-01-02 15:04:05"
+	STRUCT_DATE_FORMAT_LAYOUT      = "2006-01-02"
+)
+
+type StructConvFunc func(interface{}, reflect.Type) interface{}
+
+func CopyStructDefault(src, dest interface{}) error {
+	return CopyStruct(src, dest, BaseConvert)
+}
+
+func CopyStructsDefault(src, dest interface{}) error {
+	return CopyStructs(src, dest, BaseConvert)
+}
+
 //dest 必须是指针
-func CopyStruct(src, dest interface{}) error {
+func CopyStruct(src, dest interface{}, f StructConvFunc) error {
 	ptrDestType := reflect.TypeOf(dest)
 	if ptrDestType.Kind() != reflect.Ptr {
 		return errors.New("dest type must be ptr")
@@ -24,10 +44,19 @@ func CopyStruct(src, dest interface{}) error {
 		dstField := destType.Field(i)
 
 		srcField := srcValue.FieldByName(dstField.Name)
-		if srcField.IsValid() && srcField.Type() == dstField.Type {
+		if srcField.IsValid() {
 			dstFieldValue := destValue.FieldByIndex(dstField.Index)
 			if dstFieldValue.CanSet() {
-				dstFieldValue.Set(srcField)
+				if srcField.Type() == dstField.Type {
+					dstFieldValue.Set(srcField)
+				} else {
+					if f != nil {
+						convSrcElemField := f(srcField.Interface(), dstField.Type)
+						if convSrcElemField != nil {
+							dstFieldValue.Set(reflect.ValueOf(convSrcElemField))
+						}
+					}
+				}
 			}
 		}
 	}
@@ -36,7 +65,7 @@ func CopyStruct(src, dest interface{}) error {
 }
 
 //dest 必须是数组的指针
-func CopyStructs(src, dest interface{}, f func(interface{}, reflect.Type) interface{}) error {
+func CopyStructs(src, dest interface{}, f StructConvFunc) error {
 	srcType := reflect.TypeOf(src)
 	if srcType.Kind() != reflect.Ptr && srcType.Kind() != reflect.Slice {
 		return errors.New("src type must be slice or a slice address")
@@ -70,23 +99,19 @@ func CopyStructs(src, dest interface{}, f func(interface{}, reflect.Type) interf
 		for j := 0; j < destElemType.NumField(); j++ {
 			dstElemTypeField := destElemType.Field(j)
 
-			srcElemField := srcElemValue.FieldByName(dstElemTypeField.Name) //TODO cache
-			if !srcElemField.IsValid() {
-				continue //not found
-			}
-
-			dstFieldValue := destElemValue.FieldByIndex(dstElemTypeField.Index)
-			if !dstFieldValue.CanSet() {
-				continue //cannot set
-			}
-
-			if srcElemField.Type() == dstElemTypeField.Type {
-				dstFieldValue.Set(srcElemField)
-			} else {
-				if f != nil {
-					convSrcElemField := f(srcElemField.Interface(), dstElemTypeField.Type)
-					if convSrcElemField != nil {
-						dstFieldValue.Set(reflect.ValueOf(convSrcElemField))
+			srcElemField := srcElemValue.FieldByName(dstElemTypeField.Name)
+			if srcElemField.IsValid() {
+				dstFieldValue := destElemValue.FieldByIndex(dstElemTypeField.Index)
+				if dstFieldValue.CanSet() {
+					if srcElemField.Type() == dstElemTypeField.Type {
+						dstFieldValue.Set(srcElemField)
+					} else {
+						if f != nil {
+							convSrcElemField := f(srcElemField.Interface(), dstElemTypeField.Type)
+							if convSrcElemField != nil {
+								dstFieldValue.Set(reflect.ValueOf(convSrcElemField))
+							}
+						}
 					}
 				}
 			}
@@ -103,37 +128,31 @@ func CopyStructs(src, dest interface{}, f func(interface{}, reflect.Type) interf
 	return nil
 }
 
-func AutoGenTags(vo interface{}, tagDefs map[string]TAG_STYLE) string {
-	voType := reflect.TypeOf(vo)
-	if voType.Kind() == reflect.Ptr {
-		voType = voType.Elem()
-	}
-
-	var buffer bytes.Buffer
-	buffer.WriteString(fmt.Sprintf("type %s struct{\n", voType.Name()))
-
-	var sortedTagName []string
-	for k := range tagDefs {
-		sortedTagName = append(sortedTagName, k)
-	}
-	sort.Strings(sortedTagName)
-
-	for i := 0; i < voType.NumField(); i++ {
-		dstField := voType.Field(i)
-
-		var tagBuffer bytes.Buffer
-		for _, tagName := range sortedTagName {
-			tagStr := ConvertFieldStyle(dstField.Name, tagDefs[tagName])
-			if tagStr != "" {
-				tagBuffer.WriteString(fmt.Sprintf(`%s:"%s" `, tagName, tagStr))
-			}
+func BaseConvert(src interface{}, dstType reflect.Type) interface{} {
+	if bid, ok := src.(bson.ObjectId); ok && dstType.Kind() == reflect.String {
+		return bid.Hex()
+	} else if bid, ok := src.(string); ok && dstType == StructBsonObjectId {
+		if bid != "" {
+			return bson.ObjectIdHex(bid)
 		}
-
-		buffer.WriteString(fmt.Sprintf("%s %s `%s`\n", dstField.Name,
-			dstField.Type.String(), tagBuffer.String())) //pkgStr+dstField.Type.Name()
+	} else if srcData, ok := src.(time.Time); ok && dstType.Kind() == reflect.String {
+		if !srcData.IsZero() {
+			return srcData.Format(STRUCT_DATE_TIME_FORMAT_LAYOUT)
+		} else {
+			return ""
+		}
+	} else if srcData, ok := src.(string); ok && dstType == StructTimeType {
+		if srcData != "" {
+			if len(srcData) > 10 {
+				t, _ := time.ParseInLocation(STRUCT_DATE_TIME_FORMAT_LAYOUT, srcData, time.Local)
+				return t
+			} else {
+				t, _ := time.ParseInLocation(STRUCT_DATE_FORMAT_LAYOUT, srcData, time.Local)
+				return t
+			}
+		} else {
+			return time.Time{}
+		}
 	}
-
-	buffer.WriteString("}")
-
-	return buffer.String()
+	return nil
 }

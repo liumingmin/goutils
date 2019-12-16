@@ -1,6 +1,10 @@
 package utils
 
-import "strings"
+import (
+	"strings"
+
+	"github.com/globalsign/mgo/bson"
+)
 
 func StringsReverse(s []string) []string {
 	for i, j := 0, len(s)-1; i < j; i, j = i+1, j-1 {
@@ -21,47 +25,33 @@ func StringsInArray(s []string, e string) (bool, int) {
 	return false, -1
 }
 
-type TAG_STYLE = int
-
-var (
-	TAG_STYLE_NONE      = 0
-	TAG_STYLE_ORIG      = 1
-	TAG_STYLE_SNAKE     = 2
-	TAG_STYLE_UNDERLINE = 3
-)
-
-func ConvertFieldStyle(str string, style TAG_STYLE) string {
-	if len(str) == 0 {
-		return str
+func StringsExcept(ss1 []string, ss2 []string) (se []string) {
+	if len(ss1) == 0 {
+		return
 	}
 
-	switch style {
-	case TAG_STYLE_NONE:
-		return ""
-	case TAG_STYLE_ORIG:
-		return str
-	case TAG_STYLE_SNAKE:
-		if len(str) == 1 {
-			return strings.ToLower(str)
-		}
+	if len(ss2) == 0 {
+		return ss1
+	}
 
-		return strings.ToLower(str[:1]) + str[1:]
-	case TAG_STYLE_UNDERLINE:
-		if len(str) == 1 {
-			return strings.ToLower(str)
-		}
-
-		tmpStr := str[1:]
-		resultStr := make([]rune, 0, len(tmpStr))
-		for _, r := range tmpStr {
-			if r >= 65 && r <= 90 {
-				resultStr = append(resultStr, '_', r+32)
-			} else {
-				resultStr = append(resultStr, r)
+	for _, s1 := range ss1 {
+		found := false
+		for _, s2 := range ss2 {
+			if s1 == s2 {
+				found = true
+				break
 			}
 		}
-		return strings.ToLower(str[:1]) + string(resultStr)
+		if !found {
+			se = append(se, s1)
+		}
 	}
+	return
+}
 
-	return ""
+func StringsToBsonId(ids []string) (objectIds []bson.ObjectId) {
+	for _, id := range ids {
+		objectIds = append(objectIds, bson.ObjectIdHex(id))
+	}
+	return
 }
