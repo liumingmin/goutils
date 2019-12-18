@@ -79,8 +79,8 @@ func CopyStructs(src, dest interface{}, f StructConvFunc) error {
 	}
 
 	ptrDestValue := reflect.ValueOf(dest)
-	destValue := reflect.Indirect(ptrDestValue) //.Elem()
-	destValue = destValue.Slice(0, destValue.Cap())
+	destValue := reflect.Indirect(ptrDestValue)     //.Elem()
+	destValue = destValue.Slice(0, destValue.Cap()) //destValue的slice可能是nil
 
 	srcValue := reflect.Indirect(reflect.ValueOf(src))
 
@@ -129,6 +129,73 @@ func CopyStructs(src, dest interface{}, f StructConvFunc) error {
 	}
 
 	ptrDestValue.Elem().Set(destValue.Slice(0, destValue.Len()))
+	return nil
+}
+
+func MergeStructs(src, dest interface{}, f StructConvFunc, srcFName, dstFName string) error {
+	srcType := reflect.TypeOf(src)
+	if srcType.Kind() != reflect.Ptr && srcType.Kind() != reflect.Slice {
+		return errors.New("src type must be slice or a slice address") //[] *[]
+	}
+
+	destType := reflect.TypeOf(dest)
+	if destType.Kind() != reflect.Ptr || destType.Elem().Kind() != reflect.Slice ||
+		destType.Elem().Elem().Kind() != reflect.Ptr {
+		return errors.New("dest type must be a slice of ptr address") // *[]*a
+	}
+
+	srcValue := reflect.Indirect(reflect.ValueOf(src))
+	destValue := reflect.Indirect(reflect.ValueOf(dest))
+
+	//有一个没数据不需要取合并
+	if srcValue.Len() == 0 || destValue.Len() == 0 {
+		return nil
+	}
+
+	srcElemType := reflect.Indirect(srcValue.Index(0)).Type()
+	srcKeyFieldType, ok := srcElemType.FieldByName(srcFName)
+	if !ok {
+		return errors.New("src can not found field: " + srcFName)
+	}
+
+	destElemType := reflect.Indirect(destValue.Index(0)).Type()
+	destKeyFieldType, ok := destElemType.FieldByName(dstFName)
+	if !ok {
+		return errors.New("dest can not found field: " + dstFName)
+	}
+
+	srcMap := make(map[interface{}]interface{})
+	for i := 0; i < srcValue.Len(); i++ {
+		srcElemValueRaw := srcValue.Index(i)
+		srcElemField := reflect.Indirect(srcElemValueRaw).FieldByName(srcFName)
+		if !srcElemField.IsValid() {
+			continue
+		}
+
+		srcMap[srcElemField.Interface()] = srcElemValueRaw.Interface()
+	}
+
+	for i := 0; i < destValue.Len(); i++ {
+		dstElemValuePtr := destValue.Index(i)
+		dstElemField := reflect.Indirect(dstElemValuePtr).FieldByName(dstFName)
+		if !dstElemField.IsValid() {
+			continue
+		}
+
+		if destKeyFieldType.Type == srcKeyFieldType.Type {
+			if srcElemValue, ok := srcMap[dstElemField.Interface()]; ok {
+				CopyStruct(srcElemValue, dstElemValuePtr.Interface(), f)
+			}
+		} else if f != nil {
+			dstElemField2 := f(dstElemField.Interface(), srcKeyFieldType.Type)
+			if dstElemField2 != nil {
+				if srcElemValue, ok := srcMap[dstElemField2]; ok {
+					CopyStruct(srcElemValue, dstElemValuePtr.Interface(), f)
+				}
+			}
+		}
+	}
+
 	return nil
 }
 
