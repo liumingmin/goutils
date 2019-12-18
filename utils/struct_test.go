@@ -117,7 +117,7 @@ func TestMergeStructs(t *testing.T) {
 		})
 	}
 
-	MergeStructs(extends, &vos, BaseConvert, "StringId", "Id")
+	MergeStructs(extends, &vos, BaseConvert, "Id", "Id")
 
 	for _, vo := range vos {
 		t.Log(vo)

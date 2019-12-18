@@ -167,7 +167,7 @@ func MergeStructs(src, dest interface{}, f StructConvFunc, srcFName, dstFName st
 	srcMap := make(map[interface{}]interface{})
 	for i := 0; i < srcValue.Len(); i++ {
 		srcElemValueRaw := srcValue.Index(i)
-		srcElemField := reflect.Indirect(srcElemValueRaw).FieldByName(srcFName)
+		srcElemField := reflect.Indirect(srcElemValueRaw).FieldByIndex(srcKeyFieldType.Index)
 		if !srcElemField.IsValid() {
 			continue
 		}
@@ -177,7 +177,7 @@ func MergeStructs(src, dest interface{}, f StructConvFunc, srcFName, dstFName st
 
 	for i := 0; i < destValue.Len(); i++ {
 		dstElemValuePtr := destValue.Index(i)
-		dstElemField := reflect.Indirect(dstElemValuePtr).FieldByName(dstFName)
+		dstElemField := reflect.Indirect(dstElemValuePtr).FieldByIndex(destKeyFieldType.Index)
 		if !dstElemField.IsValid() {
 			continue
 		}
