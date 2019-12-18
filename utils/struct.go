@@ -44,19 +44,21 @@ func CopyStruct(src, dest interface{}, f StructConvFunc) error {
 		dstField := destType.Field(i)
 
 		srcField := srcValue.FieldByName(dstField.Name)
-		if srcField.IsValid() {
-			dstFieldValue := destValue.FieldByIndex(dstField.Index)
-			if dstFieldValue.CanSet() {
-				if srcField.Type() == dstField.Type {
-					dstFieldValue.Set(srcField)
-				} else {
-					if f != nil {
-						convSrcElemField := f(srcField.Interface(), dstField.Type)
-						if convSrcElemField != nil {
-							dstFieldValue.Set(reflect.ValueOf(convSrcElemField))
-						}
-					}
-				}
+		if !srcField.IsValid() {
+			continue
+		}
+
+		dstFieldValue := destValue.FieldByIndex(dstField.Index)
+		if !dstFieldValue.CanSet() {
+			continue
+		}
+
+		if srcField.Type() == dstField.Type {
+			dstFieldValue.Set(srcField)
+		} else if f != nil {
+			convSrcElemField := f(srcField.Interface(), dstField.Type)
+			if convSrcElemField != nil {
+				dstFieldValue.Set(reflect.ValueOf(convSrcElemField))
 			}
 		}
 	}
@@ -100,19 +102,21 @@ func CopyStructs(src, dest interface{}, f StructConvFunc) error {
 			dstElemTypeField := destElemType.Field(j)
 
 			srcElemField := srcElemValue.FieldByName(dstElemTypeField.Name)
-			if srcElemField.IsValid() {
-				dstFieldValue := destElemValue.FieldByIndex(dstElemTypeField.Index)
-				if dstFieldValue.CanSet() {
-					if srcElemField.Type() == dstElemTypeField.Type {
-						dstFieldValue.Set(srcElemField)
-					} else {
-						if f != nil {
-							convSrcElemField := f(srcElemField.Interface(), dstElemTypeField.Type)
-							if convSrcElemField != nil {
-								dstFieldValue.Set(reflect.ValueOf(convSrcElemField))
-							}
-						}
-					}
+			if !srcElemField.IsValid() {
+				continue
+			}
+
+			dstFieldValue := destElemValue.FieldByIndex(dstElemTypeField.Index)
+			if !dstFieldValue.CanSet() {
+				continue
+			}
+
+			if srcElemField.Type() == dstElemTypeField.Type {
+				dstFieldValue.Set(srcElemField)
+			} else if f != nil {
+				convSrcElemField := f(srcElemField.Interface(), dstElemTypeField.Type)
+				if convSrcElemField != nil {
+					dstFieldValue.Set(reflect.ValueOf(convSrcElemField))
 				}
 			}
 		}
