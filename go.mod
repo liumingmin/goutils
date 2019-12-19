@@ -14,7 +14,6 @@ require (
 	github.com/google/uuid v1.1.1
 	github.com/gorilla/sessions v1.2.0
 	github.com/hashicorp/consul/api v1.1.0
-	github.com/hashicorp/yamux v0.0.0-20181012175058-2f1d1f20f75d
 	github.com/nfnt/resize v0.0.0-20180221191011-83c6a9932646
 	github.com/pkg/errors v0.8.1
 	github.com/robfig/go-cache v0.0.0-20130306151617-9fc39e0dbf62 // indirect
