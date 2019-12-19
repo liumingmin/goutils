@@ -5,9 +5,12 @@
 │   ├── cache_func.go             函数接口缓存 
 │   ├── cache_page.go             web接口缓存 
 │   ├── cache_store.go            缓存接口 
+├── cache_func
+│   ├── cache.go
+│   ├── cache_func.go             函数接口缓存(开箱即用) 
 ├── cbk
 │   ├── cbk.go                    熔断接口
-│   ├── cbk_simple.go             熔断简易实现
+│   ├── cbk_simple.go             熔断实现
 ├── conf
 │   └── conf.go                   YML读取
 ├── container
@@ -29,29 +32,15 @@
 │   ├── mdb.go                    轻量级内存表
 ├── middleware
 │   ├── captcha.go                验证码中间件
-│   ├── cbk_deprecated.go         熔断(废弃)
-│   ├── cbk.go                    熔断
+│   ├── cbk.go                    中间件熔断
 │   ├── limit_conn.go             限连接
 │   ├── limit_req.go              限流
 │   ├── thumb_image.go            缩略图
-├── rpcbi
-│   ├── rpcclient.go              多路复用客户端
-│   ├── rpccomm.go            
-│   ├── rpcserver.go              多路复用服务端
-├── rpcpool
-│   ├── client_pool.go            rpc连接池
-├── rpcpool2
-│   ├── rpcclient.go              rpc改进连接池客户端
-│   ├── rpcheappool.go            rpc改进连接池(heap实现共享socket)
-│   ├── rpcpool.go                rpc改进连接池
 ├── safego
 │   ├── safego.go                 安全的goruntine
 │   └── stack.go
 ├── session
 │   └── redistore.go              session的redistore扩展读写
-├── tcppool
-│   ├── conn.go                   tcp连接池
-│   └── pool.go                   tcp连接池
 └── utils
     ├── async.go                     带超时异步调用
     ├── crc16.go                     查表法crc16
@@ -62,6 +51,7 @@
     ├── models.go                    反射创建对象
     ├── packet.go                    二进制网络包封装
     ├── stringutils.go               字符串处理
-    ├── struct.go                    结构体工具(拷贝...)    
+    ├── struct.go                    结构体工具(拷贝、合并)
+    ├── tags.go                      结构体tag工具     
     └── utils.go                     其他工具类
 ```
