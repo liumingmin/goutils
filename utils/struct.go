@@ -3,6 +3,7 @@ package utils
 import (
 	"errors"
 	"reflect"
+	"strings"
 	"time"
 
 	"github.com/globalsign/mgo/bson"
@@ -132,7 +133,7 @@ func CopyStructs(src, dest interface{}, f StructConvFunc) error {
 	return nil
 }
 
-func MergeStructs(src, dest interface{}, f StructConvFunc, srcFName, dstFName string) error {
+func MergeStructs(src, dest interface{}, f StructConvFunc, keyField string, fieldMapping ...string) error {
 	srcType := reflect.TypeOf(src)
 	if srcType.Kind() != reflect.Ptr && srcType.Kind() != reflect.Slice {
 		return errors.New("src type must be slice or a slice address") //[] *[]
@@ -152,6 +153,14 @@ func MergeStructs(src, dest interface{}, f StructConvFunc, srcFName, dstFName st
 		return nil
 	}
 
+	var srcFName, dstFName string
+	keyFields := strings.Split(keyField, ":")
+	if len(keyFields) < 2 {
+		return errors.New("keyField format is srcFieldName:dstFieldName")
+	}
+	srcFName = keyFields[0]
+	dstFName = keyFields[1]
+
 	srcElemType := reflect.Indirect(srcValue.Index(0)).Type()
 	srcKeyFieldType, ok := srcElemType.FieldByName(srcFName)
 	if !ok {
@@ -163,6 +172,8 @@ func MergeStructs(src, dest interface{}, f StructConvFunc, srcFName, dstFName st
 	if !ok {
 		return errors.New("dest can not found field: " + dstFName)
 	}
+
+	tupleInts := fieldMappingToIndex(srcElemType, destElemType, fieldMapping...)
 
 	srcMap := make(map[interface{}]interface{})
 	for i := 0; i < srcValue.Len(); i++ {
@@ -184,19 +195,75 @@ func MergeStructs(src, dest interface{}, f StructConvFunc, srcFName, dstFName st
 
 		if destKeyFieldType.Type == srcKeyFieldType.Type {
 			if srcElemValue, ok := srcMap[dstElemField.Interface()]; ok {
-				CopyStruct(srcElemValue, dstElemValuePtr.Interface(), f)
+				copyStructFields(srcElemValue, dstElemValuePtr.Interface(), f, tupleInts)
 			}
 		} else if f != nil {
 			dstElemField2 := f(dstElemField.Interface(), srcKeyFieldType.Type)
 			if dstElemField2 != nil {
 				if srcElemValue, ok := srcMap[dstElemField2]; ok {
-					CopyStruct(srcElemValue, dstElemValuePtr.Interface(), f)
+					copyStructFields(srcElemValue, dstElemValuePtr.Interface(), f, tupleInts)
 				}
 			}
 		}
 	}
 
 	return nil
+}
+
+func fieldMappingToIndex(srcElemType, destElemType reflect.Type, fieldMapping ...string) []TupleInts {
+	tupleInts := make([]TupleInts, 0)
+	for _, item := range fieldMapping {
+		keyFields := strings.Split(item, ":")
+		if len(keyFields) < 2 {
+			continue
+		}
+
+		srcFName := keyFields[0]
+		dstFName := keyFields[1]
+
+		srcField, ok := srcElemType.FieldByName(srcFName)
+		if !ok {
+			continue
+		}
+
+		dstField, ok := destElemType.FieldByName(dstFName)
+		if !ok {
+			continue
+		}
+
+		tupleInts = append(tupleInts, TupleInts{Ints1: srcField.Index, Ints2: dstField.Index})
+	}
+	return tupleInts
+}
+
+func copyStructFields(src, dest interface{}, f StructConvFunc, tupleInts []TupleInts) {
+	srcValue := reflect.Indirect(reflect.ValueOf(src))
+	destValue := reflect.Indirect(reflect.ValueOf(dest))
+
+	for _, tupleInt := range tupleInts {
+		srcField := srcValue.FieldByIndex(tupleInt.Ints1)
+		if !srcField.IsValid() {
+			continue
+		}
+
+		dstField := destValue.FieldByIndex(tupleInt.Ints2)
+		if !dstField.IsValid() {
+			continue
+		}
+
+		if !dstField.CanSet() {
+			continue
+		}
+
+		if srcField.Type() == dstField.Type() {
+			dstField.Set(srcField)
+		} else if f != nil {
+			convSrcElemField := f(srcField.Interface(), dstField.Type())
+			if convSrcElemField != nil {
+				dstField.Set(reflect.ValueOf(convSrcElemField))
+			}
+		}
+	}
 }
 
 func BaseConvert(src interface{}, dstType reflect.Type) interface{} {

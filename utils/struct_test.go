@@ -117,10 +117,42 @@ func TestMergeStructs(t *testing.T) {
 		})
 	}
 
-	MergeStructs(extends, &vos, BaseConvert, "Id", "Id")
+	MergeStructs(extends, &vos, BaseConvert, "StringId:Id",
+		"MoreProp:MoreProp", "MoreProp3:MoreProp3", "MoreProp4:MoreProp4",
+	)
 
 	for _, vo := range vos {
 		t.Log(vo)
 	}
+}
 
+func BenchmarkMergeStructs(b *testing.B) {
+	b.StopTimer()
+	var vos []*ConfItemVo
+	var dos []*ConfItem
+	for i := 0; i < 500; i++ {
+		dos = append(dos, &ConfItem{Id: bson.NewObjectId(), ServiceName: "test", Body: "testBody", Version: 2, UpdateTime: time.Now(), Test: 111})
+	}
+
+	CopyStructs(dos, &vos, BaseConvert)
+
+	var extends []ConfItemExtend
+	for i, do := range dos {
+		extends = append(extends, ConfItemExtend{
+			Id:        do.Id,
+			StringId:  do.Id.Hex(),
+			MoreProp:  strconv.Itoa(i),
+			MoreProp2: i,
+			MoreProp3: time.Now(),
+			MoreProp4: float64(i) * 3.3,
+		})
+	}
+
+	b.StartTimer()
+
+	for i := 0; i < b.N; i++ {
+		MergeStructs(extends, &vos, BaseConvert, "Id:Id",
+			"MoreProp:MoreProp", "MoreProp1:MoreProp1", "MoreProp4:MoreProp4",
+		)
+	}
 }
