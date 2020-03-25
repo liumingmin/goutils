@@ -39,8 +39,6 @@
 ├── safego
 │   ├── safego.go                 安全的goruntine
 │   └── stack.go
-├── session
-│   └── redistore.go              session的redistore扩展读写
 └── utils
     ├── async.go                     带超时异步调用
     ├── crc16.go                     查表法crc16
