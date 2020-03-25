@@ -2,11 +2,12 @@ package cache_func
 
 import (
 	"fmt"
-	"go-common/library/cache"
 	"os"
 	"time"
 
 	"goutils/conf"
+
+	"github.com/robfig/go-cache"
 )
 
 var pools = cachePools{make(map[string]*cache.Cache)}
