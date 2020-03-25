@@ -1,11 +1,9 @@
 package middleware
 
 import (
-	"testing"
-
-	"net/http"
-
 	"fmt"
+	"net/http"
+	"testing"
 
 	"github.com/gin-gonic/gin"
 )

@@ -2,6 +2,7 @@ package utils
 
 import (
 	"bytes"
+	"context"
 	"crypto/md5"
 	"encoding/hex"
 	"errors"
@@ -14,8 +15,9 @@ import (
 	"sort"
 	"strings"
 
+	"goutils/log"
+
 	"github.com/google/uuid"
-	"github.com/liumingmin/goutils/log4go"
 )
 
 func NewUUID() string {
@@ -121,14 +123,14 @@ func MapToOrderStr(arg interface{}) string {
 //检查keyname的keyvalue是否符合预期值expectKeyValues，如果不存在keyvalue，使用defaultKeyValue判断
 func CheckKeyValueExpected(keyValues map[string]string, keyName, defaultKeyValue string, expectKeyValues []string) bool {
 	if keyValue, exist := keyValues[keyName]; exist {
-		log4go.Debug("Found keyName: %v keyValue: %v, expectValue: %+v",
+		log.Debug(context.Background(), "Found keyName: %v keyValue: %v, expectValue: %+v",
 			keyName, keyValue, expectKeyValues)
 
 		if found, _ := StringsInArray(expectKeyValues, keyValue); found {
 			return true
 		}
 	} else {
-		log4go.Debug("Not Found  keyName: %v, defaultValue: %v, expectValue: %+v",
+		log.Debug(context.Background(), "Not Found  keyName: %v, defaultValue: %v, expectValue: %+v",
 			keyName, defaultKeyValue, expectKeyValues)
 
 		if found, _ := StringsInArray(expectKeyValues, defaultKeyValue); found {

@@ -6,9 +6,10 @@ import (
 	"testing"
 	"time"
 
+	"goutils/safego"
+	"goutils/utils"
+
 	"github.com/gin-gonic/gin"
-	"github.com/liumingmin/goutils/safego"
-	"github.com/liumingmin/goutils/utils"
 )
 
 func TestLimitReq(t *testing.T) {

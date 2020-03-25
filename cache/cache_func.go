@@ -1,13 +1,13 @@
 package cache
 
 import (
+	"context"
 	"encoding/json"
+	"errors"
 	"reflect"
 
-	"errors"
-
-	"github.com/liumingmin/goutils/log4go"
-	"github.com/liumingmin/goutils/utils"
+	"goutils/log"
+	"goutils/utils"
 )
 
 type TCacheFunc struct {
@@ -25,7 +25,7 @@ func CacheFunc(store CacheStore, expire int64, cf func(...interface{}) string,
 
 	ft := reflect.TypeOf(f)
 	if ft.NumOut() == 0 {
-		log4go.Error("CacheFunc f must have one return value")
+		log.Error(context.Background(), "CacheFunc f must have one return value")
 		return nil, nil
 	}
 
@@ -58,7 +58,7 @@ func CacheFunc(store CacheStore, expire int64, cf func(...interface{}) string,
 		return result, err
 	} else {
 		cacheStr, _ := cacheVal.(string)
-		log4go.Debug("CacheFunc hit cache : %v", cacheStr)
+		log.Debug(context.Background(), "CacheFunc hit cache : %v", cacheStr)
 		//fmt.Printf("CacheFunc hit cache : %v\n", ss)
 
 		origRetType := ft.Out(0)

@@ -8,8 +8,9 @@ import (
 	"strconv"
 	"strings"
 
+	"goutils/utils"
+
 	"github.com/gin-gonic/gin"
-	"github.com/liumingmin/goutils/utils"
 	"github.com/nfnt/resize"
 )
 

@@ -1,11 +1,13 @@
 package model
 
 import (
+	"context"
 	"net/http"
 
+	"goutils/errcode"
+	"goutils/log"
+
 	"github.com/gin-gonic/gin"
-	"github.com/liumingmin/goutils/errcode"
-	"github.com/liumingmin/goutils/log4go"
 )
 
 type Response struct {
@@ -93,7 +95,7 @@ func NewBindFailedResponse(tag string) *Response {
 func HandleUnknownSystemError(c *gin.Context) {
 	err := recover()
 	if err != nil {
-		log4go.Critical(err, "unexpected error occurred")
+		log.Error(context.Background(), err, "unexpected error occurred")
 		c.JSON(http.StatusOK, SimpleResponse(errcode.Unknown, "Unknown system error"))
 	}
 }

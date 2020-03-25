@@ -1,27 +1,28 @@
 package utils
 
 import (
+	"context"
 	"encoding/csv"
 	"io/ioutil"
 	"os"
 	"strings"
 
-	"github.com/liumingmin/goutils/log4go"
+	"goutils/log"
 )
 
 func ReadCsvToData(filePath string, comma rune, colNames []string) (keys []string, resultData [][]string, err error) {
 	rowsData, err := ParseCsv(filePath, comma)
 	if err != nil {
-		log4go.Error("read file %s failed. error: %v", filePath, err)
+		log.Error(context.Background(), "read file %s failed. error: %v", filePath, err)
 		return
 	}
 
 	if len(rowsData) < 2 {
-		log4go.Error("read file %s is empty data file", filePath)
+		log.Error(context.Background(), "read file %s is empty data file", filePath)
 		return
 	}
 
-	log4go.Info("%s len rowsData: %v", filePath, len(rowsData))
+	log.Info(context.Background(), "%s len rowsData: %v", filePath, len(rowsData))
 
 	header := rowsData[0]
 	if len(colNames) == 0 {
@@ -53,14 +54,14 @@ func ReadCsvToData(filePath string, comma rune, colNames []string) (keys []strin
 func ParseCsv(filePath string, comma rune) (records [][]string, err error) {
 	csvFile, err := os.Open(filePath)
 	if err != nil {
-		log4go.Error("Open file %s failed. error: %v", filePath, err)
+		log.Error(context.Background(), "Open file %s failed. error: %v", filePath, err)
 		return
 	}
 	defer csvFile.Close()
 
 	bs, err := ioutil.ReadAll(csvFile)
 	if err != nil {
-		log4go.Error("Read file %s failed. error: %v", filePath, err)
+		log.Error(context.Background(), "Read file %s failed. error: %v", filePath, err)
 		return
 	}
 
@@ -74,7 +75,7 @@ func ParseCsv(filePath string, comma rune) (records [][]string, err error) {
 	if err != nil {
 		records = ParseCsvRaw(contentStr)
 		err = nil
-		log4go.Error("Read file %s failed. error: %v, try parse raw: %v", filePath, err, len(records))
+		log.Error(context.Background(), "Read file %s failed. error: %v, try parse raw: %v", filePath, err, len(records))
 	}
 	return
 }

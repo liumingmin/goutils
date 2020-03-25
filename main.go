@@ -7,11 +7,9 @@ import (
 	"strings"
 	"time"
 
+	"goutils/utils"
+
 	"github.com/gin-gonic/gin"
-	"github.com/liumingmin/goutils/utils"
-	//"github.com/liumingmin/goutils/log4go"
-	//"sync/atomic"
-	//"sort"
 )
 
 const (
@@ -26,7 +24,7 @@ func main() {
 	//time.Sleep(time.Hour)
 
 	//fmt.Println(1111)
-	//log4go.Finest("dddd %v",2321)
+	//log.Finest("dddd %v",2321)
 
 	//var isOutPool int32 =2
 	//result := atomic.CompareAndSwapInt32(&isOutPool, 1, 0)

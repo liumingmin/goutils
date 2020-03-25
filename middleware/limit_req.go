@@ -5,8 +5,9 @@ import (
 	"sync"
 	"time"
 
+	"goutils/utils"
+
 	"github.com/gin-gonic/gin"
-	"github.com/liumingmin/goutils/utils"
 )
 
 type LimitKeyFunc func(*gin.Context) (string, error)

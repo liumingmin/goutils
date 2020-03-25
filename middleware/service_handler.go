@@ -5,11 +5,13 @@ import (
 	"net/http"
 	"reflect"
 
+	"goutils/errcode"
+	"goutils/log"
+	"goutils/model"
+
 	"github.com/gin-gonic/gin"
 	"github.com/gin-gonic/gin/binding"
-	"github.com/liumingmin/goutils/errcode"
-	"github.com/liumingmin/goutils/log4go"
-	"github.com/liumingmin/goutils/model"
+	"go.uber.org/zap/zapcore"
 )
 
 type ServiceFunc func(context.Context, interface{}) (interface{}, int, error)
@@ -23,7 +25,7 @@ func ServiceHandler(serviceFunc ServiceFunc, reqVal interface{}) func(*gin.Conte
 
 	return func(c *gin.Context) {
 		tag := c.Request.RequestURI
-		log4go.Info(tag + " enter")
+		log.Info(context.Background(), tag+" enter")
 
 		var req interface{} = nil
 		if reqType != nil {
@@ -31,7 +33,7 @@ func ServiceHandler(serviceFunc ServiceFunc, reqVal interface{}) func(*gin.Conte
 
 			//使用http 200 ok 响应code
 			if err := c.ShouldBindWith(req, binding.JSON); err != nil {
-				log4go.Error("Bind json failed. error: %v", err)
+				log.Error(context.Background(), "Bind json failed. error: %v", err)
 				c.JSON(http.StatusOK, model.NewBindFailedResponse(tag))
 				return
 			}
@@ -39,7 +41,7 @@ func ServiceHandler(serviceFunc ServiceFunc, reqVal interface{}) func(*gin.Conte
 
 		resp, code, err := serviceFunc(c, req)
 		if err != nil {
-			lvl := log4go.ERROR
+			lvl := zapcore.ErrorLevel
 			if code == 0 {
 				if err828x, ok := err.(errcode.Errorx); ok {
 					code = err828x.Code()
@@ -51,10 +53,10 @@ func ServiceHandler(serviceFunc ServiceFunc, reqVal interface{}) func(*gin.Conte
 				}
 			}
 
-			if lvl == log4go.ERROR {
-				log4go.Error(tag+" failed. error: %v", err)
+			if lvl == zapcore.ErrorLevel {
+				log.Error(context.Background(), tag+" failed. error: %v", err)
 			} else {
-				log4go.Info(tag+" failed. error: %v", err)
+				log.Info(context.Background(), tag+" failed. error: %v", err)
 			}
 
 			c.JSON(http.StatusOK, model.NewErrRespWithCode(code, err, tag))

@@ -1,12 +1,14 @@
 package cache
 
 import (
+	"context"
 	"encoding/json"
 	"net/http"
 	"time"
 
+	"goutils/log"
+
 	"github.com/gin-gonic/gin"
-	"github.com/liumingmin/goutils/log4go"
 )
 
 type responseCache struct {
@@ -48,7 +50,7 @@ func (w *CachedWriterGin) Write(data []byte) (int, error) {
 	if err == nil {
 		store := w.store
 		if store.Exists(w.key) {
-			log4go.Debug("No need cache...")
+			log.Debug(context.Background(), "No need cache...")
 			return ret, err
 		}
 
@@ -59,7 +61,7 @@ func (w *CachedWriterGin) Write(data []byte) (int, error) {
 		}
 		err = store.Set(w.key, val, int64(w.expire/time.Second))
 		if err != nil {
-			log4go.Error("Cache page store set failed. error: %v", err)
+			log.Error(context.Background(), "Cache page store set failed. error: %v", err)
 		}
 	}
 	return ret, err
@@ -70,7 +72,7 @@ func (w *CachedWriterGin) WriteString(data string) (n int, err error) {
 	if err == nil {
 		store := w.store
 		if store.Exists(w.key) {
-			log4go.Debug("No need cache...")
+			log.Debug(context.Background(), "No need cache...")
 			return ret, err
 		}
 

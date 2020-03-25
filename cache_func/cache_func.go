@@ -2,15 +2,16 @@ package cache_func
 
 import (
 	"bytes"
+	"context"
 	"crypto/md5"
 	"encoding/hex"
 	"fmt"
+	"go-common/library/cache"
 	"reflect"
 	"sort"
 	"time"
 
-	"github.com/liumingmin/goutils/log4go"
-	"github.com/robfig/go-cache"
+	"goutils/log"
 )
 
 var (
@@ -38,16 +39,16 @@ func MemCacheFunc(cc *cache.Cache, expire time.Duration, f interface{}, prefix s
 
 	ft := reflect.TypeOf(f)
 	if ft.NumOut() == 0 {
-		log4go.Error("CacheFunc f must have one return value")
+		log.Error(context.Background(), "CacheFunc f must have one return value")
 		return nil, nil
 	}
 
 	key := prefix + ":" + getMemCacheKey(args...)
-	log4go.Debug("MemCacheFunc cache key : %v", key)
+	log.Debug(context.Background(), "MemCacheFunc cache key : %v", key)
 
 	retValue, ok := cc.Get(key)
 	if ok {
-		log4go.Debug("MemCacheFunc hit cache : %v", retValue)
+		log.Debug(context.Background(), "MemCacheFunc hit cache : %v", retValue)
 
 		return retValue, nil
 	} else {
@@ -88,14 +89,14 @@ func DefMemCacheGetValue(prefix string, args ...interface{}) (interface{}, bool)
 
 func MemCacheGetValue(cc *cache.Cache, prefix string, args ...interface{}) (interface{}, bool) {
 	key := prefix + ":" + getMemCacheKey(args...)
-	log4go.Debug("GetMemValue cache key : %v", key)
+	log.Debug(context.Background(), "GetMemValue cache key : %v", key)
 
 	return cc.Get(key)
 }
 
 func getMemCacheKey(args ...interface{}) string {
 	if len(args) == 0 {
-		log4go.Error("getMemCacheKey args len is 0")
+		log.Error(context.Background(), "getMemCacheKey args len is 0")
 		return MEM_CACHE_FUNC_KEY
 	}
 

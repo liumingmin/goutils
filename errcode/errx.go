@@ -1,7 +1,7 @@
 package errcode
 
 import (
-	"github.com/liumingmin/goutils/log4go"
+	"go.uber.org/zap/zapcore"
 )
 
 const (
@@ -13,13 +13,13 @@ const (
 type Errorx interface {
 	Error() string
 	Code() int
-	LogLevel() log4go.Level
+	LogLevel() zapcore.Level
 }
 
 type errorx struct {
 	msg      string
 	code     int
-	logLevel log4go.Level
+	logLevel zapcore.Level
 }
 
 func (e *errorx) Error() string {
@@ -30,7 +30,7 @@ func (e *errorx) Code() int {
 	return e.code
 }
 
-func (e *errorx) LogLevel() log4go.Level {
+func (e *errorx) LogLevel() zapcore.Level {
 	return e.logLevel
 }
 
@@ -38,11 +38,11 @@ func NewErrx(code int, msg string) Errorx {
 	return &errorx{
 		msg:      msg,
 		code:     code,
-		logLevel: log4go.ERROR,
+		logLevel: zapcore.ErrorLevel,
 	}
 }
 
-func NewErrx2(code int, msg string, logLevel log4go.Level) Errorx {
+func NewErrx2(code int, msg string, logLevel zapcore.Level) Errorx {
 	return &errorx{
 		msg:      msg,
 		code:     code,

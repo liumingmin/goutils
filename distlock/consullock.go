@@ -1,12 +1,14 @@
 package distlock
 
 import (
+	"context"
 	"time"
 
+	"goutils/conf"
+	"goutils/log"
+	"goutils/safego"
+
 	"github.com/hashicorp/consul/api"
-	"github.com/liumingmin/goutils/conf"
-	"github.com/liumingmin/goutils/log4go"
-	"github.com/liumingmin/goutils/safego"
 )
 
 var gConsul *api.Client
@@ -57,7 +59,7 @@ func init() {
 	config.Address = conf.ExtString("service.centerAddr", "127.0.0.1:8500")
 	gConsul, e = api.NewClient(config)
 	if e != nil {
-		log4go.Error("Create consul client failed. error: %v", e)
+		log.Error(context.Background(), "Create consul client failed. error: %v", e)
 		panic(e)
 	}
 }

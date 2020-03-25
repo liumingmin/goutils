@@ -1,10 +1,11 @@
 package mdb
 
 import (
+	"context"
 	"strconv"
 
-	"github.com/liumingmin/goutils/log4go"
-	"github.com/liumingmin/goutils/utils"
+	"goutils/log"
+	"goutils/utils"
 )
 
 type DataRow struct {
@@ -128,7 +129,7 @@ func ReadCsvToDataTable(filePath string, comma rune, colNames []string, pkCol st
 		pkCol = keys[0]
 	}
 
-	log4go.Info("%s keys: %v, %d", filePath, keys, len(keys))
+	log.Info(context.Background(), "%s keys: %v, %d", filePath, keys, len(keys))
 
 	dataTable = NewDataTable(keys, pkCol, indexes, len(rowsData))
 	dataTable.PushAll(rowsData[1:])

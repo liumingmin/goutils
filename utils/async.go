@@ -4,7 +4,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/liumingmin/goutils/safego"
+	"goutils/safego"
 )
 
 func AsyncInvokesWithTimeout(timeout time.Duration, fs []func()) bool {
