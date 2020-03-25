@@ -13,14 +13,14 @@ const (
 	MIN_TIMER_INTERVAL = 1 * time.Millisecond
 )
 
-type LightTimer struct{
+type LightTimer struct {
 	timerHeap     _TimerHeap
 	timerHeapLock sync.Mutex
-	nextAddSeq uint
+	nextAddSeq    uint
 }
 
-func NewLightTimer() *LightTimer{
-	lt := &LightTimer{nextAddSeq:1}
+func NewLightTimer() *LightTimer {
+	lt := &LightTimer{nextAddSeq: 1}
 	heap.Init(&lt.timerHeap)
 
 	return lt
@@ -28,6 +28,7 @@ func NewLightTimer() *LightTimer{
 
 type Timer struct {
 	fireTime time.Time
+	deadline time.Time
 	interval time.Duration
 	callback CallbackFunc
 	repeat   bool
@@ -84,13 +85,11 @@ func (h *_TimerHeap) Pop() (ret interface{}) {
 }
 
 // Type of callback function
-type CallbackFunc func( uint)(done bool)
+type CallbackFunc func(uint) (done bool)
 type SimpleCallbackFunc func()
 
-
-
 // Add a callback which will be called after specified duration
-func (lt *LightTimer)AddCallback(d time.Duration, callback SimpleCallbackFunc) *Timer {
+func (lt *LightTimer) AddCallback(d time.Duration, callback SimpleCallbackFunc) *Timer {
 	t := &Timer{
 		fireTime: time.Now().Add(d),
 		interval: d,
@@ -98,7 +97,7 @@ func (lt *LightTimer)AddCallback(d time.Duration, callback SimpleCallbackFunc) *
 			callback()
 			return true
 		},
-		repeat:   false,
+		repeat: false,
 	}
 	lt.timerHeapLock.Lock()
 	t.addseq = lt.nextAddSeq // set addseq when locked
@@ -110,13 +109,14 @@ func (lt *LightTimer)AddCallback(d time.Duration, callback SimpleCallbackFunc) *
 }
 
 // Add a timer which calls callback periodly
-func (lt *LightTimer)AddTimer(d time.Duration, callback CallbackFunc) *Timer {
+func (lt *LightTimer) AddTimer(d time.Duration, deadline time.Time, callback CallbackFunc) *Timer {
 	if d < MIN_TIMER_INTERVAL {
 		d = MIN_TIMER_INTERVAL
 	}
 
 	t := &Timer{
 		fireTime: time.Now().Add(d),
+		deadline: deadline,
 		interval: d,
 		callback: callback,
 		repeat:   true,
@@ -131,7 +131,7 @@ func (lt *LightTimer)AddTimer(d time.Duration, callback CallbackFunc) *Timer {
 }
 
 // Tick once for timers
-func (lt *LightTimer)tick() {
+func (lt *LightTimer) tick() {
 	now := time.Now()
 	lt.timerHeapLock.Lock()
 
@@ -165,7 +165,7 @@ func (lt *LightTimer)tick() {
 		done := runCallback(callback, fireSeqNo)
 		lt.timerHeapLock.Lock()
 
-		if t.repeat && !done{
+		if t.repeat && !done && t.deadline.After(time.Now()) {
 			// add Timer back to heap
 			t.fireTime = t.fireTime.Add(t.interval)
 			if !t.fireTime.After(now) { // might happen when interval is very small
@@ -180,18 +180,18 @@ func (lt *LightTimer)tick() {
 }
 
 // Start the self-ticking routine, which ticks per tickInterval
-func (lt *LightTimer)StartTicks(tickInterval time.Duration) {
+func (lt *LightTimer) StartTicks(tickInterval time.Duration) {
 	go lt.selfTickRoutine(tickInterval)
 }
 
-func (lt *LightTimer)selfTickRoutine(tickInterval time.Duration) {
+func (lt *LightTimer) selfTickRoutine(tickInterval time.Duration) {
 	for {
 		time.Sleep(tickInterval)
 		lt.tick()
 	}
 }
 
-func runCallback(callback CallbackFunc, fireSeqNo uint) (done bool){
+func runCallback(callback CallbackFunc, fireSeqNo uint) (done bool) {
 	defer func() {
 		err := recover()
 		if err != nil {
