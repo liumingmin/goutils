@@ -33,7 +33,7 @@ func DefMemCacheDelete(prefix string, args ...interface{}) bool {
 }
 
 func MemCacheFunc(cc *cache.Cache, expire time.Duration, f interface{}, prefix string, args ...interface{}) (interface{}, error) {
-	//defer logutil.Recover(context.Background(), func(e interface{}) string {
+	//defer log.Recover(context.Background(), func(e interface{}) string {
 	//	err := e.(error)
 	//	return fmt.Sprintf("CacheFunc err: %v", err)
 	//})

@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/liumingmin/goutils/conf"
-
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 	lumberjack "gopkg.in/natefinch/lumberjack.v2"
@@ -50,7 +49,7 @@ func init() {
 	atomicLevel := zap.NewAtomicLevel()
 
 	if debug := conf.ExtBool("debug", true); debug {
-		atomicLevel.SetLevel(zap.InfoLevel)
+		atomicLevel.SetLevel(zap.DebugLevel)
 	} else {
 		atomicLevel.SetLevel(zap.ErrorLevel)
 	}
