@@ -54,12 +54,12 @@ func RdsCacheFunc(ctx context.Context, dbName string, rdsExpire int, f interface
 	}
 
 	data, err, _ := sg.Do(key, func() (interface{}, error) {
-		return callFunc(ctx, dbName, rdsExpire, f, keyFmt, args...)
+		return rdsCacheCallFunc(ctx, dbName, rdsExpire, f, keyFmt, args...)
 	})
 	return data, err
 }
 
-func callFunc(ctx context.Context, dbName string, rdsExpire int, f interface{}, keyFmt string, args ...interface{}) (interface{}, error) {
+func rdsCacheCallFunc(ctx context.Context, dbName string, rdsExpire int, f interface{}, keyFmt string, args ...interface{}) (interface{}, error) {
 	argValues := make([]reflect.Value, 0)
 
 	ft := reflect.TypeOf(f)
@@ -78,7 +78,7 @@ func callFunc(ctx context.Context, dbName string, rdsExpire int, f interface{}, 
 	retValues := fv.Call(argValues)
 
 	var retErr error
-	if len(retValues) > 1 && retValues[1].IsValid() && !safeIsNil(&retValues[1]) {
+	if len(retValues) > 1 && retValues[1].IsValid() && !utils.SafeIsNil(&retValues[1]) {
 		retErr, _ = retValues[1].Interface().(error)
 	}
 
@@ -86,7 +86,7 @@ func callFunc(ctx context.Context, dbName string, rdsExpire int, f interface{}, 
 	key := fmt.Sprintf(keyFmt, args...)
 
 	var result interface{}
-	if len(retValues) > 0 && retValues[0].IsValid() && !safeIsNil(&retValues[0]) && retErr == nil {
+	if len(retValues) > 0 && retValues[0].IsValid() && !utils.SafeIsNil(&retValues[0]) && retErr == nil {
 		result = retValues[0].Interface()
 		rds.Set(ctx, key, convertRetValueToString(result, ft.Out(0)), time.Duration(rdsExpire)*time.Second)
 	} else {
@@ -105,15 +105,6 @@ func convertRetValueToString(retValue interface{}, t reflect.Type) string {
 		return gocast.ToString(retValue)
 	}
 	return gocast.ToString(retValue)
-}
-
-func safeIsNil(value *reflect.Value) bool {
-	switch value.Kind() {
-	case reflect.Chan, reflect.Func, reflect.Interface, reflect.Map, reflect.Ptr, reflect.Slice, reflect.UnsafePointer:
-		return value.IsNil()
-	default:
-		return false
-	}
 }
 
 func convertStringTo(cacheValue string, t reflect.Type) interface{} {
