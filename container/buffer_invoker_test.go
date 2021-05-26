@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"goutils/safego"
+	"github.com/liumingmin/goutils/safego"
 )
 
 var fb = BufferInvoker{ChanSize: 100, Func: processItem}

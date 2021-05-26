@@ -4,8 +4,8 @@ import (
 	"context"
 	"net/http"
 
-	"goutils/errcode"
-	"goutils/log"
+	"github.com/liumingmin/goutils/errcode"
+	"github.com/liumingmin/goutils/log"
 
 	"github.com/gin-gonic/gin"
 )

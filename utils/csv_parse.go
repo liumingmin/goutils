@@ -7,7 +7,7 @@ import (
 	"os"
 	"strings"
 
-	"goutils/log"
+	"github.com/liumingmin/goutils/log"
 )
 
 func ReadCsvToData(filePath string, comma rune, colNames []string) (keys []string, resultData [][]string, err error) {

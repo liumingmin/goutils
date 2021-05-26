@@ -1,7 +1,7 @@
 package container
 
 import (
-	"goutils/utils"
+	"github.com/liumingmin/goutils/utils"
 )
 
 type Bitmap []uint32

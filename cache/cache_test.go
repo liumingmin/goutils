@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"goutils/utils"
+	"github.com/liumingmin/goutils/utils"
 
 	"github.com/gin-gonic/gin"
 )

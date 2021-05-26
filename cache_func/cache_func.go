@@ -10,7 +10,7 @@ import (
 	"sort"
 	"time"
 
-	"goutils/log"
+	"github.com/liumingmin/goutils/log"
 
 	"github.com/robfig/go-cache"
 )

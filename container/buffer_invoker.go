@@ -5,7 +5,7 @@ import (
 	"sync"
 	"time"
 
-	"goutils/safego"
+	"github.com/liumingmin/goutils/safego"
 )
 
 type BufferInvoker struct {

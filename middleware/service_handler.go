@@ -5,9 +5,9 @@ import (
 	"net/http"
 	"reflect"
 
-	"goutils/errcode"
-	"goutils/log"
-	"goutils/model"
+	"github.com/liumingmin/goutils/errcode"
+	"github.com/liumingmin/goutils/log"
+	"github.com/liumingmin/goutils/model"
 
 	"github.com/gin-gonic/gin"
 	"github.com/gin-gonic/gin/binding"

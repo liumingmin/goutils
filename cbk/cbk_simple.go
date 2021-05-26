@@ -4,8 +4,8 @@ import (
 	"sync"
 	"time"
 
-	"goutils/conf"
-	"goutils/utils"
+	"github.com/liumingmin/goutils/conf"
+	"github.com/liumingmin/goutils/utils"
 )
 
 type cbkParam struct {

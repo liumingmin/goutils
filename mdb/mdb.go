@@ -4,8 +4,8 @@ import (
 	"context"
 	"strconv"
 
-	"goutils/log"
-	"goutils/utils"
+	"github.com/liumingmin/goutils/log"
+	"github.com/liumingmin/goutils/utils"
 )
 
 type DataRow struct {

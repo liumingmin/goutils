@@ -4,9 +4,9 @@ import (
 	"context"
 	"time"
 
-	"goutils/conf"
-	"goutils/log"
-	"goutils/safego"
+	"github.com/liumingmin/goutils/conf"
+	"github.com/liumingmin/goutils/log"
+	"github.com/liumingmin/goutils/safego"
 
 	"github.com/hashicorp/consul/api"
 )

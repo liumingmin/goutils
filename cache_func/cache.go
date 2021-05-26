@@ -5,7 +5,7 @@ import (
 	"os"
 	"time"
 
-	"goutils/conf"
+	"github.com/liumingmin/goutils/conf"
 
 	"github.com/robfig/go-cache"
 )

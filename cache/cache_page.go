@@ -6,8 +6,8 @@ import (
 	"net/http"
 	"time"
 
-	"goutils/log"
-	"goutils/utils"
+	"github.com/liumingmin/goutils/log"
+	"github.com/liumingmin/goutils/utils"
 
 	"github.com/gin-gonic/gin"
 )

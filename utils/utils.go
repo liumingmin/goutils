@@ -15,7 +15,7 @@ import (
 	"sort"
 	"strings"
 
-	"goutils/log"
+	"github.com/liumingmin/goutils/log"
 
 	"github.com/google/uuid"
 )

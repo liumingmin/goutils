@@ -3,8 +3,8 @@ package distlock
 import (
 	"time"
 
-	"goutils/conf"
-	"goutils/safego"
+	"github.com/liumingmin/goutils/conf"
+	"github.com/liumingmin/goutils/safego"
 
 	"github.com/garyburd/redigo/redis"
 	"github.com/google/uuid"

@@ -6,7 +6,7 @@ import (
 	"os"
 	"time"
 
-	"goutils/conf"
+	"github.com/liumingmin/goutils/conf"
 
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"

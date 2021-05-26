@@ -6,8 +6,8 @@ import (
 	"errors"
 	"reflect"
 
-	"goutils/log"
-	"goutils/utils"
+	"github.com/liumingmin/goutils/log"
+	"github.com/liumingmin/goutils/utils"
 )
 
 type TCacheFunc struct {
