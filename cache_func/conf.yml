@@ -1,0 +1,10 @@
+
+ext:
+  goredis:
+    -
+      key: rdscdb
+      addrs:
+        - 127.0.0.1:6379
+      pool_size: 4
+      db: 0
+      password:

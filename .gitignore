@@ -3,13 +3,11 @@ target/
 .*
 *.log
 .*/
-*.yml
 *.iml
 *.class
 *.exe
 */**/.*
 */**/.*/
-*/**/*.yml
 */**/*.iml
 */**/*.class
 main
