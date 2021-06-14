@@ -11,11 +11,8 @@ require (
 	github.com/go-redis/redis/v8 v8.8.3
 	github.com/google/uuid v1.1.1
 	github.com/hashicorp/consul/api v1.1.0
-	github.com/kimiazhu/golib v0.0.0-20181123075453-970a1a889a1d // indirect
-	github.com/kimiazhu/log4go v0.0.0-20170715075405-ddf5ad77ffb4 // indirect
 	github.com/nfnt/resize v0.0.0-20180221191011-83c6a9932646
 	github.com/robfig/go-cache v0.0.0-20130306151617-9fc39e0dbf62
-	gitlab.xsjcs.cn/woh/platform/modules/github.com/kimiazhu/ginweb.git v1.0.10 // indirect
 	go.uber.org/zap v1.14.1
 	golang.org/x/net v0.0.0-20201202161906-c7110b5ffcbb
 	golang.org/x/sync v0.0.0-20201020160332-67f06af15bc9
