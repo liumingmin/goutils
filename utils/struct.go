@@ -5,13 +5,10 @@ import (
 	"reflect"
 	"strings"
 	"time"
-
-	"github.com/globalsign/mgo/bson"
 )
 
 var (
-	StructTimeType     = reflect.TypeOf(time.Now())
-	StructBsonObjectId = reflect.TypeOf(bson.NewObjectId())
+	StructTimeType = reflect.TypeOf(time.Now())
 )
 
 const (
@@ -267,13 +264,7 @@ func copyStructFields(src, dest interface{}, f StructConvFunc, tupleInts []Tuple
 }
 
 func BaseConvert(src interface{}, dstType reflect.Type) interface{} {
-	if bid, ok := src.(bson.ObjectId); ok && dstType.Kind() == reflect.String {
-		return bid.Hex()
-	} else if bid, ok := src.(string); ok && dstType == StructBsonObjectId {
-		if bid != "" {
-			return bson.ObjectIdHex(bid)
-		}
-	} else if srcData, ok := src.(time.Time); ok && dstType.Kind() == reflect.String {
+	if srcData, ok := src.(time.Time); ok && dstType.Kind() == reflect.String {
 		if !srcData.IsZero() {
 			return srcData.Format(STRUCT_DATE_TIME_FORMAT_LAYOUT)
 		} else {

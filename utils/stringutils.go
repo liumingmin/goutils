@@ -2,8 +2,6 @@ package utils
 
 import (
 	"strings"
-
-	"github.com/globalsign/mgo/bson"
 )
 
 func StringsReverse(s []string) []string {
@@ -45,13 +43,6 @@ func StringsExcept(ss1 []string, ss2 []string) (se []string) {
 		if !found {
 			se = append(se, s1)
 		}
-	}
-	return
-}
-
-func StringsToBsonId(ids []string) (objectIds []bson.ObjectId) {
-	for _, id := range ids {
-		objectIds = append(objectIds, bson.ObjectIdHex(id))
 	}
 	return
 }
