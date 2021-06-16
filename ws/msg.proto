@@ -1,0 +1,18 @@
+syntax = "proto3";
+package ws;
+
+option go_package = "/ws";
+
+//通用消息体封装
+message P_MESSAGE
+{
+    int32                   protocol_id             = 1;    //消息协议ID
+    bytes                   data                    = 2;    //内容-自定义消息
+}
+
+//基础协议
+enum P_S2C
+{
+    s2c_connected           = 0;    //连接成功建立
+    s2c_err_displace        = 1;    //被顶号
+}
