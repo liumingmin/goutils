@@ -2,12 +2,13 @@ package conf
 
 import (
 	"fmt"
-	"gopkg.in/yaml.v2"
 	"io/ioutil"
 	"os"
 	"reflect"
 	"strings"
 	"time"
+
+	"gopkg.in/yaml.v2"
 )
 
 type Databases struct {
@@ -24,19 +25,6 @@ type Database struct {
 	EXT      map[string]interface{} `yaml:",flow"`
 }
 
-type Config struct {
-	SERVER struct {
-		RUNMODE string `yaml:"runmode"`
-		PORT    string `yaml:"port"`
-	}
-
-	DATABASE *Database `yaml:"database,flow"`
-
-	DATABASES []Database `yaml:"databases,flow"`
-
-	EXT map[string]interface{} `yaml:"ext,flow"`
-}
-
 // Get value of given key of Database section.
 func (d *Database) Ext(key string, defaultVal ...interface{}) interface{} {
 	if v, exist := d.EXT[key]; exist {
@@ -48,6 +36,37 @@ func (d *Database) Ext(key string, defaultVal ...interface{}) interface{} {
 	}
 
 	return ""
+}
+
+func (d *Database) ExtString(key string, defaultVal ...interface{}) string {
+	keyValue := d.Ext(key, defaultVal...)
+
+	return fmt.Sprint(keyValue)
+}
+
+func (d *Database) ExtInt(key string, defaultVal ...interface{}) int {
+	return d.Ext(key, defaultVal...).(int)
+}
+
+func (d *Database) ExtDuration(key string, defaultVal ...interface{}) time.Duration {
+	keyValue := d.Ext(key, defaultVal...)
+
+	str := fmt.Sprint(keyValue)
+	t, _ := time.ParseDuration(str)
+	return t
+}
+
+type Config struct {
+	SERVER struct {
+		RUNMODE string `yaml:"runmode"`
+		PORT    string `yaml:"port"`
+	}
+
+	DATABASE *Database `yaml:"database,flow"`
+
+	DATABASES []Database `yaml:"databases,flow"`
+
+	EXT map[string]interface{} `yaml:"ext,flow"`
 }
 
 // Ext will return the value of the EXT config, the keys is a string
