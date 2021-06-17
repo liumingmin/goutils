@@ -17,7 +17,6 @@ type ServiceFunc func(context.Context, interface{}) (interface{}, error)
 
 type ServiceResponse interface {
 	IsJsonResponse(data interface{}) bool
-	NewBindFailedResponse(err error, tag string) interface{}
 	NewErrRespWithCode(code int, err error, data interface{}, tag string) interface{}
 	NewDataResponse(data interface{}, tag string) interface{}
 }
@@ -39,7 +38,7 @@ func ServiceHandler(serviceFunc ServiceFunc, reqVal interface{}, sResp ServiceRe
 
 			if err := c.ShouldBindBodyWith(req, binding.JSON); err != nil {
 				log.Error(c, "Bind json failed. error: %v", err)
-				c.JSON(http.StatusOK, sResp.NewBindFailedResponse(err, tag))
+				c.JSON(http.StatusOK, sResp.NewErrRespWithCode(errcode.WrongArgs, err, nil, tag))
 				return
 			}
 		}
