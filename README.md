@@ -27,20 +27,19 @@
 ├── fsm
 │   └── fsm.go                    状态机
 ├── httpx
-│   └── httpclientx.go            httpclientx兼容1.1和2.0
+│   └── httpclientx.go            httpclientx兼容1.x和2.0
 ├── lighttimer
 │   ├── lighttimer.go             轻量级计时器
 ├── mdb
 │   ├── mdb.go                    轻量级内存表
 ├── middleware
 │   ├── captcha.go                验证码中间件
-│   ├── cbk.go                    中间件熔断
 │   ├── limit_conn.go             限连接
 │   ├── limit_req.go              限流
+│   ├── service_handler.go        封装controller功能
 │   ├── thumb_image.go            缩略图
 ├── safego
 │   ├── safego.go                 安全的goruntine
-│   └── stack.go
 └── utils
     ├── async.go                     带超时异步调用
     ├── crc16.go                     查表法crc16
