@@ -7,16 +7,22 @@ import (
 
 	"github.com/liumingmin/goutils/errcode"
 	"github.com/liumingmin/goutils/log"
-	"github.com/liumingmin/goutils/model"
 
 	"github.com/gin-gonic/gin"
 	"github.com/gin-gonic/gin/binding"
 	"go.uber.org/zap/zapcore"
 )
 
-type ServiceFunc func(context.Context, interface{}) (interface{}, int, error)
+type ServiceFunc func(context.Context, interface{}) (interface{}, error)
 
-func ServiceHandler(serviceFunc ServiceFunc, reqVal interface{}) func(*gin.Context) {
+type ServiceResponse interface {
+	IsJsonResponse(data interface{}) bool
+	NewBindFailedResponse(err error, tag string) interface{}
+	NewErrRespWithCode(code int, err error, data interface{}, tag string) interface{}
+	NewDataResponse(data interface{}, tag string) interface{}
+}
+
+func ServiceHandler(serviceFunc ServiceFunc, reqVal interface{}, sResp ServiceResponse) func(*gin.Context) {
 	var reqType reflect.Type = nil
 	if reqVal != nil {
 		value := reflect.Indirect(reflect.ValueOf(reqVal))
@@ -25,43 +31,46 @@ func ServiceHandler(serviceFunc ServiceFunc, reqVal interface{}) func(*gin.Conte
 
 	return func(c *gin.Context) {
 		tag := c.Request.RequestURI
-		log.Info(context.Background(), tag+" enter")
+		log.Debug(c, tag+" enter")
 
 		var req interface{} = nil
 		if reqType != nil {
 			req = reflect.New(reqType).Interface()
 
-			//使用http 200 ok 响应code
-			if err := c.ShouldBindWith(req, binding.JSON); err != nil {
-				log.Error(context.Background(), "Bind json failed. error: %v", err)
-				c.JSON(http.StatusOK, model.NewBindFailedResponse(tag))
+			if err := c.ShouldBindBodyWith(req, binding.JSON); err != nil {
+				log.Error(c, "Bind json failed. error: %v", err)
+				c.JSON(http.StatusOK, sResp.NewBindFailedResponse(err, tag))
 				return
 			}
 		}
 
-		resp, code, err := serviceFunc(c, req)
+		data, err := serviceFunc(c, req)
 		if err != nil {
 			lvl := zapcore.ErrorLevel
-			if code == 0 {
-				if err828x, ok := err.(errcode.Errorx); ok {
-					code = err828x.Code()
-					lvl = err828x.LogLevel()
-				}
+			code := errcode.Unknown
+			if errX, ok := err.(errcode.Errorx); ok {
+				lvl = errX.LogLevel()
+				code = errX.Code()
+			}
 
-				if code == 0 {
-					code = errcode.Unknown
-				}
+			if code == errcode.Success {
+				code = errcode.Unknown
 			}
 
 			if lvl == zapcore.ErrorLevel {
-				log.Error(context.Background(), tag+" failed. error: %v", err)
+				log.Error(c, tag+" failed. error: %v", err)
 			} else {
-				log.Info(context.Background(), tag+" failed. error: %v", err)
+				log.Info(c, tag+" failed. error: %v", err)
 			}
 
-			c.JSON(http.StatusOK, model.NewErrRespWithCode(code, err, tag))
+			c.JSON(http.StatusOK, sResp.NewErrRespWithCode(code, err, data, tag))
 			return
 		}
-		c.JSON(http.StatusOK, model.NewDataResponse(resp, tag))
+
+		if data != nil && !sResp.IsJsonResponse(data) {
+			return
+		}
+
+		c.JSON(http.StatusOK, sResp.NewDataResponse(data, tag))
 	}
 }
