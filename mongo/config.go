@@ -57,11 +57,11 @@ func newConfig(dbconf *conf.Database) *Config {
 	direct, _ := dbconf.Ext("direct", false).(bool)
 
 	return &Config{
-		Address:           strings.Split(dbconf.HOST, ","),
-		Database:          dbconf.NAME,
-		Username:          dbconf.USER,
-		Password:          dbconf.PASSWORD,
-		Source:            dbconf.ExtString("authSource", dbconf.NAME),
+		Address:           strings.Split(dbconf.Host, ","),
+		Database:          dbconf.Name,
+		Username:          dbconf.User,
+		Password:          dbconf.Password,
+		Source:            dbconf.ExtString("authSource", dbconf.Name),
 		Safe:              safe,
 		Mode:              mode,
 		Direct:            direct,

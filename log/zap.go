@@ -17,10 +17,6 @@ var (
 	stackLogger *zap.Logger
 )
 
-const (
-	GlobalTraceId = "__gTraceId"
-)
-
 func init() {
 	hook := lumberjack.Logger{
 		Filename:   "./goutils.log", // 日志文件路径

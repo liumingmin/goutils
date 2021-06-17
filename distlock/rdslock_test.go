@@ -1,20 +1,24 @@
 package distlock
 
 import (
+	"context"
 	"fmt"
 	"testing"
 	"time"
+
+	"github.com/liumingmin/goutils/redis"
 )
 
 func TestRdsLock(t *testing.T) {
-	l, _ := NewRdsLuaLock("accoutId", 4)
-	l2, _ := NewRdsLuaLock("accoutId", 4)
+	redis.InitRedises()
+	l, _ := NewRdsLuaLock("rdscdb", "accoutId", 4)
+	l2, _ := NewRdsLuaLock("rdscdb", "accoutId", 4)
 	//l.Lock(15)
 	//l.Unlock()
-
-	fmt.Println(l.Lock(5))
+	ctx := context.Background()
+	fmt.Println(l.Lock(ctx, 5))
 	fmt.Println("1getlock")
-	fmt.Println(l2.Lock(5))
+	fmt.Println(l2.Lock(ctx, 5))
 	fmt.Println("2getlock")
 	time.Sleep(time.Second * 15)
 

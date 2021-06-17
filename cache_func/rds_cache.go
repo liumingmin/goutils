@@ -9,8 +9,8 @@ import (
 	"time"
 
 	"github.com/demdxx/gocast"
-	"github.com/liumingmin/goutils/goredis"
 	"github.com/liumingmin/goutils/log"
+	"github.com/liumingmin/goutils/redis"
 	"github.com/liumingmin/goutils/utils"
 	"golang.org/x/sync/singleflight"
 )
@@ -20,7 +20,7 @@ var (
 )
 
 func RdsDeleteCache(ctx context.Context, dbName string, keyFmt string, args ...interface{}) (err error) {
-	rds := goredis.Get(dbName)
+	rds := redis.Get(dbName)
 
 	key := fmt.Sprintf(keyFmt, args...)
 
@@ -35,7 +35,7 @@ func RdsCacheFunc(ctx context.Context, dbName string, rdsExpire int, f interface
 		return fmt.Sprintf("RdscCacheFuncCtx err: %v", err)
 	})
 
-	rds := goredis.Get(dbName)
+	rds := redis.Get(dbName)
 
 	ft := reflect.TypeOf(f)
 	if ft.NumOut() == 0 {
@@ -82,7 +82,7 @@ func rdsCacheCallFunc(ctx context.Context, dbName string, rdsExpire int, f inter
 		retErr, _ = retValues[1].Interface().(error)
 	}
 
-	rds := goredis.Get(dbName)
+	rds := redis.Get(dbName)
 	key := fmt.Sprintf(keyFmt, args...)
 
 	var result interface{}

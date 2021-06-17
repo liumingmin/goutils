@@ -1,34 +1,30 @@
 package distlock
 
 import (
+	"context"
 	"time"
 
-	"github.com/liumingmin/goutils/conf"
-	"github.com/liumingmin/goutils/safego"
-
-	"github.com/garyburd/redigo/redis"
 	"github.com/google/uuid"
+	"github.com/liumingmin/goutils/redis"
+	"github.com/liumingmin/goutils/safego"
 )
 
-var gRdsPool *redis.Pool
-
 type RdsLuaLock struct {
+	dbKey  string
 	key    string
 	value  string
 	expire int
 }
 
-func NewRdsLuaLock(key string, expire int) (*RdsLuaLock, error) {
-	return &RdsLuaLock{key: key, value: uuid.New().String(), expire: expire}, nil
+func NewRdsLuaLock(dbKey, key string, expire int) (*RdsLuaLock, error) {
+	return &RdsLuaLock{dbKey: dbKey, key: key, value: uuid.New().String(), expire: expire}, nil
 }
 
-func (l *RdsLuaLock) TryLock() bool {
-	c := gRdsPool.Get()
-	defer c.Close()
+func (l *RdsLuaLock) TryLock(ctx context.Context) bool {
+	rds := redis.Get(l.dbKey)
 
-	val, err := redis.Int(c.Do("EVAL",
-		`if(redis.call("EXISTS",KEYS[1])==1)then if(redis.call("GET",KEYS[1])==ARGV[2])then redis.call("EXPIRE",KEYS[1],ARGV[1]);return 1;else return 0;end;else redis.call("SETEX",KEYS[1],ARGV[1],ARGV[2]);return 1;end`,
-		1, l.key, l.expire, l.value))
+	val, err := rds.Eval(ctx, `if(redis.call("EXISTS",KEYS[1])==1)then if(redis.call("GET",KEYS[1])==ARGV[2])then redis.call("EXPIRE",KEYS[1],ARGV[1]);return 1;else return 0;end;else redis.call("SETEX",KEYS[1],ARGV[1],ARGV[2]);return 1;end`,
+		[]string{l.key}, l.expire, l.value).Int()
 	if err != nil {
 		return false
 	}
@@ -36,7 +32,7 @@ func (l *RdsLuaLock) TryLock() bool {
 	return val == 1
 }
 
-func (l *RdsLuaLock) Lock(timeout int) bool {
+func (l *RdsLuaLock) Lock(ctx context.Context, timeout int) bool {
 	t := time.NewTicker(time.Second)
 	defer t.Stop()
 
@@ -51,7 +47,7 @@ func (l *RdsLuaLock) Lock(timeout int) bool {
 		case <-stopChan:
 			return false
 		case <-t.C:
-			result := l.TryLock()
+			result := l.TryLock(ctx)
 			if result {
 				return true
 			}
@@ -59,49 +55,8 @@ func (l *RdsLuaLock) Lock(timeout int) bool {
 	}
 }
 
-func (l *RdsLuaLock) Unlock() {
-	c := gRdsPool.Get()
-	defer c.Close()
+func (l *RdsLuaLock) Unlock(ctx context.Context) {
+	rds := redis.Get(l.dbKey)
 
-	c.Do("DEL", l.key)
-}
-
-func init() {
-	gRdsPool = &redis.Pool{
-		Wait:        true,
-		MaxActive:   conf.ExtInt("redis.ext.maxActive", 1024),
-		MaxIdle:     conf.ExtInt("redis.ext.maxIdle", 32),
-		IdleTimeout: conf.ExtDuration("redis.ext.idleTimeout"),
-		Dial: func() (redis.Conn, error) {
-			c, err := redis.Dial("tcp", conf.ExtString("redis.host"),
-				redis.DialConnectTimeout(conf.ExtDuration("redis.ext.connectTimeout", "5s")))
-			if err != nil {
-				return c, err
-			}
-
-			pwd := conf.ExtString("redis.password", "")
-			if pwd != "" {
-				err = c.Send("AUTH")
-				if err != nil {
-					return c, err
-				}
-			}
-
-			_, err = c.Do("SELECT", conf.ExtInt("redis.ext.distlockdb", 0))
-			if err != nil {
-				return c, err
-			}
-			if event := conf.ExtString("redis.ext.notifyKeyspaceEvents", ""); event != "" {
-				_, err := c.Do("CONFIG", "SET", "notify-keyspace-events", event)
-				if err != nil {
-					return c, err
-				}
-			}
-			return c, err
-		},
-		TestOnBorrow: func(c redis.Conn, t time.Time) error {
-			_, err := c.Do(conf.ExtString("redis.ext.testOnBorrow"))
-			return err
-		},
-	}
+	rds.Del(ctx, l.key)
 }

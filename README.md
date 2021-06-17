@@ -9,7 +9,7 @@
 │   ├── cache_store.go            缓存接口 
 ├── cache_func
 │   ├── mem_cache.go              内存实现的函数缓存
-│   ├── rds_cache.go              redis实现的函数缓存
+│   ├── rds_cache.go              goredis实现的函数缓存
 ├── cbk
 │   ├── cbk.go                    熔断接口
 │   ├── cbk_simple.go             熔断实现
@@ -38,6 +38,11 @@
 │   ├── limit_req.go              限流
 │   ├── service_handler.go        封装controller功能
 │   ├── thumb_image.go            缩略图
+├── mongo
+│   ├── client.go                 官方client封装
+│   ├── collection.go             官方主从方式collection封装
+├── redis
+│   ├── redis.go                  goredis封装
 ├── safego
 │   ├── safego.go                 安全的goruntine
 └── utils

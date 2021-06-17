@@ -11,18 +11,25 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
-type Databases struct {
-	DBS []Database `yaml:"databases,flow"`
+type Database struct {
+	Key      string                 `yaml:"key"`
+	Type     string                 `yaml:"type"`
+	Host     string                 `yaml:"host"`
+	Name     string                 `yaml:"name"`
+	User     string                 `yaml:"user"`
+	Password string                 `yaml:"password"`
+	EXT      map[string]interface{} `yaml:",flow"`
 }
 
-type Database struct {
-	KEY      string                 `yaml:"key"`
-	TYPE     string                 `yaml:"type"`
-	HOST     string                 `yaml:"host"`
-	NAME     string                 `yaml:"name"`
-	USER     string                 `yaml:"user"`
-	PASSWORD string                 `yaml:"password"`
-	EXT      map[string]interface{} `yaml:",flow"`
+type Redis struct {
+	Key          string   `yaml:"key"`
+	Addrs        []string `yaml:"addrs,flow"`
+	Db           int      `yaml:"db"`
+	PoolSize     int      `yaml:"poolSize"`
+	Password     string   `yaml:"password"`
+	ReadTimeout  string   `yaml:"readTimeout"`
+	WriteTimeout string   `yaml:"writeTimeout"`
+	IdleTimeout  string   `yaml:"idleTimeout"`
 }
 
 // Get value of given key of Database section.
@@ -57,16 +64,9 @@ func (d *Database) ExtDuration(key string, defaultVal ...interface{}) time.Durat
 }
 
 type Config struct {
-	SERVER struct {
-		RUNMODE string `yaml:"runmode"`
-		PORT    string `yaml:"port"`
-	}
-
-	DATABASE *Database `yaml:"database,flow"`
-
-	DATABASES []Database `yaml:"databases,flow"`
-
-	EXT map[string]interface{} `yaml:"ext,flow"`
+	Databases []*Database            `yaml:"databases,flow"`
+	Redises   []*Redis               `yaml:"redises,flow"`
+	EXT       map[string]interface{} `yaml:"ext,flow"`
 }
 
 // Ext will return the value of the EXT config, the keys is a string
@@ -155,10 +155,10 @@ func find(v interface{}, key interface{}) (result interface{}, isFinal, success 
 	switch m := v.(type) {
 	case map[string]interface{}:
 		result, success = m[key.(string)]
-		isFinal = (reflect.TypeOf(result) != nil && reflect.TypeOf(result).Kind() != reflect.Map)
+		isFinal = reflect.TypeOf(result) != nil && reflect.TypeOf(result).Kind() != reflect.Map
 	case map[interface{}]interface{}:
 		result, success = m[key]
-		isFinal = (reflect.TypeOf(result) != nil && reflect.TypeOf(result).Kind() != reflect.Map)
+		isFinal = reflect.TypeOf(result) != nil && reflect.TypeOf(result).Kind() != reflect.Map
 	}
 	return
 }

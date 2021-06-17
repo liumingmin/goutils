@@ -6,10 +6,13 @@ import (
 	"reflect"
 	"testing"
 
+	"github.com/liumingmin/goutils/redis"
+
 	"github.com/liumingmin/goutils/log"
 )
 
 func TestRdscCacheFunc(t *testing.T) {
+	redis.InitRedises()
 	ctx := context.Background()
 
 	const cacheKey = "UT:%v:%v"
