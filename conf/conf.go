@@ -64,6 +64,9 @@ func (d *Database) ExtDuration(key string, defaultVal ...interface{}) time.Durat
 }
 
 type Config struct {
+	LogLevel  string                 `yaml:"logLevel"`
+	LogPath   string                 `yaml:"logPath"`
+	Stdout    bool                   `yaml:"stdout"`
 	Databases []*Database            `yaml:"databases,flow"`
 	Redises   []*Redis               `yaml:"redises,flow"`
 	EXT       map[string]interface{} `yaml:"ext,flow"`

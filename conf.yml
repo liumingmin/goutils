@@ -1,4 +1,4 @@
-
+stdout: true
 redises:
   -
     key: rdscdb

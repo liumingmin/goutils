@@ -12,18 +12,24 @@ import (
 	lumberjack "gopkg.in/natefinch/lumberjack.v2"
 )
 
+const LOG_TRADE_ID = "__traceId"
+
 var (
 	logger      *zap.Logger
 	stackLogger *zap.Logger
 )
 
 func init() {
+	if conf.Conf.LogPath == "" {
+		conf.Conf.LogPath = "./goutils.log"
+	}
+
 	hook := lumberjack.Logger{
-		Filename:   "./goutils.log", // 日志文件路径
-		MaxSize:    128,             // 每个日志文件保存的最大尺寸 单位：M
-		MaxBackups: 30,              // 日志文件最多保存多少个备份
-		MaxAge:     7,               // 文件最多保存多少天
-		Compress:   true,            // 是否压缩
+		Filename:   conf.Conf.LogPath, // 日志文件路径
+		MaxSize:    128,               // 每个日志文件保存的最大尺寸 单位：M
+		MaxBackups: 30,                // 日志文件最多保存多少个备份
+		MaxAge:     7,                 // 文件最多保存多少天
+		Compress:   true,              // 是否压缩
 	}
 
 	encoderConfig := zapcore.EncoderConfig{
@@ -43,16 +49,16 @@ func init() {
 
 	// 设置日志级别
 	atomicLevel := zap.NewAtomicLevel()
+	atomicLevel.UnmarshalText([]byte(conf.Conf.LogLevel))
 
-	if debug := conf.ExtBool("debug", true); debug {
-		atomicLevel.SetLevel(zap.DebugLevel)
-	} else {
-		atomicLevel.SetLevel(zap.ErrorLevel)
+	writeSyncers := []zapcore.WriteSyncer{zapcore.AddSync(&hook)}
+	if conf.Conf.Stdout {
+		writeSyncers = append(writeSyncers, zapcore.AddSync(os.Stdout))
 	}
 
 	core := zapcore.NewCore(
-		zapcore.NewConsoleEncoder(encoderConfig),                                        // 编码器配置 NewConsoleEncoder NewJSONEncoder
-		zapcore.NewMultiWriteSyncer(zapcore.AddSync(os.Stdout), zapcore.AddSync(&hook)), // 打印到控制台和文件
+		zapcore.NewConsoleEncoder(encoderConfig),     // 编码器配置 NewConsoleEncoder NewJSONEncoder
+		zapcore.NewMultiWriteSyncer(writeSyncers...), // 打印到控制台和文件
 		atomicLevel, // 日志级别
 	)
 
@@ -138,7 +144,7 @@ func parseArgs(c context.Context, args ...interface{}) (msg string) {
 }
 
 func ctxParams(c context.Context) string {
-	traceId := c.Value("__traceId")
+	traceId := c.Value(LOG_TRADE_ID)
 	if traceId != nil {
 		return "<" + fmt.Sprint(traceId) + ">"
 	}
