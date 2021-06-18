@@ -13,8 +13,7 @@ import (
 
 func MemCacheFunc(ctx context.Context, cc *cache.Cache, expire time.Duration, f interface{}, keyFmt string, args ...interface{}) (interface{}, error) {
 	defer log.Recover(ctx, func(e interface{}) string {
-		err := e.(error)
-		return fmt.Sprintf("MemCacheFunc err: %v", err)
+		return fmt.Sprintf("MemCacheFunc err: %v", e)
 	})
 
 	ft := reflect.TypeOf(f)

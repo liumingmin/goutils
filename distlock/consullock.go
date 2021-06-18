@@ -2,13 +2,11 @@ package distlock
 
 import (
 	"context"
+	"fmt"
 	"time"
 
-	"github.com/liumingmin/goutils/conf"
-	"github.com/liumingmin/goutils/log"
-	"github.com/liumingmin/goutils/safego"
-
 	"github.com/hashicorp/consul/api"
+	"github.com/liumingmin/goutils/log"
 )
 
 var gConsul *api.Client
@@ -37,12 +35,16 @@ func NewConsulLock(key string, expire int) (*ConsulLock, error) {
 	return clock, nil
 }
 
-func (l *ConsulLock) Lock(timeout int) bool {
+func (l *ConsulLock) Lock(ctx context.Context, timeout int) bool {
 	stopChan := make(chan struct{})
-	safego.Go(func() {
+	go func() {
+		defer log.Recover(ctx, func(e interface{}) string {
+			return fmt.Sprintf("ConsulLock Lock err: %v", e)
+		})
+
 		time.Sleep(time.Second * time.Duration(timeout))
 		stopChan <- struct{}{}
-	})
+	}()
 
 	ldChan, err := l.lock.Lock(stopChan)
 	//fmt.Println(time.Now())
@@ -53,10 +55,14 @@ func (l *ConsulLock) Unlock() {
 	l.lock.Unlock()
 }
 
-func init() {
+func InitConsul(centerAddr string) {
+	if centerAddr == "" {
+		centerAddr = "127.0.0.1:8500"
+	}
+
 	var e error
 	config := api.DefaultConfig()
-	config.Address = conf.ExtString("service.centerAddr", "127.0.0.1:8500")
+	config.Address = centerAddr
 	gConsul, e = api.NewClient(config)
 	if e != nil {
 		log.Error(context.Background(), "Create consul client failed. error: %v", e)

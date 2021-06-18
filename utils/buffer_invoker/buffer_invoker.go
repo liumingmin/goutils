@@ -1,11 +1,11 @@
-package container
+package buffer_invoker
 
 import (
 	"fmt"
 	"sync"
 	"time"
 
-	"github.com/liumingmin/goutils/safego"
+	"github.com/liumingmin/goutils/utils/safego"
 )
 
 type BufferInvoker struct {

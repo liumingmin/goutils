@@ -41,8 +41,7 @@ func testPanicLog() {
 	ctx.Set("__traceId", "aaabbbbbcccc")
 
 	defer Recover(ctx, func(e interface{}) string {
-		err := e.(error)
-		return fmt.Sprintf("recover from err: %v", err)
+		return fmt.Sprintf("recover from err: %v", e)
 	})
 
 	panic(errors.New("dddd"))

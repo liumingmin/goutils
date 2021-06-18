@@ -2,11 +2,13 @@ package distlock
 
 import (
 	"context"
+	"fmt"
 	"time"
+
+	"github.com/liumingmin/goutils/log"
 
 	"github.com/google/uuid"
 	"github.com/liumingmin/goutils/redis"
-	"github.com/liumingmin/goutils/safego"
 )
 
 type RdsLuaLock struct {
@@ -37,10 +39,14 @@ func (l *RdsLuaLock) Lock(ctx context.Context, timeout int) bool {
 	defer t.Stop()
 
 	stopChan := make(chan struct{})
-	safego.Go(func() {
+	go func() {
+		defer log.Recover(ctx, func(e interface{}) string {
+			return fmt.Sprintf("RdsLuaLock Lock err: %v", e)
+		})
+
 		time.Sleep(time.Second * time.Duration(timeout))
 		stopChan <- struct{}{}
-	})
+	}()
 
 	for {
 		select {

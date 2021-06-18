@@ -1,4 +1,4 @@
-package container
+package buffer_invoker
 
 import (
 	"fmt"
@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/liumingmin/goutils/safego"
+	"github.com/liumingmin/goutils/utils/safego"
 )
 
 var fb = BufferInvoker{ChanSize: 100, Func: processItem}

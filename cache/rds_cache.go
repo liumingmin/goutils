@@ -31,8 +31,7 @@ func RdsDeleteCache(ctx context.Context, dbName string, keyFmt string, args ...i
 
 func RdsCacheFunc(ctx context.Context, dbName string, rdsExpire int, f interface{}, keyFmt string, args ...interface{}) (interface{}, error) {
 	defer log.Recover(ctx, func(e interface{}) string {
-		err := e.(error)
-		return fmt.Sprintf("RdscCacheFuncCtx err: %v", err)
+		return fmt.Sprintf("RdscCacheFuncCtx err: %v", e)
 	})
 
 	rds := redis.Get(dbName)

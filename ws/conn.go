@@ -166,7 +166,7 @@ func (c *Connection) SendMsg(ctx context.Context, payload *P_MESSAGE, sc SendCal
 func (c *Connection) SendNewMsgNotify(ctx context.Context, notifyType int) (err error) {
 	defer log.Recover(ctx, func(e interface{}) string {
 		err, _ = e.(error)
-		return fmt.Sprintf("SendNewMsgNotify err: %v", err)
+		return fmt.Sprintf("SendNewMsgNotify err: %v", e)
 	})
 
 	if !c.IsStopped() {
