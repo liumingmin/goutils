@@ -6,8 +6,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/liumingmin/goutils/safego"
 	"github.com/liumingmin/goutils/utils"
+	"github.com/liumingmin/goutils/utils/safego"
 
 	"github.com/gin-gonic/gin"
 )
