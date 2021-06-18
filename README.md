@@ -3,49 +3,43 @@
 ## 模块树
 ```
 ├── cache
-│   ├── cached_writer_gin.go
-│   ├── cache_func.go             函数接口缓存 
-│   ├── cache_page.go             web接口缓存 
-│   ├── cache_store.go            缓存接口 
-├── cache_func
-│   ├── mem_cache.go              内存实现的函数缓存
-│   ├── rds_cache.go              goredis实现的函数缓存
-├── cbk
-│   ├── cbk.go                    熔断接口
-│   ├── cbk_simple.go             熔断实现
+│   ├── mem_cache.go                 内存实现的函数缓存
+│   ├── rds_cache.go                 goredis实现的函数缓存
 ├── conf
-│   └── conf.go                   YML读取
+│   └── conf.go                      YAML读取
 ├── container
-│   ├── bitmap.go                 比特位表
-│   ├── buffer_invoker.go         缓冲异步调用
-│   ├── const_hash.go             一致性HASH32位
+│   ├── bitmap.go                    比特位表
+│   ├── buffer_invoker.go            缓冲异步调用
+│   ├── const_hash.go                一致性HASH32位
+│   ├── mdb.go                       轻量级内存表
 ├── distlock
-│   ├── consullock.go             consul实现的分布式锁
-│   ├── filelock.go               Linux文件锁
-│   ├── lock.go                   锁接口
-│   ├── rdslock.go                redis实现分布式锁
-├── fsm
-│   └── fsm.go                    状态机
-├── httpx
-│   └── httpclientx.go            httpclientx兼容1.x和2.0
-├── lighttimer
-│   ├── lighttimer.go             轻量级计时器
-├── mdb
-│   ├── mdb.go                    轻量级内存表
+│   ├── consullock.go                consul实现的分布式锁
+│   ├── filelock.go                  Linux文件锁
+│   ├── lock.go                      锁接口
+│   ├── rdslock.go                   redis实现分布式锁
 ├── middleware
-│   ├── captcha.go                验证码中间件
-│   ├── limit_conn.go             限连接
-│   ├── limit_req.go              限流
-│   ├── service_handler.go        封装controller功能
-│   ├── thumb_image.go            缩略图
+│   ├── captcha.go                   验证码中间件
+│   ├── limit_conn.go                限连接
+│   ├── limit_req.go                 限流
+│   ├── service_handler.go           封装controller功能
+│   ├── thumb_image.go               缩略图
 ├── mongo
-│   ├── client.go                 官方client封装
-│   ├── collection.go             官方主从方式collection封装
+│   ├── client.go                    官方client封装
+│   ├── collection.go                官方主从方式collection封装
 ├── redis
-│   ├── redis.go                  goredis封装
-├── safego
-│   ├── safego.go                 安全的goruntine
+│   ├── redis.go                     goredis封装
 └── utils
+│   ├── cbk
+│   │   ├── cbk.go                   熔断接口
+│   │   ├── cbk_simple.go            熔断实现
+│   ├── fsm
+│   │   └── fsm.go                   状态机
+│   ├── httpx
+│   │   └── httpclientx.go           httpclientx兼容1.x和2.0
+│   ├── lighttimer
+│   │   ├── lighttimer.go            轻量级计时器
+│   ├── safego
+│   │   ├── safego.go                安全的goruntine
     ├── async.go                     带超时异步调用
     ├── crc16.go                     查表法crc16
     ├── crc16-kermit.go              算法实现crc16

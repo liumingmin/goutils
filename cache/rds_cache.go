@@ -1,4 +1,4 @@
-package cache_func
+package cache
 
 import (
 	"context"

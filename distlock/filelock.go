@@ -1,5 +1,6 @@
 package distlock
 
+/*
 import (
 	"fmt"
 	"os"
@@ -61,3 +62,4 @@ func (l *FileLock) Unlock() error {
 	defer l.f.Close()
 	return syscall.Flock(int(l.f.Fd()), syscall.LOCK_UN)
 }
+*/

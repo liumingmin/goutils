@@ -1,11 +1,7 @@
-package mdb
+package container
 
 import (
-	"context"
 	"strconv"
-
-	"github.com/liumingmin/goutils/log"
-	"github.com/liumingmin/goutils/utils"
 )
 
 type DataRow struct {
@@ -20,9 +16,13 @@ func (r *DataRow) String(fieldName string) string {
 	return ""
 }
 
-func (r DataRow) Int(fieldName string) int {
+func (r *DataRow) Int(fieldName string) int {
 	i, _ := strconv.Atoi(r.String(fieldName))
 	return i
+}
+
+func (r *DataRow) Data() []string {
+	return r.row
 }
 
 type tableIndex map[string][]*DataRow
@@ -117,22 +117,4 @@ type DataSet map[string]*DataTable
 
 func (s DataSet) Table(tName string) *DataTable {
 	return s[tName]
-}
-
-func ReadCsvToDataTable(filePath string, comma rune, colNames []string, pkCol string, indexes []string) (dataTable *DataTable, err error) {
-	keys, rowsData, err := utils.ReadCsvToData(filePath, comma, colNames)
-	if err != nil {
-		return
-	}
-
-	if pkCol == "" {
-		pkCol = keys[0]
-	}
-
-	log.Info(context.Background(), "%s keys: %v, %d", filePath, keys, len(keys))
-
-	dataTable = NewDataTable(keys, pkCol, indexes, len(rowsData))
-	dataTable.PushAll(rowsData[1:])
-
-	return
 }

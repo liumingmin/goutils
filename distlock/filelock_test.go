@@ -1,5 +1,6 @@
 package distlock
 
+/*
 import (
 	"fmt"
 	"os"
@@ -32,3 +33,4 @@ func TestFileLock(t *testing.T) {
 	time.Sleep(2 * time.Second)
 
 }
+*/

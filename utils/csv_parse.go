@@ -7,22 +7,43 @@ import (
 	"os"
 	"strings"
 
+	"github.com/liumingmin/goutils/container"
+
 	"github.com/liumingmin/goutils/log"
 )
 
-func ReadCsvToData(filePath string, comma rune, colNames []string) (keys []string, resultData [][]string, err error) {
-	rowsData, err := ParseCsv(filePath, comma)
+func ReadCsvToDataTable(ctx context.Context, filePath string, comma rune, colNames []string, pkCol string,
+	indexes []string) (dataTable *container.DataTable, err error) {
+	keys, rowsData, err := ReadCsvToData(ctx, filePath, comma, colNames)
 	if err != nil {
-		log.Error(context.Background(), "read file %s failed. error: %v", filePath, err)
+		return
+	}
+
+	if pkCol == "" {
+		pkCol = keys[0]
+	}
+
+	log.Info(ctx, "%s keys: %v, %d", filePath, keys, len(keys))
+
+	dataTable = container.NewDataTable(keys, pkCol, indexes, len(rowsData))
+	dataTable.PushAll(rowsData[1:])
+
+	return
+}
+
+func ReadCsvToData(ctx context.Context, filePath string, comma rune, colNames []string) (keys []string, resultData [][]string, err error) {
+	rowsData, err := ParseCsv(ctx, filePath, comma)
+	if err != nil {
+		log.Error(ctx, "read file %s failed. error: %v", filePath, err)
 		return
 	}
 
 	if len(rowsData) < 2 {
-		log.Error(context.Background(), "read file %s is empty data file", filePath)
+		log.Error(ctx, "read file %s is empty data file", filePath)
 		return
 	}
 
-	log.Info(context.Background(), "%s len rowsData: %v", filePath, len(rowsData))
+	log.Info(ctx, "%s len rowsData: %v", filePath, len(rowsData))
 
 	header := rowsData[0]
 	if len(colNames) == 0 {
@@ -51,17 +72,17 @@ func ReadCsvToData(filePath string, comma rune, colNames []string) (keys []strin
 	return
 }
 
-func ParseCsv(filePath string, comma rune) (records [][]string, err error) {
+func ParseCsv(ctx context.Context, filePath string, comma rune) (records [][]string, err error) {
 	csvFile, err := os.Open(filePath)
 	if err != nil {
-		log.Error(context.Background(), "Open file %s failed. error: %v", filePath, err)
+		log.Error(ctx, "Open file %s failed. error: %v", filePath, err)
 		return
 	}
 	defer csvFile.Close()
 
 	bs, err := ioutil.ReadAll(csvFile)
 	if err != nil {
-		log.Error(context.Background(), "Read file %s failed. error: %v", filePath, err)
+		log.Error(ctx, "Read file %s failed. error: %v", filePath, err)
 		return
 	}
 
@@ -73,14 +94,14 @@ func ParseCsv(filePath string, comma rune) (records [][]string, err error) {
 	csvReader.LazyQuotes = true
 	records, err = csvReader.ReadAll() // `rows` is of type [][]string
 	if err != nil {
-		records = ParseCsvRaw(contentStr)
+		records = ParseCsvRaw(ctx, contentStr)
 		err = nil
-		log.Error(context.Background(), "Read file %s failed. error: %v, try parse raw: %v", filePath, err, len(records))
+		log.Error(ctx, "Read file %s failed. error: %v, try parse raw: %v", filePath, err, len(records))
 	}
 	return
 }
 
-func ParseCsvRaw(content string) (records [][]string) {
+func ParseCsvRaw(ctx context.Context, content string) (records [][]string) {
 	rowStrs := strings.Split(content, "\n")
 	for _, rowStr := range rowStrs {
 		row := strings.Split(rowStr, "\t")
