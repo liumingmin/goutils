@@ -48,8 +48,10 @@ func init() {
 	}
 
 	// 设置日志级别
-	atomicLevel := zap.NewAtomicLevel()
-	atomicLevel.UnmarshalText([]byte(conf.Conf.LogLevel))
+	atomicLevel := zap.NewAtomicLevelAt(zapcore.DebugLevel)
+	if conf.Conf.LogLevel != "" {
+		atomicLevel.UnmarshalText([]byte(conf.Conf.LogLevel))
+	}
 
 	writeSyncers := []zapcore.WriteSyncer{zapcore.AddSync(&hook)}
 	if conf.Conf.Stdout {

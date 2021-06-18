@@ -3,8 +3,6 @@ package utils
 import (
 	"sync"
 	"time"
-
-	"github.com/liumingmin/goutils/safego"
 )
 
 func AsyncInvokesWithTimeout(timeout time.Duration, fs []func()) bool {
@@ -34,10 +32,14 @@ func AsyncInvokeWithTimeout(timeout time.Duration, args ...func()) bool {
 	for _, arg := range args {
 		f := arg
 		wg.Add(1)
-		safego.Go(func() {
+		go func() {
+			defer func() {
+				recover()
+			}()
 			defer wg.Done()
+
 			f()
-		})
+		}()
 	}
 
 	return waitInvokeTimeout(wg, timeout)
@@ -45,10 +47,13 @@ func AsyncInvokeWithTimeout(timeout time.Duration, args ...func()) bool {
 
 func waitInvokeTimeout(wg *sync.WaitGroup, timeout time.Duration) bool {
 	c := make(chan struct{})
-	safego.Go(func() {
+	go func() {
+		defer func() {
+			recover()
+		}()
 		defer close(c)
 		wg.Wait()
-	})
+	}()
 	select {
 	case <-c:
 		return true // completed normally

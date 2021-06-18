@@ -6,8 +6,8 @@ import (
 	"sync"
 
 	"github.com/liumingmin/goutils/log"
-	"github.com/liumingmin/goutils/safego"
 	"github.com/liumingmin/goutils/utils"
+	"github.com/liumingmin/goutils/utils/safego"
 )
 
 //连接管理器

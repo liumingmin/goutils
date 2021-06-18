@@ -13,8 +13,8 @@ import (
 	"github.com/gorilla/websocket"
 	"github.com/liumingmin/goutils/conf"
 	"github.com/liumingmin/goutils/log"
-	"github.com/liumingmin/goutils/safego"
 	"github.com/liumingmin/goutils/utils"
+	"github.com/liumingmin/goutils/utils/safego"
 	"google.golang.org/protobuf/proto"
 )
 

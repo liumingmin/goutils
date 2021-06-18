@@ -7,7 +7,6 @@ require (
 	github.com/demdxx/gocast v1.0.1
 	github.com/gin-gonic/gin v1.4.0
 	github.com/go-redis/redis/v8 v8.8.3
-	github.com/golang/protobuf v1.4.3 // indirect
 	github.com/google/uuid v1.1.1
 	github.com/gorilla/websocket v1.4.2
 	github.com/hashicorp/consul/api v1.1.0

@@ -13,10 +13,13 @@ import (
 	"github.com/liumingmin/goutils/redis"
 	"github.com/liumingmin/goutils/utils"
 	"golang.org/x/sync/singleflight"
+	"google.golang.org/protobuf/proto"
 )
 
 var (
-	sg = singleflight.Group{}
+	sg       = singleflight.Group{}
+	ctxIface reflect.Type
+	pbIface  reflect.Type
 )
 
 func RdsDeleteCache(ctx context.Context, dbName string, keyFmt string, args ...interface{}) (err error) {
@@ -49,7 +52,7 @@ func RdsCacheFunc(ctx context.Context, dbName string, rdsExpire int, f interface
 	if err == nil {
 		log.Debug(ctx, "RdsCacheFunc hit cache : %v", retValue)
 
-		return convertStringTo(retValue, ft.Out(0)), nil
+		return convertStringTo(ctx, retValue, ft.Out(0)), nil
 	}
 
 	data, err, _ := sg.Do(key, func() (interface{}, error) {
@@ -62,9 +65,6 @@ func rdsCacheCallFunc(ctx context.Context, dbName string, rdsExpire int, f inter
 	argValues := make([]reflect.Value, 0)
 
 	ft := reflect.TypeOf(f)
-
-	var iface context.Context
-	ctxIface := reflect.TypeOf(&iface).Elem()
 	if ft.NumIn() > 0 && ft.In(0).Implements(ctxIface) {
 		argValues = append(argValues, reflect.ValueOf(ctx))
 	}
@@ -87,18 +87,31 @@ func rdsCacheCallFunc(ctx context.Context, dbName string, rdsExpire int, f inter
 	var result interface{}
 	if len(retValues) > 0 && retValues[0].IsValid() && !utils.SafeIsNil(&retValues[0]) && retErr == nil {
 		result = retValues[0].Interface()
-		rds.Set(ctx, key, convertRetValueToString(result, ft.Out(0)), time.Duration(rdsExpire)*time.Second)
+		rds.Set(ctx, key, convertRetValueToString(ctx, result, ft.Out(0)), time.Duration(rdsExpire)*time.Second)
 	} else {
-		rds.Set(ctx, key, "", time.Duration(utils.Min(rdsExpire, 20))*time.Second) //防止缓存穿透
+		rds.Set(ctx, key, "", time.Duration(utils.Min(rdsExpire, 10))*time.Second) //防止缓存穿透
 		log.Debug(ctx, "RdsCacheFunc avoid cache through: %v", key)
 	}
 	return result, retErr
 }
 
-func convertRetValueToString(retValue interface{}, t reflect.Type) string {
+func convertRetValueToString(ctx context.Context, retValue interface{}, t reflect.Type) string {
+	if t.Implements(pbIface) {
+		if pbMsg, ok := retValue.(proto.Message); ok {
+			data, err := proto.Marshal(pbMsg)
+			if err != nil {
+				log.Error(ctx, "proto.Marshal err: %v", err)
+			}
+			return string(data)
+		}
+	}
+
 	switch t.Kind() {
 	case reflect.Ptr, reflect.Slice, reflect.Array, reflect.Struct, reflect.Map:
-		bs, _ := json.Marshal(retValue)
+		bs, err := json.Marshal(retValue)
+		if err != nil {
+			log.Error(ctx, "json.Marshal err: %v", err)
+		}
 		return string(bs)
 	default:
 		return gocast.ToString(retValue)
@@ -106,36 +119,60 @@ func convertRetValueToString(retValue interface{}, t reflect.Type) string {
 	return gocast.ToString(retValue)
 }
 
-func convertStringTo(cacheValue string, t reflect.Type) interface{} {
+func convertStringTo(ctx context.Context, cacheValue string, t reflect.Type) interface{} {
+	if strings.TrimSpace(cacheValue) == "" {
+		switch t.Kind() {
+		case reflect.Ptr, reflect.Slice, reflect.Array, reflect.Map, reflect.Interface:
+			return nil
+		}
+		return reflect.Zero(t)
+	}
+
+	if t.Implements(pbIface) {
+		tt := t.Elem()
+		if retValue, ok := reflect.New(tt).Interface().(proto.Message); ok {
+			err := proto.Unmarshal([]byte(cacheValue), retValue)
+			if err != nil {
+				log.Error(ctx, "proto.Unmarshal err: %v", err)
+			}
+			return retValue
+		}
+		return nil
+	}
+
 	switch t.Kind() {
 	case reflect.String:
 		return cacheValue
 	case reflect.Ptr:
-		if strings.TrimSpace(cacheValue) == "" {
-			return nil
-		}
-
 		tt := t.Elem()
 		retValue := reflect.New(tt).Interface()
-		json.Unmarshal([]byte(cacheValue), retValue)
-		return retValue
-	case reflect.Slice, reflect.Array, reflect.Map, reflect.Interface:
-		if strings.TrimSpace(cacheValue) == "" {
-			return nil
+		err := json.Unmarshal([]byte(cacheValue), retValue)
+		if err != nil {
+			log.Error(ctx, "json.Unmarshal err: %v", err)
 		}
-
+		return retValue
+	case reflect.Slice, reflect.Array, reflect.Map, reflect.Interface, reflect.Struct:
 		retValue := reflect.New(t)
 		retValueInterface := retValue.Interface()
-		json.Unmarshal([]byte(cacheValue), retValueInterface)
-		return retValue.Elem().Interface()
-	case reflect.Struct:
-		retValue := reflect.New(t)
-		retValueInterface := retValue.Interface()
-		json.Unmarshal([]byte(cacheValue), retValueInterface)
+		err := json.Unmarshal([]byte(cacheValue), retValueInterface)
+		if err != nil {
+			log.Error(ctx, "json.Unmarshal err: %v", err)
+		}
 		return retValue.Elem().Interface()
 	default:
-		result, _ := gocast.ToT(cacheValue, t, "")
+		result, err := gocast.ToT(cacheValue, t, "")
+		if err != nil {
+			log.Error(ctx, "gocast.ToT err: %v", err)
+		}
 		return result
 	}
 	return cacheValue
+}
+
+func init() {
+	var ctx context.Context
+	ctxIface = reflect.TypeOf(&ctx).Elem()
+
+	var pbMsg proto.Message
+	pbIface = reflect.TypeOf(&pbMsg).Elem()
 }

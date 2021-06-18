@@ -6,9 +6,8 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/liumingmin/goutils/redis"
-
 	"github.com/liumingmin/goutils/log"
+	"github.com/liumingmin/goutils/redis"
 )
 
 func TestRdscCacheFunc(t *testing.T) {
@@ -86,6 +85,14 @@ func TestRdscCacheFunc(t *testing.T) {
 
 	result, err = RdsCacheFunc(ctx, RDSC_DB, 60, rawGetFunc9, cacheKey, "p1", "p2")
 	log.Info(ctx, "%v %v %v", result, err, printKind(result))
+	RdsDeleteCache(ctx, RDSC_DB, cacheKey, "p1", "p2")
+
+	//result, err = RdsCacheFunc(ctx, RDSC_DB, 60, rawGetFunc10, cacheKey, "p1", "p2")
+	//log.Info(ctx, "%v %v %v", result, err, printKind(result))
+	//
+	//result, err = RdsCacheFunc(ctx, RDSC_DB, 60, rawGetFunc10, cacheKey, "p1", "p2")
+	//log.Info(ctx, "%v %v %v", result, err, printKind(result))
+
 	RdsDeleteCache(ctx, RDSC_DB, cacheKey, "p1", "p2")
 }
 
@@ -171,3 +178,10 @@ func rawGetFunc8(p1, p2 string) ([]string, error) {
 func rawGetFunc9(p1, p2 string) (map[string]string, error) {
 	return map[string]string{p1: p2}, mockErr()
 }
+
+//func rawGetFunc10(p1, p2 string) (*ws.P_MESSAGE, error) {
+//	return &ws.P_MESSAGE{
+//		ProtocolId: 100,
+//		Data:       []byte("pb" + p1 + p2),
+//	}, nil
+//}
