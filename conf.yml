@@ -1,4 +1,13 @@
 stdout: true
+databases:
+  -
+    key: goutils
+    type: mongo
+    host: 127.0.0.1
+    user:
+    password:
+    ext:
+      direct: true
 redises:
   -
     key: rdscdb

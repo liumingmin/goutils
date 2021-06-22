@@ -114,7 +114,3 @@ func getSafe(val map[interface{}]interface{}) *Safe {
 	}
 	return safe
 }
-
-func InitClient(dbconf *conf.Database) (ret *Client, err error) {
-	return newClient(newConfig(dbconf))
-}

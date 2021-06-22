@@ -5,12 +5,13 @@ import (
 	"errors"
 	"fmt"
 	"net"
+	"os"
 	"reflect"
 	"strings"
 	"time"
 
+	"github.com/liumingmin/goutils/conf"
 	"github.com/liumingmin/goutils/log"
-
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/bsoncodec"
 	"go.mongodb.org/mongo-driver/bson/bsonoptions"
@@ -26,8 +27,41 @@ type Client struct {
 	*mongo.Client
 }
 
-func newClient(opt *Config) (ret *Client, err error) {
+var mgoClients = make(map[string]*Client, 0)
 
+func MgoClient(key string) (mongo *Client, err error) {
+	if v, ok := mgoClients[key]; ok {
+		return v, nil
+	} else {
+		log.Error(context.Background(), "Client not exist. key: %v", key)
+		return nil, errors.New("Client not exist")
+	}
+}
+
+func InitClients() {
+	dbs := conf.Conf.Databases
+	if dbs == nil {
+		fmt.Fprintf(os.Stderr, "No database configuration")
+		return
+	}
+
+	for _, db := range dbs {
+		if db.Type == "mongo" {
+			client, err := initClient(db)
+			if err != nil {
+				continue
+			}
+
+			mgoClients[db.Key] = client
+		}
+	}
+}
+
+func initClient(dbconf *conf.Database) (ret *Client, err error) {
+	return NewClient(newConfig(dbconf))
+}
+
+func NewClient(opt *Config) (ret *Client, err error) {
 	opts := options.Client()
 	opts.SetHosts(opt.Address)
 	if opt.Username != "" {
