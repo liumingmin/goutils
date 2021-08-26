@@ -14,6 +14,7 @@ require (
 	github.com/robfig/go-cache v0.0.0-20130306151617-9fc39e0dbf62
 	go.mongodb.org/mongo-driver v1.5.3
 	go.uber.org/zap v1.14.1
+	golang.org/x/crypto v0.0.0-20200622213623-75b288015ac9
 	golang.org/x/net v0.0.0-20201202161906-c7110b5ffcbb
 	golang.org/x/sync v0.0.0-20201020160332-67f06af15bc9
 	golang.org/x/text v0.3.5
