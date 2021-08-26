@@ -10,6 +10,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/liumingmin/goutils/utils/proxy"
+
 	"github.com/liumingmin/goutils/conf"
 	"github.com/liumingmin/goutils/log"
 	"go.mongodb.org/mongo-driver/bson"
@@ -80,14 +82,25 @@ func NewClient(opt *Config) (ret *Client, err error) {
 		opts.SetCompressors(opt.Compressors)
 	}
 
-	if opt.Keepalive > 0 {
+	if opt.SshOn {
+		sshConfig, err := proxy.NewSshClient(opt.SshAddress, opt.SshUser, opt.SshKey, opt.SshKeyPass)
+		if err != nil {
+			log.Error(context.Background(), "NewSshClient err: %v", err)
+		}
+		opts.SetDialer(sshConfig)
+	} else {
 		var dialer net.Dialer
-		dialer.KeepAlive = opt.Keepalive
+		if opt.Keepalive > 0 {
+			dialer.KeepAlive = opt.Keepalive
+		}
+
 		if opt.ConnectTimeout > 0 {
 			dialer.Timeout = opt.ConnectTimeout
 		}
 		opts.SetDialer(&dialer)
-	} else if opt.ConnectTimeout > 0 {
+	}
+
+	if opt.ConnectTimeout > 0 {
 		opts.SetConnectTimeout(opt.ConnectTimeout)
 	}
 

@@ -8,6 +8,11 @@ databases:
     password:
     ext:
       direct: true
+      maxPoolSize: 2
+      sshOn: true
+      sshAddress: "127.0.0.1:22"
+      sshUser: "root"
+      sshKeyFile: ""
 redises:
   -
     key: rdscdb

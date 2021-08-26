@@ -4,20 +4,22 @@ import (
 	"database/sql"
 	"io/ioutil"
 	"testing"
+
+	"golang.org/x/crypto/ssh"
 )
 
-func getSshClient(t *testing.T) *SshClient {
+func getSshClient(t *testing.T) *ssh.Client {
 	pemBytes, _ := ioutil.ReadFile("")
-	client, err := NewSshClient("127.0.0.1:22", "app", pemBytes, "")
+	config, err := NewSshClient("127.0.0.1:22", "app", pemBytes, "")
 	if err != nil {
 		t.Fatalf("NewSshClient failed %v", err)
 	}
 
-	err = client.Connect()
+	sshClient, err := config.SshDial()
 	if err != nil {
-		t.Fatalf("SshClient connect failed %v", err)
+		t.Fatalf("SshClientConfig connect failed %v", err)
 	}
-	return client
+	return sshClient
 }
 
 func TestSshClient(t *testing.T) {

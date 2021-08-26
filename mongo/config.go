@@ -1,9 +1,14 @@
 package mongo
 
 import (
+	"context"
+	"encoding/base64"
 	"fmt"
+	"io/ioutil"
 	"strings"
 	"time"
+
+	"github.com/liumingmin/goutils/log"
 
 	"github.com/demdxx/gocast"
 	"github.com/liumingmin/goutils/conf"
@@ -29,6 +34,11 @@ type Config struct {
 	Safe        *Safe
 	Mode        readpref.Mode
 	Compressors []string
+	SshOn       bool
+	SshAddress  string
+	SshUser     string
+	SshKey      []byte
+	SshKeyPass  string
 
 	// 连接管理
 	Direct         bool
@@ -54,7 +64,21 @@ func newConfig(dbconf *conf.Database) *Config {
 	modeConf, _ := dbconf.Ext("mode", "primary").(string)
 	mode := getMode(modeConf)
 
-	direct, _ := dbconf.Ext("direct", false).(bool)
+	var sshKey []byte
+	var err error
+	sshKeyB64 := dbconf.ExtString("sshKey", "")
+	sshKeyFile := dbconf.ExtString("sshKeyFile", "")
+	if sshKeyB64 != "" {
+		sshKey, err = base64.StdEncoding.DecodeString(sshKeyB64)
+		if err != nil {
+			log.Error(context.Background(), "decode sshKeyB64 failed: %v", err)
+		}
+	} else if sshKeyFile != "" {
+		sshKey, err = ioutil.ReadFile(sshKeyFile)
+		if err != nil {
+			log.Error(context.Background(), "ReadFile sshKey failed: %v", err)
+		}
+	}
 
 	return &Config{
 		Address:           strings.Split(dbconf.Host, ","),
@@ -64,7 +88,7 @@ func newConfig(dbconf *conf.Database) *Config {
 		Source:            dbconf.ExtString("authSource", dbconf.Name),
 		Safe:              safe,
 		Mode:              mode,
-		Direct:            direct,
+		Direct:            dbconf.ExtBool("direct", false),
 		Keepalive:         dbconf.ExtDuration("keepalive", ""),
 		ConnectTimeout:    dbconf.ExtDuration("connectTimeout", "10s"),
 		ReadTimeout:       dbconf.ExtDuration("readTimeout", ""),
@@ -73,6 +97,11 @@ func newConfig(dbconf *conf.Database) *Config {
 		MaxPoolSize:       dbconf.ExtInt("maxPoolSize", 10),
 		MaxPoolWaitTimeMS: dbconf.ExtInt("maxPoolWaitTimeMS", 0),
 		MaxPoolIdleTimeMS: dbconf.ExtInt("maxPoolIdleTimeMS", 0),
+		SshOn:             dbconf.ExtBool("sshOn", false),
+		SshAddress:        dbconf.ExtString("sshAddress", ""),
+		SshUser:           dbconf.ExtString("sshUser", ""),
+		SshKey:            sshKey,
+		SshKeyPass:        dbconf.ExtString("sshKeyPass", ""),
 	}
 }
 

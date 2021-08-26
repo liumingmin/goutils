@@ -63,6 +63,10 @@ func (d *Database) ExtDuration(key string, defaultVal ...interface{}) time.Durat
 	return t
 }
 
+func (d *Database) ExtBool(key string, defaultVal ...interface{}) bool {
+	return d.Ext(key, defaultVal...).(bool)
+}
+
 type Config struct {
 	LogLevel  string                 `yaml:"logLevel"`
 	LogPath   string                 `yaml:"logPath"`

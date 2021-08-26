@@ -18,7 +18,7 @@ func TestCompCollection(t *testing.T) {
 	op.Insert(ctx, bson.M{"name": "test"})
 
 	var result interface{}
-	op.Slave.FindOne(ctx, FindModel{
+	op.FindOne(ctx, FindModel{
 		Query:   bson.M{},
 		Results: &result,
 	})
