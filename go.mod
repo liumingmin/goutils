@@ -5,11 +5,13 @@ go 1.13
 require (
 	github.com/dchest/captcha v0.0.0-20170622155422-6a29415a8364
 	github.com/demdxx/gocast v1.0.1
-	github.com/gin-gonic/gin v1.4.0
+	github.com/gin-gonic/gin v1.7.0
 	github.com/go-redis/redis/v8 v8.8.3
 	github.com/google/uuid v1.1.1
 	github.com/gorilla/websocket v1.4.2
 	github.com/hashicorp/consul/api v1.1.0
+	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
+	github.com/modern-go/reflect2 v1.0.1 // indirect
 	github.com/nfnt/resize v0.0.0-20180221191011-83c6a9932646
 	github.com/robfig/go-cache v0.0.0-20130306151617-9fc39e0dbf62
 	go.mongodb.org/mongo-driver v1.5.3
