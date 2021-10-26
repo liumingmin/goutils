@@ -57,4 +57,8 @@
 
 ## ws模块
 
-protoc --go_out=. ws/msg.proto
+    protoc --go_out=. ws/msg.proto
+
+js
+
+    protoc --js_out=library=protobuf,binary:ws/js  ws/msg.proto
