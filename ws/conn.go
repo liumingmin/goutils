@@ -24,6 +24,9 @@ type SendCallback func(ctx context.Context, c *Connection, err error)
 // 客户端消息处理函数对象
 type Handler func(context.Context, *Connection, *P_MESSAGE) error
 
+// 连接动态参数选项
+type ConnOption func(*Connection)
+
 //配置项
 var (
 	dispatcherNum   = conf.ExtInt("ws.dispatcherNum", 16)              //并发处理消息数量
@@ -54,7 +57,7 @@ type IConnCallback interface {
 }
 
 //保活回调
-type IHeatbeatCallback interface {
+type IHeartbeatCallback interface {
 	RecvPing(clientId string)
 	RecvPong(clientId string) error
 }
@@ -67,7 +70,7 @@ type Connection struct {
 	sendBuffer chan *Message   //
 
 	connCallback      IConnCallback
-	heartbeatCallback IHeatbeatCallback
+	heartbeatCallback IHeartbeatCallback
 
 	commonDataLock sync.RWMutex
 	commonData     map[string]interface{}
@@ -75,7 +78,7 @@ type Connection struct {
 	stopped   int32 //连接断开
 	displaced int32 //连接被顶号
 
-	newMsgNotifyMap map[int]chan struct{} //新消息通知通道
+	pullChannelMap map[int]chan struct{} //新消息通知通道
 }
 
 type ConnectionMeta struct {
@@ -115,8 +118,8 @@ func (c *Connection) Charset() int {
 	return c.meta.Charset
 }
 
-func (c *Connection) GetNewMsgNotify(notifyType int) (chan struct{}, bool) {
-	v, ok := c.newMsgNotifyMap[notifyType]
+func (c *Connection) GetPullChannel(notifyType int) (chan struct{}, bool) {
+	v, ok := c.pullChannelMap[notifyType]
 	return v, ok
 }
 
@@ -163,20 +166,20 @@ func (c *Connection) SendMsg(ctx context.Context, payload *P_MESSAGE, sc SendCal
 }
 
 //通知指定消息通道转发消息
-func (c *Connection) SendNewMsgNotify(ctx context.Context, notifyType int) (err error) {
+func (c *Connection) SendPullNotify(ctx context.Context, pullChannel int) (err error) {
 	defer log.Recover(ctx, func(e interface{}) string {
 		err, _ = e.(error)
-		return fmt.Sprintf("SendNewMsgNotify err: %v", e)
+		return fmt.Sprintf("SendPullNotify err: %v", e)
 	})
 
 	if !c.IsStopped() {
-		newMsgNotify, ok := c.newMsgNotifyMap[notifyType]
+		pullChannel, ok := c.pullChannelMap[pullChannel]
 		if !ok {
 			return
 		}
 
 		select {
-		case newMsgNotify <- struct{}{}:
+		case pullChannel <- struct{}{}:
 		default:
 		}
 	}
@@ -200,20 +203,20 @@ func (c *Connection) closeWrite(ctx context.Context) {
 }
 
 func (c *Connection) closeRead(ctx context.Context) {
-	for _, newMsgNotify := range c.newMsgNotifyMap {
+	for _, pullChannel := range c.pullChannelMap {
 		func() {
 			defer log.Recover(ctx, func(e interface{}) string {
 				return fmt.Sprintf("Close reader panic, error is: %v", e)
 			})
 
 			select {
-			case _, isok := <-newMsgNotify:
+			case _, isok := <-pullChannel:
 				if isok {
-					close(newMsgNotify)
+					close(pullChannel)
 				}
 				break
 			default:
-				close(newMsgNotify)
+				close(pullChannel)
 			}
 		}()
 	}
@@ -403,4 +406,16 @@ func (c *Connection) IncrCommDataValueBy(key string, delta int) {
 	}
 
 	c.commonData[key] = delta
+}
+
+func ConnectCbOption(connCallback IConnCallback) ConnOption {
+	return func(conn *Connection) {
+		conn.connCallback = connCallback
+	}
+}
+
+func HeartbeatCbOption(heartbeatCallback IHeartbeatCallback) ConnOption {
+	return func(conn *Connection) {
+		conn.heartbeatCallback = heartbeatCallback
+	}
 }

@@ -98,8 +98,7 @@ func (c *Connection) KickClient(displace bool) {
 	Clients.unregister <- c
 }
 
-func Accept(ctx context.Context, w http.ResponseWriter, r *http.Request, meta *ConnectionMeta,
-	pongcb IHeatbeatCallback, conncb IConnCallback, notifyList []int) (*Connection, error) {
+func Accept(ctx context.Context, w http.ResponseWriter, r *http.Request, meta *ConnectionMeta, opts ...ConnOption) (*Connection, error) {
 	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
 		log.Warn(ctx, "Client connect failed. Header: %v, error: %v", r.Header, err)
@@ -107,24 +106,34 @@ func Accept(ctx context.Context, w http.ResponseWriter, r *http.Request, meta *C
 	}
 	log.Debug(ctx, "Client connected. meta: %#v", meta)
 
-	//为每种消息通知分别注册不同的通道
-	newMsgNotifyMap := make(map[int]chan struct{})
-	for _, notifyType := range notifyList {
-		newMsgNotifyMap[notifyType] = make(chan struct{}, 2)
+	connection := &Connection{
+		id:             meta.BuildConnId(),
+		meta:           meta,
+		conn:           conn,
+		sendBuffer:     make(chan *Message, 256),
+		commonData:     make(map[string]interface{}),
+		pullChannelMap: make(map[int]chan struct{}),
 	}
 
-	connection := &Connection{
-		id:                meta.BuildConnId(),
-		meta:              meta,
-		conn:              conn,
-		sendBuffer:        make(chan *Message, 256),
-		connCallback:      conncb,
-		heartbeatCallback: pongcb,
-		commonData:        make(map[string]interface{}),
-		newMsgNotifyMap:   newMsgNotifyMap,
+	if len(opts) > 0 {
+		for _, opt := range opts {
+			opt(connection)
+		}
 	}
 
 	Clients.register <- connection
 	log.Debug(ctx, "Client register ok. id: %v, ptr: %p", connection.id, connection)
 	return connection, nil
+}
+
+func PullChannelsOption(channels []int) ConnOption {
+	return func(conn *Connection) {
+		//为每种消息拉取逻辑分别注册不同的通道
+		pullChannelMap := make(map[int]chan struct{})
+		for _, channel := range channels {
+			pullChannelMap[channel] = make(chan struct{}, 2)
+		}
+
+		conn.pullChannelMap = pullChannelMap
+	}
 }
