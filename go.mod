@@ -5,7 +5,7 @@ go 1.13
 require (
 	github.com/dchest/captcha v0.0.0-20170622155422-6a29415a8364
 	github.com/demdxx/gocast v1.0.1
-	github.com/gin-gonic/gin v1.4.0
+	github.com/gin-gonic/gin v1.7.0
 	github.com/go-redis/redis/v8 v8.8.3
 	github.com/google/uuid v1.1.1
 	github.com/gorilla/websocket v1.4.2
