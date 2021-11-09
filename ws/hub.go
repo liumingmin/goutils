@@ -80,8 +80,8 @@ func (h *Hub) processRegister(conn *Connection) {
 
 		old.SendMsg(ctx, &P_MESSAGE{ProtocolId: int32(P_S2C_s2c_err_displace), Data: nil},
 			func(cbCtx context.Context, old *Connection, e error) {
-				old.Stop(cbCtx)
-				old.CloseNormal(cbCtx)
+				old.setStop(cbCtx)
+				old.closeSocket(cbCtx)
 			})
 
 	} else if err == nil && old == conn {
@@ -110,8 +110,8 @@ func (h *Hub) processUnregister(conn *Connection) {
 
 		h.connections.Delete(c.id)
 		defer func() {
-			c.Stop(ctx)
-			c.CloseNormal(ctx)
+			c.setStop(ctx)
+			c.closeSocket(ctx)
 		}()
 
 		if conn.connCallback != nil {

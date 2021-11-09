@@ -127,7 +127,7 @@ func (c *Connection) IsStopped() bool {
 	return atomic.LoadInt32(&c.stopped) == 1
 }
 
-func (c *Connection) Stop(ctx context.Context) {
+func (c *Connection) setStop(ctx context.Context) {
 	atomic.CompareAndSwapInt32(&c.stopped, 0, 1)
 
 	c.closeWrite(ctx)
@@ -222,7 +222,7 @@ func (c *Connection) closeRead(ctx context.Context) {
 	}
 }
 
-func (c *Connection) CloseNormal(ctx context.Context) error {
+func (c *Connection) closeSocket(ctx context.Context) error {
 	defer log.Recover(ctx, func(e interface{}) string {
 		return fmt.Sprintf("Close connection panic, error is: %v", e)
 	})
