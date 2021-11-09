@@ -110,7 +110,6 @@ func Accept(ctx context.Context, w http.ResponseWriter, r *http.Request, meta *C
 		id:             meta.BuildConnId(),
 		meta:           meta,
 		conn:           conn,
-		sendBuffer:     make(chan *Message, 256),
 		commonData:     make(map[string]interface{}),
 		pullChannelMap: make(map[int]chan struct{}),
 	}
@@ -119,6 +118,10 @@ func Accept(ctx context.Context, w http.ResponseWriter, r *http.Request, meta *C
 		for _, opt := range opts {
 			opt(connection)
 		}
+	}
+
+	if connection.sendBuffer == nil {
+		SendBufferOption(256)(connection)
 	}
 
 	Clients.register <- connection

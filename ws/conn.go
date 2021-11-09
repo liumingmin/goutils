@@ -65,9 +65,9 @@ type IHeartbeatCallback interface {
 //websocket连接封装
 type Connection struct {
 	id         string
-	meta       *ConnectionMeta //连接信息
-	conn       *websocket.Conn // websocket connection
-	sendBuffer chan *Message   //
+	meta       *ConnectionMeta      //连接信息
+	conn       *websocket.Conn      // websocket connection
+	sendBuffer chan *msgSendWrapper //
 
 	connCallback      IConnCallback
 	heartbeatCallback IHeartbeatCallback
@@ -93,7 +93,7 @@ func (m *ConnectionMeta) BuildConnId() string {
 	return fmt.Sprintf("%v-%v-%v", m.UserId, m.Typed, m.DeviceId)
 }
 
-type Message struct {
+type msgSendWrapper struct {
 	pbMessage *P_MESSAGE   // 消息体
 	sc        SendCallback // 消息发送回调接口
 }
@@ -158,7 +158,7 @@ func (c *Connection) SendMsg(ctx context.Context, payload *P_MESSAGE, sc SendCal
 		return errors.New("connect is stopped")
 	}
 
-	c.sendBuffer <- &Message{
+	c.sendBuffer <- &msgSendWrapper{
 		pbMessage: payload,
 		sc:        sc,
 	}
@@ -286,18 +286,18 @@ func (c *Connection) processMsg(ctx context.Context, pLimit chan struct{}, msgDa
 	})
 }
 
-func (c *Connection) sendMsgToWs(ctx context.Context, message *Message) error {
+func (c *Connection) sendMsgToWs(ctx context.Context, message *msgSendWrapper) error {
 	err := c.doSendMsgToWs(ctx, message)
 	c.callback(ctx, message.sc, err)
 	return err
 }
 
-func (c *Connection) doSendMsgToWs(ctx context.Context, message *Message) error {
+func (c *Connection) doSendMsgToWs(ctx context.Context, message *msgSendWrapper) error {
 	c.conn.SetWriteDeadline(time.Now().Add(WriteWait))
 
 	data, err := proto.Marshal(message.pbMessage)
 	if err != nil {
-		log.Error(ctx, "Marshal Message to pb failed. error: %v", err)
+		log.Error(ctx, "Marshal msgSendWrapper to pb failed. error: %v", err)
 		return err
 	}
 
@@ -309,7 +309,7 @@ func (c *Connection) doSendMsgToWs(ctx context.Context, message *Message) error 
 
 	_, err = w.Write(data)
 	if err != nil {
-		log.Warn(ctx, "Write Message to writer failed. message: %v, error: %v", message, err)
+		log.Warn(ctx, "Write msgSendWrapper to writer failed. message: %v, error: %v", message, err)
 		return err
 	}
 
@@ -417,5 +417,11 @@ func ConnectCbOption(connCallback IConnCallback) ConnOption {
 func HeartbeatCbOption(heartbeatCallback IHeartbeatCallback) ConnOption {
 	return func(conn *Connection) {
 		conn.heartbeatCallback = heartbeatCallback
+	}
+}
+
+func SendBufferOption(bufferSize int) ConnOption {
+	return func(conn *Connection) {
+		conn.sendBuffer = make(chan *msgSendWrapper, bufferSize)
 	}
 }
