@@ -74,7 +74,7 @@ func (h *Hub) processRegister(conn *Connection) {
 		// 本进程中已经存在此用户的另外一条连接，踢出老的连接
 		log.Debug(ctx, "Repeat register, kick out. id: %v, ptr: %p", conn.id, old)
 
-		old.Displaced()
+		old.setDisplaced()
 		h.connections.Delete(old.id)
 		old.closeRead(ctx)
 

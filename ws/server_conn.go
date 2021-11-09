@@ -92,7 +92,7 @@ func (c *Connection) readFromClient() {
 
 func (c *Connection) KickClient(displace bool) {
 	if displace {
-		c.Displaced()
+		c.setDisplaced()
 	}
 
 	Clients.unregister <- c

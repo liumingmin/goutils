@@ -134,7 +134,7 @@ func (c *Connection) Stop(ctx context.Context) {
 	c.closeRead(ctx)
 }
 
-func (c *Connection) Displaced() bool {
+func (c *Connection) setDisplaced() bool {
 	return atomic.CompareAndSwapInt32(&c.displaced, 0, 1)
 }
 
