@@ -97,3 +97,15 @@ func init() {
 func ReqHostIp(c *gin.Context) (string, error) {
 	return strings.Split(c.Request.RemoteAddr, ":")[0], nil
 }
+
+func CopyHttpHeader(from http.Header) http.Header {
+	r := http.Header{}
+	if from == nil {
+		return r
+	}
+
+	for k := range from {
+		r.Set(k, from.Get(k))
+	}
+	return r
+}
