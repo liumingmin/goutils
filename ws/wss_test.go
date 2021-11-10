@@ -15,19 +15,12 @@ func TestWssRun(t *testing.T) {
 	e.GET("/join", join)
 	go e.Run(":8003")
 
-	connectWss()
+	connectWss("100")
 	time.Sleep(time.Hour)
 }
 
-func connectWss() {
-	connMeta := &ConnectionMeta{
-		UserId:   "1",
-		Typed:    0,
-		DeviceId: "",
-		Version:  0,
-		Charset:  0,
-	}
-	Connect(context.Background(), "ws://127.0.0.1:8003/join?uid="+connMeta.UserId, false, http.Header{}, connMeta)
+func connectWss(uid string) {
+	Connect(context.Background(), "server1", "ws://127.0.0.1:8003/join?uid="+uid, false, http.Header{})
 }
 
 func join(ctx *gin.Context) {

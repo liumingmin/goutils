@@ -11,54 +11,10 @@ import (
 	"time"
 
 	"github.com/gorilla/websocket"
-	"github.com/liumingmin/goutils/conf"
 	"github.com/liumingmin/goutils/log"
 	"github.com/liumingmin/goutils/utils"
 	"github.com/liumingmin/goutils/utils/safego"
 	"google.golang.org/protobuf/proto"
-)
-
-// 消息发送回调接口
-type SendCallback func(ctx context.Context, c *Connection, err error)
-
-// 客户端消息处理函数对象
-type Handler func(context.Context, *Connection, *P_MESSAGE) error
-
-// 连接动态参数选项
-type ConnOption func(*Connection)
-
-type ConnType int8
-
-func (t ConnType) String() string {
-	if t == CONN_TYPE_CLIENT {
-		return "client"
-	}
-	if t == CONN_TYPE_SERVER {
-		return "server"
-	}
-	return ""
-}
-
-const (
-	CONN_TYPE_CLIENT = 0
-	CONN_TYPE_SERVER = 1
-)
-
-//配置项
-var (
-	dispatcherNum   = conf.ExtInt("ws.dispatcherNum", 16)              //并发处理消息数量
-	maxFailureRetry = conf.ExtInt("ws.maxFailureRetry", 10)            //重试次数
-	ReadWait        = conf.ExtDuration("ws.readWait", 60*time.Second)  //读等待
-	WriteWait       = conf.ExtDuration("ws.writeWait", 60*time.Second) //写等待
-	PingPeriod      = WriteWait * 4 / 10                               //ping间隔应该小于写等待时间
-
-	NetTemporaryWait = 500 * time.Millisecond //网络抖动重试等待
-)
-
-//客户端独有配置项
-var (
-	handshakeTimeout = conf.ExtDuration("ws.dialTimeout", "10s")
-	connMaxRetry     = conf.ExtInt("ws.connMaxRetry", 10)
 )
 
 var (
@@ -72,18 +28,6 @@ var (
 		},
 	}
 )
-
-//连接回调
-type IConnCallback interface {
-	ConnFinished(clientId string)
-	DisconnFinished(clientId string)
-}
-
-//保活回调
-type IHeartbeatCallback interface {
-	RecvPing(clientId string)
-	RecvPong(clientId string) error
-}
 
 //websocket连接封装
 type Connection struct {
@@ -127,19 +71,31 @@ func (c *Connection) Id() string {
 }
 
 func (c *Connection) UserId() string {
-	return c.meta.UserId
+	if c.meta != nil {
+		return c.meta.UserId
+	}
+	return ""
 }
 
 func (c *Connection) Type() int {
-	return c.meta.Typed
+	if c.meta != nil {
+		return c.meta.Typed
+	}
+	return 0
 }
 
 func (c *Connection) Version() int {
-	return c.meta.Version
+	if c.meta != nil {
+		return c.meta.Version
+	}
+	return 0
 }
 
 func (c *Connection) Charset() int {
-	return c.meta.Charset
+	if c.meta != nil {
+		return c.meta.Charset
+	}
+	return CHARSET_UTF8
 }
 
 func (c *Connection) GetPullChannel(notifyType int) (chan struct{}, bool) {

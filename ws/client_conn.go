@@ -21,7 +21,7 @@ func (c *Connection) KickServer(displace bool) {
 	Servers.unregister <- c
 }
 
-func Connect(ctx context.Context, sUrl string, secureWss bool, header http.Header, meta *ConnectionMeta, opts ...ConnOption) (*Connection, error) {
+func Connect(ctx context.Context, sId, sUrl string, secureWss bool, header http.Header, opts ...ConnOption) (*Connection, error) {
 	u, err := url.Parse(sUrl)
 	if err != nil {
 		log.Error(ctx, "Parse url %s err:%v", sUrl, err)
@@ -44,8 +44,9 @@ func Connect(ctx context.Context, sUrl string, secureWss bool, header http.Heade
 		conn, resp, err = d.Dial(sUrl, header)
 		if err != nil {
 			if retry < connMaxRetry {
-				log.Warn(ctx, "Failed to connect to server, sleep and try again. retry: %v, error: %v, url\r: %v", retry, err, sUrl)
+				log.Warn(ctx, "Failed to connect to server, sleep and try again. retry: %v, error: %v, url: %v", retry, err, sUrl)
 				time.Sleep(2 * time.Second)
+				continue
 			} else {
 				log.Error(ctx, "Failed to connect to server, leave it. retry: %v, error: %v", retry, err)
 				return nil, err
@@ -64,9 +65,8 @@ func Connect(ctx context.Context, sUrl string, secureWss bool, header http.Heade
 	}
 
 	connection := &Connection{
-		id:             meta.BuildConnId(),
+		id:             sId,
 		typ:            CONN_TYPE_SERVER,
-		meta:           meta,
 		conn:           conn,
 		commonData:     make(map[string]interface{}),
 		pullChannelMap: make(map[int]chan struct{}),
