@@ -73,7 +73,7 @@ func (h *Hub) processRegister(conn *Connection) {
 
 	if old, err := h.findById(conn.id); err == nil && old != conn {
 		// 本进程中已经存在此用户的另外一条连接，踢出老的连接
-		log.Debug(ctx, "Repeat register, kick out. id: %v, ptr: %p", conn.id, old)
+		log.Debug(ctx, "%v Repeat register, kick out. id: %v, ptr: %p", conn.typ, conn.id, old)
 
 		old.setDisplaced()
 		h.connections.Delete(old.id)
@@ -88,19 +88,19 @@ func (h *Hub) processRegister(conn *Connection) {
 	} else if err == nil && old == conn {
 		return
 	} else { // 新连接，并且是首次注册
-		log.Debug(ctx, "new client register. id: %v", conn.id)
+		log.Debug(ctx, "new %v register. id: %v", conn.typ, conn.id)
 	}
 
 	h.connections.Store(conn.id, conn)
 
 	if conn.connCallback != nil {
-		log.Debug(ctx, "Callback ConnFinished. id: %v", conn.id)
+		log.Debug(ctx, "%v Callback ConnFinished. id: %v", conn.typ, conn.id)
 		conn.connCallback.ConnFinished(conn.id)
 	}
-	log.Debug(ctx, "Register ok. id: %v", conn.id)
+	log.Debug(ctx, "%v Register ok. id: %v", conn.typ, conn.id)
 
-	safego.Go(conn.readFromClient)
-	safego.Go(conn.writeToClient)
+	safego.Go(conn.readFromConnection)
+	safego.Go(conn.writeToConnection)
 }
 
 func (h *Hub) processUnregister(conn *Connection) {
@@ -143,4 +143,5 @@ func (h *Hub) RangeConnsByFunc(f func(string, *Connection) bool) {
 
 func init() {
 	safego.Go(Clients.run)
+	safego.Go(Servers.run)
 }

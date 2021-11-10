@@ -27,6 +27,23 @@ type Handler func(context.Context, *Connection, *P_MESSAGE) error
 // 连接动态参数选项
 type ConnOption func(*Connection)
 
+type ConnType int8
+
+func (t ConnType) String() string {
+	if t == CONN_TYPE_CLIENT {
+		return "client"
+	}
+	if t == CONN_TYPE_SERVER {
+		return "server"
+	}
+	return ""
+}
+
+const (
+	CONN_TYPE_CLIENT = 0
+	CONN_TYPE_SERVER = 1
+)
+
 //配置项
 var (
 	dispatcherNum   = conf.ExtInt("ws.dispatcherNum", 16)              //并发处理消息数量
@@ -71,9 +88,10 @@ type IHeartbeatCallback interface {
 //websocket连接封装
 type Connection struct {
 	id         string
+	typ        ConnType
 	meta       *ConnectionMeta      //连接信息
-	conn       *websocket.Conn      // websocket connection
-	sendBuffer chan *msgSendWrapper //
+	conn       *websocket.Conn      //websocket connection
+	sendBuffer chan *msgSendWrapper //发送缓冲区
 
 	connCallback      IConnCallback
 	heartbeatCallback IHeartbeatCallback
@@ -237,6 +255,91 @@ func (c *Connection) closeSocket(ctx context.Context) error {
 	return c.conn.Close()
 }
 
+func (c *Connection) writeToConnection() {
+	ticker := time.NewTicker(PingPeriod)
+	defer func() {
+		log.Debug(context.Background(), "%v write finish. id: %v, ptr: %p", c.typ, c.id, c)
+		ticker.Stop()
+
+		if c.typ == CONN_TYPE_CLIENT {
+			c.KickClient(false)
+		} else if c.typ == CONN_TYPE_SERVER {
+			c.KickServer(false)
+		}
+	}()
+
+	for {
+		ctx := utils.ContextWithTrace()
+
+		select {
+		case message, ok := <-c.sendBuffer:
+			if !ok {
+				log.Debug(ctx, "%v send channel closed. id: %v", c.typ, c.id)
+				return
+			}
+
+			if e := c.sendMsgToWs(ctx, message); e != nil {
+				log.Warn(ctx, "%v send message failed. id: %v, error: %v", c.typ, c.id, e)
+				return
+			}
+		case <-ticker.C:
+			if err := c.conn.SetWriteDeadline(time.Now().Add(WriteWait)); err != nil {
+				log.Warn(ctx, "%v set write deadline failed. id：%v, error: %v", c.typ, c.id, err)
+			}
+
+			log.Debug(ctx, "%v send Ping. id: %v, ptr: %v", c.typ, c.id, c)
+
+			if err := c.conn.WriteMessage(websocket.PingMessage, []byte{}); err != nil {
+				if errNet, ok := err.(net.Error); (ok && errNet.Timeout()) || (ok && errNet.Temporary()) {
+					log.Debug(ctx, "%v send Ping. timeout. id: %v, error: %v", c.typ, c.id, errNet)
+
+					time.Sleep(NetTemporaryWait)
+					continue
+				}
+
+				log.Info(ctx, "%v send Ping failed. id: %v, error: %v", c.typ, c.id, c, err)
+				return
+			}
+		}
+	}
+}
+
+func (c *Connection) readFromConnection() {
+	defer func() {
+		log.Debug(context.Background(), "%v read finish. id: %v, ptr: %p", c.typ, c.id, c)
+		if c.typ == CONN_TYPE_CLIENT {
+			c.KickClient(false)
+		} else if c.typ == CONN_TYPE_SERVER {
+			c.KickServer(false)
+		}
+	}()
+
+	c.conn.SetReadDeadline(time.Now().Add(ReadWait))
+
+	pingHandler := c.conn.PingHandler()
+	c.conn.SetPingHandler(func(message string) error {
+		c.conn.SetReadDeadline(time.Now().Add(ReadWait))
+		err := pingHandler(message)
+
+		if c.heartbeatCallback != nil {
+			c.heartbeatCallback.RecvPing(c.id)
+		}
+		return err
+	})
+	c.conn.SetPongHandler(func(string) error {
+		c.conn.SetReadDeadline(time.Now().Add(ReadWait))
+		if c.heartbeatCallback != nil {
+			c.heartbeatCallback.RecvPong(c.id)
+		}
+		return nil
+	})
+	c.conn.SetCloseHandler(func(code int, text string) error {
+		log.Debug(context.Background(), "%v connection closed. code: %v, id: %v, ptr: %p", c.typ, code, c.id, c)
+		return nil
+	})
+	c.readMsgFromWs()
+}
+
 func (c *Connection) readMsgFromWs() {
 	failedRetry := 0
 
@@ -251,8 +354,8 @@ func (c *Connection) readMsgFromWs() {
 		t, data, err := c.conn.ReadMessage()
 		if err != nil {
 			if errNet, ok := err.(net.Error); (ok && errNet.Timeout()) || (ok && errNet.Temporary()) {
-				log.Debug(ctx, "Read failure. retryTimes: %v, id: %v, ptr: %p messageType: %v, error: %v",
-					failedRetry, c.id, c, t, errNet)
+				log.Debug(ctx, "%v Read failure. retryTimes: %v, id: %v, ptr: %p messageType: %v, error: %v",
+					c.typ, failedRetry, c.id, c, t, errNet)
 
 				failedRetry++
 				if failedRetry < maxFailureRetry {
@@ -260,13 +363,13 @@ func (c *Connection) readMsgFromWs() {
 					continue
 				}
 
-				log.Warn(ctx, "Read failure and reach max times. id: %v, ptr: %p messageType: %v, error: %v",
-					c.id, c, t, errNet)
+				log.Warn(ctx, "%v Read failure and reach max times. id: %v, ptr: %p messageType: %v, error: %v",
+					c.typ, c.id, c, t, errNet)
 				break
 			}
 
-			log.Warn(ctx, "Conn closed or Read failed. id: %v, ptr: %p, msgType: %v, err: %v",
-				c.id, c, t, err)
+			log.Warn(ctx, "%v Conn closed or Read failed. id: %v, ptr: %p, msgType: %v, err: %v",
+				c.typ, c.id, c, t, err)
 			break
 		}
 
@@ -275,16 +378,16 @@ func (c *Connection) readMsgFromWs() {
 }
 
 func (c *Connection) processMsg(ctx context.Context, pLimit chan struct{}, msgData []byte) {
-	log.Debug(ctx, "receive raw message. data len: %v, cid: %s", len(msgData), c.id)
+	log.Debug(ctx, "%v receive raw message. data len: %v, cid: %s", c.typ, len(msgData), c.id)
 
 	var message P_MESSAGE
 	err := proto.Unmarshal(msgData, &message)
 	if err != nil {
-		log.Error(ctx, "Unmarshal pb failed. data: %v, err: %v, cid: %s", msgData, err, c.id)
+		log.Error(ctx, "%v Unmarshal pb failed. data: %v, err: %v, cid: %s", c.typ, msgData, err, c.id)
 		return
 	}
 
-	log.Debug(ctx, "receive ws message. data: %#v, cid: %s", message, c.id)
+	log.Debug(ctx, "%v receive ws message. data: %#v, cid: %s", c.typ, message, c.id)
 
 	pLimit <- struct{}{}
 	safego.Go(func() {
@@ -304,32 +407,32 @@ func (c *Connection) doSendMsgToWs(ctx context.Context, message *msgSendWrapper)
 
 	data, err := proto.Marshal(message.pbMessage)
 	if err != nil {
-		log.Error(ctx, "Marshal msgSendWrapper to pb failed. error: %v", err)
+		log.Error(ctx, "%v Marshal msgSendWrapper to pb failed. error: %v", c.typ, err)
 		return err
 	}
 
 	w, err := c.conn.NextWriter(websocket.BinaryMessage)
 	if err != nil {
-		log.Warn(ctx, "Unable to get next writer of connection. error: %v", err)
+		log.Warn(ctx, "%v Unable to get next writer of connection. error: %v", c.typ, err)
 		return err
 	}
 
 	_, err = w.Write(data)
 	if err != nil {
-		log.Warn(ctx, "Write msgSendWrapper to writer failed. message: %v, error: %v", message, err)
+		log.Warn(ctx, "%v Write msgSendWrapper to writer failed. message: %v, error: %v", c.typ, message, err)
 		return err
 	}
 
 	failedRetry := 0
 	for {
 		if err := w.Close(); err == nil {
-			log.Debug(ctx, "finish write message to connect. cid: %v, message: %v", c.id, message)
+			log.Debug(ctx, "%v finish write message. cid: %v, message: %v", c.typ, c.id, message)
 			return nil
 		}
 
 		if errNet, ok := err.(net.Error); (ok && errNet.Timeout()) || (ok && errNet.Temporary()) {
-			log.Debug(ctx, "Write close failed. retryTimes: %v, id: %v, ptr: %p, error: %v",
-				failedRetry, c.id, c, errNet)
+			log.Debug(ctx, "%v Write close failed. retryTimes: %v, id: %v, ptr: %p, error: %v",
+				c.typ, failedRetry, c.id, c, errNet)
 
 			failedRetry++
 			if failedRetry < maxFailureRetry {
@@ -337,16 +440,16 @@ func (c *Connection) doSendMsgToWs(ctx context.Context, message *msgSendWrapper)
 				continue
 			}
 
-			log.Warn(ctx, "Write close failed and reach max times. id: %v, ptr: %p, error: %v",
-				failedRetry, c.id, c, errNet)
+			log.Warn(ctx, "%v Write close failed and reach max times. id: %v, ptr: %p, error: %v",
+				c.typ, failedRetry, c.id, c, errNet)
 			return errors.New("writer close failed")
 		}
 
 		if e, ok := err.(*websocket.CloseError); ok {
-			log.Debug(ctx, "Websocket close error. client id: %v, ptr: %p, error: %v",
-				c.id, c, e.Code)
+			log.Debug(ctx, "%v Websocket close error. client id: %v, ptr: %p, error: %v",
+				c.typ, c.id, c, e.Code)
 		} else {
-			log.Warn(ctx, "Writer close failed. id: %v, ptr: %p, error: %v", c.id, c, err)
+			log.Warn(ctx, "%v Writer close failed. id: %v, ptr: %p, error: %v", c.typ, c.id, c, err)
 		}
 		return errors.New("writer close failed")
 	}
@@ -365,7 +468,7 @@ func (c *Connection) dispatch(ctx context.Context, msg *P_MESSAGE) error {
 	if h, exist := Handlers[msg.ProtocolId]; exist {
 		return h(ctx, c, msg)
 	} else {
-		log.Error(ctx, "No handler. CMD: %d, Body: %s", msg.ProtocolId, msg.Data)
+		log.Error(ctx, "%v No handler. CMD: %d, Body: %s", c.typ, msg.ProtocolId, msg.Data)
 		return errors.New("no handler")
 	}
 }

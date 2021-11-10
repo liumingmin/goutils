@@ -10,71 +10,15 @@ import (
 
 	"github.com/gorilla/websocket"
 	"github.com/liumingmin/goutils/log"
-	"github.com/liumingmin/goutils/utils"
 )
 
-func (c *Connection) writeToServer() {
-	defer func() {
-		log.Debug(context.Background(), "Finish writing to server. id: %v, ptr: %p", c.id, c)
-		c.closeSocket(context.Background())
-	}()
-
-	for {
-		ctx := utils.ContextWithTrace()
-
-		select {
-		case message, ok := <-c.sendBuffer:
-			if !ok {
-				log.Debug(ctx, "Send channel closed. id: %v", c.id)
-				return
-			}
-
-			if err := c.sendMsgToWs(ctx, message); err != nil {
-				log.Warn(ctx, "send message failed. id: %v, error: %v", c.id, err)
-				return
-			}
-		}
+//displace=true，通常在集群环境下，踢掉在其他集群节点建立的连接，当前节点不需要主动调用
+func (c *Connection) KickServer(displace bool) {
+	if displace {
+		c.setDisplaced()
 	}
-}
 
-func (c *Connection) readFromServer() {
-	ctx := utils.ContextWithTrace()
-
-	defer func() {
-		if err := recover(); err != nil {
-			log.Error(ctx, "readFromServer  id: %v, ptr: %p, panic :%v", c.id, c, err)
-		} else {
-			log.Debug(ctx, "readFromServer finished. id: %v, ptr: %p", c.id, c)
-		}
-
-		c.setStop(ctx)
-		Servers.unregister <- c
-	}()
-
-	c.conn.SetReadDeadline(time.Now().Add(ReadWait))
-
-	pingHand := c.conn.PingHandler()
-	c.conn.SetPingHandler(func(message string) error {
-		c.conn.SetReadDeadline(time.Now().Add(ReadWait))
-		if c.heartbeatCallback != nil {
-			c.heartbeatCallback.RecvPing(c.id)
-		}
-		return pingHand(message)
-	})
-
-	c.conn.SetPongHandler(func(string) error {
-		c.conn.SetReadDeadline(time.Now().Add(ReadWait))
-		if c.heartbeatCallback != nil {
-			c.heartbeatCallback.RecvPong(c.id)
-		}
-		return nil
-	})
-
-	c.conn.SetCloseHandler(func(code int, text string) error {
-		log.Debug(context.Background(), "Connection closed. code: %v, id: %v, ptr: %p", code, c.id, c)
-		return nil
-	})
-	c.readMsgFromWs()
+	Servers.unregister <- c
 }
 
 func Connect(ctx context.Context, sUrl string, secureWss bool, header http.Header, meta *ConnectionMeta, opts ...ConnOption) (*Connection, error) {
@@ -111,9 +55,7 @@ func Connect(ctx context.Context, sUrl string, secureWss bool, header http.Heade
 		func() {
 			if resp != nil && resp.Body != nil {
 				defer resp.Body.Close()
-				if content, err := ioutil.ReadAll(resp.Body); err == nil {
-					log.Debug(ctx, "Dial resp. resp: %v", string(content))
-				}
+				ioutil.ReadAll(resp.Body)
 			}
 		}()
 
@@ -123,6 +65,7 @@ func Connect(ctx context.Context, sUrl string, secureWss bool, header http.Heade
 
 	connection := &Connection{
 		id:             meta.BuildConnId(),
+		typ:            CONN_TYPE_SERVER,
 		meta:           meta,
 		conn:           conn,
 		commonData:     make(map[string]interface{}),
@@ -140,6 +83,5 @@ func Connect(ctx context.Context, sUrl string, secureWss bool, header http.Heade
 	}
 
 	Servers.register <- connection
-	log.Debug(ctx, "Client register ok. id: %v, ptr: %p", connection.id, connection)
 	return connection, nil
 }
