@@ -38,6 +38,12 @@ var (
 	NetTemporaryWait = 500 * time.Millisecond //网络抖动重试等待
 )
 
+//客户端独有配置项
+var (
+	handshakeTimeout = conf.ExtDuration("ws.dialTimeout", "10s")
+	connMaxRetry     = conf.ExtInt("ws.connMaxRetry", 10)
+)
+
 var (
 	Handlers = make(map[int32]Handler)
 
@@ -227,6 +233,7 @@ func (c *Connection) closeSocket(ctx context.Context) error {
 		return fmt.Sprintf("Close connection panic, error is: %v", e)
 	})
 
+	c.conn.WriteMessage(websocket.CloseMessage, []byte{})
 	return c.conn.Close()
 }
 

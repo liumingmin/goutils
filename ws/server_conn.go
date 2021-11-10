@@ -66,7 +66,6 @@ func (c *Connection) readFromClient() {
 
 	pingHandler := c.conn.PingHandler()
 	c.conn.SetPingHandler(func(message string) error {
-		log.Debug(context.Background(), "Receive ping. id: %v, ptr: %p", c.id, c)
 		c.conn.SetReadDeadline(time.Now().Add(ReadWait))
 		err := pingHandler(message)
 
@@ -76,7 +75,6 @@ func (c *Connection) readFromClient() {
 		return err
 	})
 	c.conn.SetPongHandler(func(string) error {
-		log.Debug(context.Background(), "Receive pong. id: %v, ptr: %p", c.id, c)
 		c.conn.SetReadDeadline(time.Now().Add(ReadWait))
 		if c.heartbeatCallback != nil {
 			c.heartbeatCallback.RecvPong(c.id)

@@ -18,6 +18,7 @@ type Hub struct {
 }
 
 var Clients = newHub()
+var Servers = newHub()
 
 func newHub() *Hub {
 	h := Hub{
