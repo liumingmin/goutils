@@ -287,7 +287,7 @@ func (c *Connection) writeToConnection() {
 				log.Warn(ctx, "%v set write deadline failed. id：%v, error: %v", c.typ, c.id, err)
 			}
 
-			log.Debug(ctx, "%v send Ping. id: %v, ptr: %v", c.typ, c.id, c)
+			log.Debug(ctx, "%v send Ping. id: %v, ptr: %p", c.typ, c.id, c)
 
 			if err := c.conn.WriteMessage(websocket.PingMessage, []byte{}); err != nil {
 				if errNet, ok := err.(net.Error); (ok && errNet.Timeout()) || (ok && errNet.Temporary()) {
