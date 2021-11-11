@@ -88,7 +88,7 @@ func (h *Hub) processRegister(conn *Connection) {
 	} else if err == nil && old == conn {
 		return
 	} else { // 新连接，并且是首次注册
-		log.Debug(ctx, "new %v register. id: %v", conn.typ, conn.id)
+		log.Debug(ctx, "%v new register. id: %v", conn.typ, conn.id)
 	}
 
 	h.connections.Store(conn.id, conn)
@@ -107,7 +107,7 @@ func (h *Hub) processUnregister(conn *Connection) {
 	ctx := utils.ContextWithTrace()
 
 	if c, err := h.findById(conn.id); err == nil && c == conn {
-		log.Debug(ctx, "Unregister start. id: %v", c.id)
+		log.Debug(ctx, "%v unregister start. id: %v", c.typ, c.id)
 
 		h.connections.Delete(c.id)
 		defer func() {
@@ -117,14 +117,14 @@ func (h *Hub) processUnregister(conn *Connection) {
 
 		if conn.connCallback != nil {
 			if !conn.IsDisplaced() { //正常断开
-				log.Debug(ctx, "Callback DisconnFinished. id: %v", conn.id)
+				log.Debug(ctx, "%v disconnect callback. id: %v", conn.typ, conn.id)
 				conn.connCallback.DisconnFinished(conn.id)
 			} else {
-				log.Debug(ctx, "client displace closed, in hub %v, skipped disconnect callback", conn.id)
+				log.Debug(ctx, "%v displaced, skipped disconnect callback. id: %v", conn.typ, conn.id)
 			}
 		}
 
-		log.Debug(ctx, "Unregister ok. id: %v", c.id)
+		log.Debug(ctx, "%v unregister finish. id: %v", c.typ, c.id)
 	}
 }
 

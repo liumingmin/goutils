@@ -16,11 +16,15 @@ func TestWssRun(t *testing.T) {
 	go e.Run(":8003")
 
 	connectWss("100")
-	time.Sleep(time.Hour)
+	time.Sleep(time.Minute * 5)
 }
 
 func connectWss(uid string) {
-	Connect(context.Background(), "server1", "ws://127.0.0.1:8003/join?uid="+uid, false, http.Header{})
+	serverConn, _ := Connect(context.Background(), "server1", "ws://127.0.0.1:8003/join?uid="+uid, false, http.Header{})
+	go func() {
+		time.Sleep(time.Minute * 2)
+		serverConn.KickServer(false)
+	}()
 }
 
 func join(ctx *gin.Context) {
@@ -31,11 +35,15 @@ func join(ctx *gin.Context) {
 		Version:  0,
 		Charset:  0,
 	}
-	_, err := AcceptGin(ctx, connMeta, ConnectCbOption(&ConnectCb{connMeta.UserId}))
+	con, err := AcceptGin(ctx, connMeta, ConnectCbOption(&ConnectCb{connMeta.UserId}))
 	if err != nil {
 		log.Error(ctx, "Accept client connection failed. error: %v", err)
 		return
 	}
+	go func() {
+		time.Sleep(time.Minute * 2)
+		con.KickClient(false)
+	}()
 }
 
 type ConnectCb struct {

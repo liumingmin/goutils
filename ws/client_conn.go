@@ -66,7 +66,7 @@ func Connect(ctx context.Context, sId, sUrl string, secureWss bool, header http.
 
 	connection := &Connection{
 		id:             sId,
-		typ:            CONN_TYPE_SERVER,
+		typ:            CONN_TYPE_CLIENT,
 		conn:           conn,
 		commonData:     make(map[string]interface{}),
 		pullChannelMap: make(map[int]chan struct{}),

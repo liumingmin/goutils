@@ -200,7 +200,7 @@ func (c *Connection) closeSocket(ctx context.Context) error {
 		return fmt.Sprintf("Close connection panic, error is: %v", e)
 	})
 
-	c.conn.WriteMessage(websocket.CloseMessage, []byte{})
+	c.conn.WriteControl(websocket.CloseMessage, []byte{}, time.Now().Add(WriteWait))
 	return c.conn.Close()
 }
 
@@ -211,9 +211,9 @@ func (c *Connection) writeToConnection() {
 		ticker.Stop()
 
 		if c.typ == CONN_TYPE_CLIENT {
-			c.KickClient(false)
-		} else if c.typ == CONN_TYPE_SERVER {
 			c.KickServer(false)
+		} else if c.typ == CONN_TYPE_SERVER {
+			c.KickClient(false)
 		}
 	}()
 
@@ -232,13 +232,8 @@ func (c *Connection) writeToConnection() {
 				return
 			}
 		case <-ticker.C:
-			if err := c.conn.SetWriteDeadline(time.Now().Add(WriteWait)); err != nil {
-				log.Warn(ctx, "%v set write deadline failed. id：%v, error: %v", c.typ, c.id, err)
-			}
-
 			log.Debug(ctx, "%v send Ping. id: %v, ptr: %p", c.typ, c.id, c)
-
-			if err := c.conn.WriteMessage(websocket.PingMessage, []byte{}); err != nil {
+			if err := c.conn.WriteControl(websocket.PingMessage, []byte{}, time.Now().Add(WriteWait)); err != nil {
 				if errNet, ok := err.(net.Error); (ok && errNet.Timeout()) || (ok && errNet.Temporary()) {
 					log.Debug(ctx, "%v send Ping. timeout. id: %v, error: %v", c.typ, c.id, errNet)
 
@@ -257,9 +252,9 @@ func (c *Connection) readFromConnection() {
 	defer func() {
 		log.Debug(context.Background(), "%v read finish. id: %v, ptr: %p", c.typ, c.id, c)
 		if c.typ == CONN_TYPE_CLIENT {
-			c.KickClient(false)
-		} else if c.typ == CONN_TYPE_SERVER {
 			c.KickServer(false)
+		} else if c.typ == CONN_TYPE_SERVER {
+			c.KickClient(false)
 		}
 	}()
 
