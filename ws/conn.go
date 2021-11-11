@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"net"
-	"net/http"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -19,14 +18,6 @@ import (
 
 var (
 	Handlers = make(map[int32]Handler)
-
-	upgrader = websocket.Upgrader{
-		ReadBufferSize:  1024,
-		WriteBufferSize: 1024,
-		CheckOrigin: func(r *http.Request) bool {
-			return true
-		},
-	}
 )
 
 //websocket连接封装
@@ -47,6 +38,8 @@ type Connection struct {
 	displaced int32 //连接被顶号
 
 	pullChannelMap map[int]chan struct{} //新消息通知通道
+
+	upgrader *websocket.Upgrader //可自定义upgrader
 }
 
 type ConnectionMeta struct {

@@ -31,7 +31,7 @@ func join(ctx *gin.Context) {
 		Version:  0,
 		Charset:  0,
 	}
-	_, err := Accept(ctx, ctx.Writer, ctx.Request, connMeta, ConnectCbOption(&ConnectCb{connMeta.UserId}))
+	_, err := AcceptGin(ctx, connMeta, ConnectCbOption(&ConnectCb{connMeta.UserId}))
 	if err != nil {
 		log.Error(ctx, "Accept client connection failed. error: %v", err)
 		return
