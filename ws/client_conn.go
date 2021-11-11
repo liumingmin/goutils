@@ -83,5 +83,10 @@ func Connect(ctx context.Context, sId, sUrl string, secureWss bool, header http.
 	}
 
 	Servers.register <- connection
+
+	conn.SetCloseHandler(func(code int, text string) error {
+		connection.KickServer(false)
+		return nil
+	})
 	return connection, nil
 }

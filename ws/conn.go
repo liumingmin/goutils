@@ -277,10 +277,6 @@ func (c *Connection) readFromConnection() {
 		}
 		return nil
 	})
-	c.conn.SetCloseHandler(func(code int, text string) error {
-		log.Debug(context.Background(), "%v connection closed. code: %v, id: %v, ptr: %p", c.typ, code, c.id, c)
-		return nil
-	})
 	c.readMsgFromWs()
 }
 

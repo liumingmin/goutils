@@ -20,10 +20,10 @@ func TestWssRun(t *testing.T) {
 }
 
 func connectWss(uid string) {
-	serverConn, _ := Connect(context.Background(), "server1", "ws://127.0.0.1:8003/join?uid="+uid, false, http.Header{})
+	conn, _ := Connect(context.Background(), "server1", "ws://127.0.0.1:8003/join?uid="+uid, false, http.Header{})
 	go func() {
 		time.Sleep(time.Minute * 2)
-		serverConn.KickServer(false)
+		conn.KickServer(false)
 	}()
 }
 
@@ -35,15 +35,15 @@ func join(ctx *gin.Context) {
 		Version:  0,
 		Charset:  0,
 	}
-	con, err := AcceptGin(ctx, connMeta, ConnectCbOption(&ConnectCb{connMeta.UserId}))
+	_, err := AcceptGin(ctx, connMeta, ConnectCbOption(&ConnectCb{connMeta.UserId}))
 	if err != nil {
 		log.Error(ctx, "Accept client connection failed. error: %v", err)
 		return
 	}
-	go func() {
-		time.Sleep(time.Minute * 2)
-		con.KickClient(false)
-	}()
+	//go func() {
+	//	time.Sleep(time.Minute * 2)
+	//	con.KickClient(false)
+	//}()
 }
 
 type ConnectCb struct {
