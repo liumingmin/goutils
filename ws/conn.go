@@ -242,7 +242,7 @@ func (c *Connection) writeToConnection() {
 					continue
 				}
 
-				log.Info(ctx, "%v send Ping failed. id: %v, error: %v", c.typ, c.id, c, err)
+				log.Debug(ctx, "%v send Ping failed. id: %v, error: %v", c.typ, c.id, c, err)
 				return
 			}
 		}
