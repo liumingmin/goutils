@@ -34,18 +34,24 @@ func AcceptGin(ctx *gin.Context, meta ConnectionMeta, opts ...ConnOption) (*Conn
 
 func Accept(ctx context.Context, w http.ResponseWriter, r *http.Request, meta ConnectionMeta, opts ...ConnOption) (*Connection, error) {
 	connection := &Connection{
-		id:             meta.BuildConnId(),
-		typ:            CONN_TYPE_SERVER,
-		meta:           meta,
-		commonData:     make(map[string]interface{}),
-		pullChannelMap: make(map[int]chan struct{}),
-		upgrader:       defaultUpgrader,
+		id:         meta.BuildConnId(),
+		typ:        CONN_TYPE_SERVER,
+		meta:       meta,
+		commonData: make(map[string]interface{}),
+		upgrader:   defaultUpgrader,
 	}
 
 	if len(opts) > 0 {
 		for _, opt := range opts {
 			opt(connection)
 		}
+	}
+
+	if connection.pullChannelMap == nil {
+		connection.pullChannelMap = make(map[int]chan struct{})
+	}
+	if connection.sendBuffer == nil {
+		SendBufferOption(8)(connection)
 	}
 
 	conn, err := connection.upgrader.Upgrade(w, r, nil)
@@ -56,10 +62,6 @@ func Accept(ctx context.Context, w http.ResponseWriter, r *http.Request, meta Co
 	log.Debug(ctx, "%v connected ok. meta: %#v", connection.typ, meta)
 
 	connection.conn = conn
-
-	if connection.sendBuffer == nil {
-		SendBufferOption(8)(connection)
-	}
 
 	Clients.register <- connection
 

@@ -65,11 +65,10 @@ func Connect(ctx context.Context, sId, sUrl string, secureWss bool, header http.
 	}
 
 	connection := &Connection{
-		id:             sId,
-		typ:            CONN_TYPE_CLIENT,
-		conn:           conn,
-		commonData:     make(map[string]interface{}),
-		pullChannelMap: make(map[int]chan struct{}),
+		id:         sId,
+		typ:        CONN_TYPE_CLIENT,
+		conn:       conn,
+		commonData: make(map[string]interface{}),
 	}
 
 	if len(opts) > 0 {
@@ -78,6 +77,9 @@ func Connect(ctx context.Context, sId, sUrl string, secureWss bool, header http.
 		}
 	}
 
+	if connection.pullChannelMap == nil {
+		connection.pullChannelMap = make(map[int]chan struct{})
+	}
 	if connection.sendBuffer == nil {
 		SendBufferOption(8)(connection)
 	}
