@@ -79,7 +79,7 @@ func Connect(ctx context.Context, sId, sUrl string, secureWss bool, header http.
 	}
 
 	if connection.sendBuffer == nil {
-		SendBufferOption(256)(connection)
+		SendBufferOption(8)(connection)
 	}
 
 	Servers.register <- connection

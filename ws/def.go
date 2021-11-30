@@ -34,3 +34,8 @@ type IHeartbeatCallback interface {
 	RecvPing(clientId string)
 	RecvPong(clientId string) error
 }
+
+type msgSendWrapper struct {
+	pbMessage *P_MESSAGE   // 消息体
+	sc        SendCallback // 消息发送回调接口
+}

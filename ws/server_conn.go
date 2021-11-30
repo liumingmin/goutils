@@ -28,11 +28,11 @@ func (c *Connection) KickClient(displace bool) {
 	Clients.unregister <- c
 }
 
-func AcceptGin(ctx *gin.Context, meta *ConnectionMeta, opts ...ConnOption) (*Connection, error) {
+func AcceptGin(ctx *gin.Context, meta ConnectionMeta, opts ...ConnOption) (*Connection, error) {
 	return Accept(ctx, ctx.Writer, ctx.Request, meta, opts...)
 }
 
-func Accept(ctx context.Context, w http.ResponseWriter, r *http.Request, meta *ConnectionMeta, opts ...ConnOption) (*Connection, error) {
+func Accept(ctx context.Context, w http.ResponseWriter, r *http.Request, meta ConnectionMeta, opts ...ConnOption) (*Connection, error) {
 	connection := &Connection{
 		id:             meta.BuildConnId(),
 		typ:            CONN_TYPE_SERVER,
@@ -58,7 +58,7 @@ func Accept(ctx context.Context, w http.ResponseWriter, r *http.Request, meta *C
 	connection.conn = conn
 
 	if connection.sendBuffer == nil {
-		SendBufferOption(256)(connection)
+		SendBufferOption(8)(connection)
 	}
 
 	Clients.register <- connection
@@ -69,16 +69,4 @@ func Accept(ctx context.Context, w http.ResponseWriter, r *http.Request, meta *C
 	})
 
 	return connection, nil
-}
-
-func PullChannelsOption(channels []int) ConnOption {
-	return func(conn *Connection) {
-		//为每种消息拉取逻辑分别注册不同的通道
-		pullChannelMap := make(map[int]chan struct{})
-		for _, channel := range channels {
-			pullChannelMap[channel] = make(chan struct{}, 2)
-		}
-
-		conn.pullChannelMap = pullChannelMap
-	}
 }

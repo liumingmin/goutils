@@ -12,7 +12,6 @@ import (
 	"github.com/gorilla/websocket"
 	"github.com/liumingmin/goutils/log"
 	"github.com/liumingmin/goutils/utils"
-	"github.com/liumingmin/goutils/utils/safego"
 	"google.golang.org/protobuf/proto"
 )
 
@@ -24,9 +23,9 @@ var (
 type Connection struct {
 	id         string
 	typ        ConnType
-	meta       *ConnectionMeta      //连接信息
-	conn       *websocket.Conn      //websocket connection
-	sendBuffer chan *msgSendWrapper //发送缓冲区
+	meta       ConnectionMeta   //连接信息
+	conn       *websocket.Conn  //websocket connection
+	sendBuffer chan interface{} //发送缓冲区  *msgSendWrapper or *P_MESSAGE
 
 	connCallback      IConnCallback
 	heartbeatCallback IHeartbeatCallback
@@ -54,41 +53,24 @@ func (m *ConnectionMeta) BuildConnId() string {
 	return fmt.Sprintf("%v-%v-%v", m.UserId, m.Typed, m.DeviceId)
 }
 
-type msgSendWrapper struct {
-	pbMessage *P_MESSAGE   // 消息体
-	sc        SendCallback // 消息发送回调接口
-}
-
 func (c *Connection) Id() string {
 	return c.id
 }
 
 func (c *Connection) UserId() string {
-	if c.meta != nil {
-		return c.meta.UserId
-	}
-	return ""
+	return c.meta.UserId
 }
 
 func (c *Connection) Type() int {
-	if c.meta != nil {
-		return c.meta.Typed
-	}
-	return 0
+	return c.meta.Typed
 }
 
 func (c *Connection) Version() int {
-	if c.meta != nil {
-		return c.meta.Version
-	}
-	return 0
+	return c.meta.Version
 }
 
 func (c *Connection) Charset() int {
-	if c.meta != nil {
-		return c.meta.Charset
-	}
-	return CHARSET_UTF8
+	return c.meta.Charset
 }
 
 func (c *Connection) GetPullChannel(notifyType int) (chan struct{}, bool) {
@@ -131,10 +113,15 @@ func (c *Connection) SendMsg(ctx context.Context, payload *P_MESSAGE, sc SendCal
 		return errors.New("connect is stopped")
 	}
 
-	c.sendBuffer <- &msgSendWrapper{
-		pbMessage: payload,
-		sc:        sc,
+	if sc != nil {
+		c.sendBuffer <- &msgSendWrapper{
+			pbMessage: payload,
+			sc:        sc,
+		}
+	} else {
+		c.sendBuffer <- payload
 	}
+
 	return nil
 }
 
@@ -164,9 +151,23 @@ func (c *Connection) closeWrite(ctx context.Context) {
 		return fmt.Sprintf("Close writer panic, error is: %v", e)
 	})
 
-	select {
-	case _, isok := <-c.sendBuffer:
+	c.commonDataLock.Lock()
+	defer c.commonDataLock.Unlock()
+
+	size := len(c.sendBuffer)
+	for i := 0; i < size; i++ {
+		msg, isok := <-c.sendBuffer
 		if isok {
+			PutPMessageIntfs(msg)
+		} else {
+			break
+		}
+	}
+
+	select {
+	case msg, isok := <-c.sendBuffer:
+		if isok {
+			PutPMessageIntfs(msg)
 			close(c.sendBuffer)
 		}
 		break
@@ -283,10 +284,6 @@ func (c *Connection) readFromConnection() {
 func (c *Connection) readMsgFromWs() {
 	failedRetry := 0
 
-	var pLimit chan struct{}
-
-	pLimit = make(chan struct{}, dispatcherNum)
-
 	for {
 		ctx := utils.ContextWithTrace()
 
@@ -313,15 +310,17 @@ func (c *Connection) readMsgFromWs() {
 			break
 		}
 
-		c.processMsg(ctx, pLimit, data)
+		c.processMsg(ctx, data)
 	}
 }
 
-func (c *Connection) processMsg(ctx context.Context, pLimit chan struct{}, msgData []byte) {
+func (c *Connection) processMsg(ctx context.Context, msgData []byte) {
 	log.Debug(ctx, "%v receive raw message. data len: %v, cid: %s", c.typ, len(msgData), c.id)
 
-	var message P_MESSAGE
-	err := proto.Unmarshal(msgData, &message)
+	message := GetPMessage()
+	defer PutPMessage(message)
+
+	err := proto.Unmarshal(msgData, message)
 	if err != nil {
 		log.Error(ctx, "%v Unmarshal pb failed. data: %v, err: %v, cid: %s", c.typ, msgData, err, c.id)
 		return
@@ -329,23 +328,31 @@ func (c *Connection) processMsg(ctx context.Context, pLimit chan struct{}, msgDa
 
 	log.Debug(ctx, "%v receive ws message. data: %#v, cid: %s", c.typ, message, c.id)
 
-	pLimit <- struct{}{}
-	safego.Go(func() {
-		defer func() { <-pLimit }()
-		c.dispatch(ctx, &message)
-	})
+	c.dispatch(ctx, message)
 }
 
-func (c *Connection) sendMsgToWs(ctx context.Context, message *msgSendWrapper) error {
-	err := c.doSendMsgToWs(ctx, message)
-	c.callback(ctx, message.sc, err)
+func (c *Connection) sendMsgToWs(ctx context.Context, message interface{}) error {
+	var err error
+	msg, ok := message.(*P_MESSAGE) //优先判断
+	if ok {
+		defer PutPMessage(msg)
+		err = c.doSendMsgToWs(ctx, msg)
+
+	} else {
+		w := message.(*msgSendWrapper)
+		defer PutPMessage(w.pbMessage)
+
+		err = c.doSendMsgToWs(ctx, w.pbMessage)
+		c.callback(ctx, w.sc, err)
+	}
+
 	return err
 }
 
-func (c *Connection) doSendMsgToWs(ctx context.Context, message *msgSendWrapper) error {
+func (c *Connection) doSendMsgToWs(ctx context.Context, message *P_MESSAGE) error {
 	c.conn.SetWriteDeadline(time.Now().Add(WriteWait))
 
-	data, err := proto.Marshal(message.pbMessage)
+	data, err := proto.Marshal(message)
 	if err != nil {
 		log.Error(ctx, "%v Marshal msgSendWrapper to pb failed. error: %v", c.typ, err)
 		return err
@@ -456,22 +463,4 @@ func (c *Connection) IncrCommDataValueBy(key string, delta int) {
 	}
 
 	c.commonData[key] = delta
-}
-
-func ConnectCbOption(connCallback IConnCallback) ConnOption {
-	return func(conn *Connection) {
-		conn.connCallback = connCallback
-	}
-}
-
-func HeartbeatCbOption(heartbeatCallback IHeartbeatCallback) ConnOption {
-	return func(conn *Connection) {
-		conn.heartbeatCallback = heartbeatCallback
-	}
-}
-
-func SendBufferOption(bufferSize int) ConnOption {
-	return func(conn *Connection) {
-		conn.sendBuffer = make(chan *msgSendWrapper, bufferSize)
-	}
 }

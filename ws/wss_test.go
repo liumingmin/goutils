@@ -28,7 +28,7 @@ func connectWss(uid string) {
 }
 
 func join(ctx *gin.Context) {
-	connMeta := &ConnectionMeta{
+	connMeta := ConnectionMeta{
 		UserId:   ctx.DefaultQuery("uid", ""),
 		Typed:    0,
 		DeviceId: "",
