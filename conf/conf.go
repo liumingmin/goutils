@@ -8,8 +8,15 @@ import (
 	"strings"
 	"time"
 
+	"gopkg.in/natefinch/lumberjack.v2"
 	"gopkg.in/yaml.v2"
 )
+
+type Log struct {
+	lumberjack.Logger `yaml:",inline"`
+	LogLevel          string `yaml:"logLevel"`
+	Stdout            bool   `yaml:"stdout"`
+}
 
 type Database struct {
 	Key      string                 `yaml:"key"`
@@ -68,9 +75,7 @@ func (d *Database) ExtBool(key string, defaultVal ...interface{}) bool {
 }
 
 type Config struct {
-	LogLevel  string                 `yaml:"logLevel"`
-	LogPath   string                 `yaml:"logPath"`
-	Stdout    bool                   `yaml:"stdout"`
+	Log       Log                    `yaml:"log,flow"`
 	Databases []*Database            `yaml:"databases,flow"`
 	Redises   []*Redis               `yaml:"redises,flow"`
 	EXT       map[string]interface{} `yaml:"ext,flow"`

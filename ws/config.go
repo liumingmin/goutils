@@ -8,7 +8,6 @@ import (
 
 //配置项
 var (
-	dispatcherNum   = conf.ExtInt("ws.dispatcherNum", 16)              //并发处理消息数量
 	maxFailureRetry = conf.ExtInt("ws.maxFailureRetry", 10)            //重试次数
 	ReadWait        = conf.ExtDuration("ws.readWait", 60*time.Second)  //读等待
 	WriteWait       = conf.ExtDuration("ws.writeWait", 60*time.Second) //写等待

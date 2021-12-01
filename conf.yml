@@ -1,4 +1,7 @@
-stdout: true
+log:
+  filename: "test.log"
+  logLevel: debug
+  stdout: true
 databases:
   -
     key: goutils

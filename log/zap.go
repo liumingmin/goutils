@@ -9,7 +9,6 @@ import (
 	"github.com/liumingmin/goutils/conf"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
-	lumberjack "gopkg.in/natefinch/lumberjack.v2"
 )
 
 const LOG_TRADE_ID = "__traceId"
@@ -20,16 +19,19 @@ var (
 )
 
 func init() {
-	if conf.Conf.LogPath == "" {
-		conf.Conf.LogPath = "./goutils.log"
-	}
+	hook := conf.Conf.Log.Logger
 
-	hook := lumberjack.Logger{
-		Filename:   conf.Conf.LogPath, // 日志文件路径
-		MaxSize:    128,               // 每个日志文件保存的最大尺寸 单位：M
-		MaxBackups: 30,                // 日志文件最多保存多少个备份
-		MaxAge:     7,                 // 文件最多保存多少天
-		Compress:   true,              // 是否压缩
+	if hook.Filename == "" {
+		hook.Filename = "./goutils.log" // 日志文件路径
+	}
+	if hook.MaxSize == 0 {
+		hook.MaxSize = 128 // 每个日志文件保存的最大尺寸 单位：M
+	}
+	if hook.MaxBackups == 0 {
+		hook.MaxBackups = 7
+	}
+	if hook.MaxAge == 0 {
+		hook.MaxAge = 7
 	}
 
 	encoderConfig := zapcore.EncoderConfig{
@@ -49,12 +51,12 @@ func init() {
 
 	// 设置日志级别
 	atomicLevel := zap.NewAtomicLevelAt(zapcore.DebugLevel)
-	if conf.Conf.LogLevel != "" {
-		atomicLevel.UnmarshalText([]byte(conf.Conf.LogLevel))
+	if conf.Conf.Log.LogLevel != "" {
+		atomicLevel.UnmarshalText([]byte(conf.Conf.Log.LogLevel))
 	}
 
 	writeSyncers := []zapcore.WriteSyncer{zapcore.AddSync(&hook)}
-	if conf.Conf.Stdout {
+	if conf.Conf.Log.Stdout {
 		writeSyncers = append(writeSyncers, zapcore.AddSync(os.Stdout))
 	}
 
@@ -80,31 +82,55 @@ func CnTimeEncoder(t time.Time, enc zapcore.PrimitiveArrayEncoder) {
 }
 
 func Debug(c context.Context, args ...interface{}) {
+	if !logger.Core().Enabled(zap.DebugLevel) {
+		return
+	}
+
 	msg := parseArgs(c, args...)
 	logger.Debug(msg)
 }
 
 func Info(c context.Context, args ...interface{}) {
+	if !logger.Core().Enabled(zap.InfoLevel) {
+		return
+	}
+
 	msg := parseArgs(c, args...)
 	logger.Info(msg)
 }
 
 func Warn(c context.Context, args ...interface{}) {
+	if !logger.Core().Enabled(zap.WarnLevel) {
+		return
+	}
+
 	msg := parseArgs(c, args...)
 	logger.Warn(msg)
 }
 
 func Error(c context.Context, args ...interface{}) {
+	if !logger.Core().Enabled(zap.ErrorLevel) {
+		return
+	}
+
 	msg := parseArgs(c, args...)
 	logger.Error(msg)
 }
 
 func Fatal(c context.Context, args ...interface{}) {
+	if !logger.Core().Enabled(zap.FatalLevel) {
+		return
+	}
+
 	msg := parseArgs(c, args...)
 	logger.Fatal(msg)
 }
 
 func Panic(c context.Context, args ...interface{}) {
+	if !logger.Core().Enabled(zap.PanicLevel) {
+		return
+	}
+
 	msg := parseArgs(c, args...)
 	logger.Panic(msg)
 }
@@ -130,7 +156,12 @@ func parseArgs(c context.Context, args ...interface{}) (msg string) {
 	if len(args) == 0 {
 		msg = ""
 	} else {
-		msg = fmt.Sprint(args[0])
+		var ok bool
+		msg, ok = args[0].(string)
+		if !ok {
+			msg = fmt.Sprint(args[0])
+		}
+
 		parmArgs = args[1:]
 	}
 
