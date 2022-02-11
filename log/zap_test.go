@@ -4,9 +4,11 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 	"testing"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 )
 
 func TestZap(t *testing.T) {
@@ -45,4 +47,30 @@ func testPanicLog() {
 	})
 
 	panic(errors.New("dddd"))
+}
+
+func TestLevelChange(t *testing.T) {
+	traceId := strings.Replace(uuid.New().String(), "-", "", -1)
+	ctx := context.WithValue(context.Background(), LOG_TRADE_ID, traceId)
+	Error(ctx, LogLess())
+	Error(ctx, LogLess())
+	Error(ctx, LogLess())
+	Error(ctx, LogLess())
+	Error(ctx, LogLess())
+	Error(ctx, LogLess())
+	Error(ctx, LogLess())
+	Error(ctx, LogLess())
+
+	fmt.Println(LogLess(), "============")
+
+	Info(ctx, LogMore())
+	Info(ctx, LogMore())
+	Info(ctx, LogMore())
+	Info(ctx, LogMore())
+	Info(ctx, LogMore())
+	Info(ctx, LogMore())
+	Info(ctx, LogMore())
+	Info(ctx, LogMore())
+
+	fmt.Println(LogMore(), "============")
 }

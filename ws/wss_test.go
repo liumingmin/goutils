@@ -16,6 +16,7 @@ func TestWssRun(t *testing.T) {
 	go e.Run(":8003")
 
 	connectWss("100")
+
 	time.Sleep(time.Minute * 5)
 }
 

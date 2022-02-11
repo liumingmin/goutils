@@ -5,13 +5,10 @@ import (
 	"strings"
 
 	"github.com/google/uuid"
-)
-
-const (
-	TRACE_ID = "__traceId__"
+	"github.com/liumingmin/goutils/log"
 )
 
 func ContextWithTrace() context.Context {
 	traceId := strings.Replace(uuid.New().String(), "-", "", -1)
-	return context.WithValue(context.Background(), TRACE_ID, traceId)
+	return context.WithValue(context.Background(), log.LOG_TRADE_ID, traceId)
 }

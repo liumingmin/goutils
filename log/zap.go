@@ -15,6 +15,7 @@ const LOG_TRADE_ID = "__traceId"
 
 var (
 	logger      *zap.Logger
+	loggerLevel zap.AtomicLevel
 	stackLogger *zap.Logger
 )
 
@@ -50,9 +51,9 @@ func init() {
 	}
 
 	// 设置日志级别
-	atomicLevel := zap.NewAtomicLevelAt(zapcore.DebugLevel)
+	loggerLevel = zap.NewAtomicLevelAt(zapcore.DebugLevel)
 	if conf.Conf.Log.LogLevel != "" {
-		atomicLevel.UnmarshalText([]byte(conf.Conf.Log.LogLevel))
+		loggerLevel.UnmarshalText([]byte(conf.Conf.Log.LogLevel))
 	}
 
 	writeSyncers := []zapcore.WriteSyncer{zapcore.AddSync(&hook)}
@@ -63,7 +64,7 @@ func init() {
 	core := zapcore.NewCore(
 		zapcore.NewConsoleEncoder(encoderConfig),     // 编码器配置 NewConsoleEncoder NewJSONEncoder
 		zapcore.NewMultiWriteSyncer(writeSyncers...), // 打印到控制台和文件
-		atomicLevel, // 日志级别
+		loggerLevel, // 日志级别
 	)
 
 	// 开启开发模式，堆栈跟踪
@@ -133,6 +134,24 @@ func Panic(c context.Context, args ...interface{}) {
 
 	msg := parseArgs(c, args...)
 	logger.Panic(msg)
+}
+
+func LogMore() zapcore.Level {
+	level := loggerLevel.Level()
+	if level == zap.DebugLevel {
+		return level
+	}
+	loggerLevel.SetLevel(level - 1)
+	return level - 1
+}
+
+func LogLess() zapcore.Level {
+	level := loggerLevel.Level()
+	if level == zap.FatalLevel {
+		return level
+	}
+	loggerLevel.SetLevel(level + 1)
+	return level + 1
 }
 
 func Recover(c context.Context, arg0 interface{}) {
