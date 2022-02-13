@@ -6,7 +6,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/liumingmin/goutils/utils"
 	"github.com/liumingmin/goutils/utils/safego"
 
 	"github.com/gin-gonic/gin"
@@ -14,7 +13,7 @@ import (
 
 func TestLimitReq(t *testing.T) {
 	router := gin.New()
-	lr := NewLimitReq(utils.ReqHostIp)
+	lr := NewLimitReq(reqHostIp)
 
 	router.Use(lr.Incoming(nil, 10, 4))
 	router.GET("/testurl", func(c *gin.Context) {

@@ -1,4 +1,4 @@
-package utils
+package hc
 
 import (
 	"bytes"
@@ -10,7 +10,6 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
-	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -59,6 +58,23 @@ func DumpBodyAsBytes(req *http.Request) (copy []byte, err error) {
 	return
 }
 
+func PerformTestRequest(method, target string, router *gin.Engine) *httptest.ResponseRecorder {
+	r := httptest.NewRequest(method, target, nil)
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, r)
+	return w
+}
+
+func DefaultPooledClient() *http.Client {
+	return gTransport
+}
+
+func initHc() {
+	gTransport = &http.Client{
+		Transport: defaultPooledTransport(),
+	}
+}
+
 func defaultPooledTransport() *http.Transport {
 	transport := &http.Transport{
 		Proxy: http.ProxyFromEnvironment,
@@ -75,27 +91,6 @@ func defaultPooledTransport() *http.Transport {
 		//MaxIdleConnsPerHost:   runtime.GOMAXPROCS(0) + 1,
 	}
 	return transport
-}
-
-func DefaultPooledClient() *http.Client {
-	return gTransport
-}
-
-func PerformTestRequest(method, target string, router *gin.Engine) *httptest.ResponseRecorder {
-	r := httptest.NewRequest(method, target, nil)
-	w := httptest.NewRecorder()
-	router.ServeHTTP(w, r)
-	return w
-}
-
-func init() {
-	gTransport = &http.Client{
-		Transport: defaultPooledTransport(),
-	}
-}
-
-func ReqHostIp(c *gin.Context) (string, error) {
-	return strings.Split(c.Request.RemoteAddr, ":")[0], nil
 }
 
 func CopyHttpHeader(from http.Header) http.Header {

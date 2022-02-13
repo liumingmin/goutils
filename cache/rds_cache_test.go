@@ -17,83 +17,85 @@ func TestRdscCacheFunc(t *testing.T) {
 	const cacheKey = "UT:%v:%v"
 	const RDSC_DB = "rdscdb"
 
-	result, err := RdsCacheFunc(ctx, RDSC_DB, 60, rawGetFunc0, cacheKey, "p1", "p2")
+	rds := redis.Get(RDSC_DB)
+
+	result, err := RdsCacheFunc(ctx, rds, 60, rawGetFunc0, cacheKey, "p1", "p2")
 	log.Info(ctx, "%v %v %v", result, err, printKind(result))
 
-	result, err = RdsCacheFunc(ctx, RDSC_DB, 60, rawGetFunc0, cacheKey, "p1", "p2")
+	result, err = RdsCacheFunc(ctx, rds, 60, rawGetFunc0, cacheKey, "p1", "p2")
 	log.Info(ctx, "%v %v %v", result, err, printKind(result))
-	RdsDeleteCache(ctx, RDSC_DB, cacheKey, "p1", "p2")
+	RdsDeleteCache(ctx, rds, cacheKey, "p1", "p2")
 
-	result, err = RdsCacheFunc(ctx, RDSC_DB, 60, rawGetFunc1, cacheKey, "p1", "p2")
-	log.Info(ctx, "%v %v %v", result, err, printKind(result))
-
-	result, err = RdsCacheFunc(ctx, RDSC_DB, 60, rawGetFunc1, cacheKey, "p1", "p2")
-	log.Info(ctx, "%v %v %v", result, err, printKind(result))
-	RdsDeleteCache(ctx, RDSC_DB, cacheKey, "p1", "p2")
-
-	result, err = RdsCacheFunc(ctx, RDSC_DB, 60, rawGetFunc2, cacheKey, "p1", "p2")
+	result, err = RdsCacheFunc(ctx, rds, 60, rawGetFunc1, cacheKey, "p1", "p2")
 	log.Info(ctx, "%v %v %v", result, err, printKind(result))
 
-	result, err = RdsCacheFunc(ctx, RDSC_DB, 60, rawGetFunc2, cacheKey, "p1", "p2")
+	result, err = RdsCacheFunc(ctx, rds, 60, rawGetFunc1, cacheKey, "p1", "p2")
 	log.Info(ctx, "%v %v %v", result, err, printKind(result))
-	RdsDeleteCache(ctx, RDSC_DB, cacheKey, "p1", "p2")
+	RdsDeleteCache(ctx, rds, cacheKey, "p1", "p2")
 
-	result, err = RdsCacheFunc(ctx, RDSC_DB, 60, rawGetFunc3, cacheKey, "p1", "p2")
-	log.Info(ctx, "%v %v %v", result, err, printKind(result))
-
-	result, err = RdsCacheFunc(ctx, RDSC_DB, 60, rawGetFunc3, cacheKey, "p1", "p2")
-	log.Info(ctx, "%v %v %v", result, err, printKind(result))
-	RdsDeleteCache(ctx, RDSC_DB, cacheKey, "p1", "p2")
-
-	result, err = RdsCacheFunc(ctx, RDSC_DB, 60, rawGetFunc4, cacheKey, "p1", "p2")
+	result, err = RdsCacheFunc(ctx, rds, 60, rawGetFunc2, cacheKey, "p1", "p2")
 	log.Info(ctx, "%v %v %v", result, err, printKind(result))
 
-	result, err = RdsCacheFunc(ctx, RDSC_DB, 60, rawGetFunc4, cacheKey, "p1", "p2")
+	result, err = RdsCacheFunc(ctx, rds, 60, rawGetFunc2, cacheKey, "p1", "p2")
 	log.Info(ctx, "%v %v %v", result, err, printKind(result))
-	RdsDeleteCache(ctx, RDSC_DB, cacheKey, "p1", "p2")
+	RdsDeleteCache(ctx, rds, cacheKey, "p1", "p2")
 
-	result, err = RdsCacheFunc(ctx, RDSC_DB, 60, rawGetFunc5, cacheKey, "p1", "p2")
-	log.Info(ctx, "%v %v %v", result, err, printKind(result))
-
-	result, err = RdsCacheFunc(ctx, RDSC_DB, 60, rawGetFunc5, cacheKey, "p1", "p2")
-	log.Info(ctx, "%v %v %v", result, err, printKind(result))
-	RdsDeleteCache(ctx, RDSC_DB, cacheKey, "p1", "p2")
-
-	result, err = RdsCacheFunc(ctx, RDSC_DB, 60, rawGetFunc6, cacheKey, "p1", "p2")
+	result, err = RdsCacheFunc(ctx, rds, 60, rawGetFunc3, cacheKey, "p1", "p2")
 	log.Info(ctx, "%v %v %v", result, err, printKind(result))
 
-	result, err = RdsCacheFunc(ctx, RDSC_DB, 60, rawGetFunc6, cacheKey, "p1", "p2")
+	result, err = RdsCacheFunc(ctx, rds, 60, rawGetFunc3, cacheKey, "p1", "p2")
+	log.Info(ctx, "%v %v %v", result, err, printKind(result))
+	RdsDeleteCache(ctx, rds, cacheKey, "p1", "p2")
+
+	result, err = RdsCacheFunc(ctx, rds, 60, rawGetFunc4, cacheKey, "p1", "p2")
+	log.Info(ctx, "%v %v %v", result, err, printKind(result))
+
+	result, err = RdsCacheFunc(ctx, rds, 60, rawGetFunc4, cacheKey, "p1", "p2")
+	log.Info(ctx, "%v %v %v", result, err, printKind(result))
+	RdsDeleteCache(ctx, rds, cacheKey, "p1", "p2")
+
+	result, err = RdsCacheFunc(ctx, rds, 60, rawGetFunc5, cacheKey, "p1", "p2")
+	log.Info(ctx, "%v %v %v", result, err, printKind(result))
+
+	result, err = RdsCacheFunc(ctx, rds, 60, rawGetFunc5, cacheKey, "p1", "p2")
+	log.Info(ctx, "%v %v %v", result, err, printKind(result))
+	RdsDeleteCache(ctx, rds, cacheKey, "p1", "p2")
+
+	result, err = RdsCacheFunc(ctx, rds, 60, rawGetFunc6, cacheKey, "p1", "p2")
+	log.Info(ctx, "%v %v %v", result, err, printKind(result))
+
+	result, err = RdsCacheFunc(ctx, rds, 60, rawGetFunc6, cacheKey, "p1", "p2")
 	log.Info(ctx, "%v %v %v", drainToArray(result), err, printKind(result))
-	RdsDeleteCache(ctx, RDSC_DB, cacheKey, "p1", "p2")
+	RdsDeleteCache(ctx, rds, cacheKey, "p1", "p2")
 
-	result, err = RdsCacheFunc(ctx, RDSC_DB, 60, rawGetFunc7, cacheKey, "p1", "p2")
+	result, err = RdsCacheFunc(ctx, rds, 60, rawGetFunc7, cacheKey, "p1", "p2")
 	log.Info(ctx, "%v %v %v", result, err, printKind(result))
 
-	result, err = RdsCacheFunc(ctx, RDSC_DB, 60, rawGetFunc7, cacheKey, "p1", "p2")
+	result, err = RdsCacheFunc(ctx, rds, 60, rawGetFunc7, cacheKey, "p1", "p2")
 	log.Info(ctx, "%v %v %v", drainToMap(result), err, printKind(result))
-	RdsDeleteCache(ctx, RDSC_DB, cacheKey, "p1", "p2")
+	RdsDeleteCache(ctx, rds, cacheKey, "p1", "p2")
 
-	result, err = RdsCacheFunc(ctx, RDSC_DB, 60, rawGetFunc8, cacheKey, "p1", "p2")
+	result, err = RdsCacheFunc(ctx, rds, 60, rawGetFunc8, cacheKey, "p1", "p2")
 	log.Info(ctx, "%v %v %v", result, err, printKind(result))
 
-	result, err = RdsCacheFunc(ctx, RDSC_DB, 60, rawGetFunc8, cacheKey, "p1", "p2")
+	result, err = RdsCacheFunc(ctx, rds, 60, rawGetFunc8, cacheKey, "p1", "p2")
 	log.Info(ctx, "%v %v %v", result, err, printKind(result))
-	RdsDeleteCache(ctx, RDSC_DB, cacheKey, "p1", "p2")
+	RdsDeleteCache(ctx, rds, cacheKey, "p1", "p2")
 
-	result, err = RdsCacheFunc(ctx, RDSC_DB, 60, rawGetFunc9, cacheKey, "p1", "p2")
+	result, err = RdsCacheFunc(ctx, rds, 60, rawGetFunc9, cacheKey, "p1", "p2")
 	log.Info(ctx, "%v %v %v", result, err, printKind(result))
 
-	result, err = RdsCacheFunc(ctx, RDSC_DB, 60, rawGetFunc9, cacheKey, "p1", "p2")
+	result, err = RdsCacheFunc(ctx, rds, 60, rawGetFunc9, cacheKey, "p1", "p2")
 	log.Info(ctx, "%v %v %v", result, err, printKind(result))
-	RdsDeleteCache(ctx, RDSC_DB, cacheKey, "p1", "p2")
+	RdsDeleteCache(ctx, rds, cacheKey, "p1", "p2")
 
-	//result, err = RdsCacheFunc(ctx, RDSC_DB, 60, rawGetFunc10, cacheKey, "p1", "p2")
+	//result, err = RdsCacheFunc(ctx, rds, 60, rawGetFunc10, cacheKey, "p1", "p2")
 	//log.Info(ctx, "%v %v %v", result, err, printKind(result))
 	//
-	//result, err = RdsCacheFunc(ctx, RDSC_DB, 60, rawGetFunc10, cacheKey, "p1", "p2")
+	//result, err = RdsCacheFunc(ctx, rds, 60, rawGetFunc10, cacheKey, "p1", "p2")
 	//log.Info(ctx, "%v %v %v", result, err, printKind(result))
 
-	RdsDeleteCache(ctx, RDSC_DB, cacheKey, "p1", "p2")
+	RdsDeleteCache(ctx, rds, cacheKey, "p1", "p2")
 }
 
 func printKind(result interface{}) reflect.Kind {

@@ -57,14 +57,14 @@ func memCacheCallFunc(ctx context.Context, cc *cache.Cache, expire time.Duration
 	retValues := fv.Call(argValues)
 
 	var retErr error
-	if len(retValues) > 1 && retValues[1].IsValid() && !utils.SafeIsNil(&retValues[1]) {
+	if len(retValues) > 1 && !utils.SafeIsNil(&retValues[1]) {
 		retErr, _ = retValues[1].Interface().(error)
 	}
 
 	key := fmt.Sprintf(keyFmt, args...)
 
 	var result interface{}
-	if len(retValues) > 0 && retValues[0].IsValid() && !utils.SafeIsNil(&retValues[0]) && retErr == nil {
+	if len(retValues) > 0 && !utils.SafeIsNil(&retValues[0]) && retErr == nil {
 		result = retValues[0].Interface()
 		cc.Set(key, result, expire)
 	} else {

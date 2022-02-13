@@ -1,4 +1,4 @@
-package utils
+package csv
 
 import (
 	"context"
@@ -6,6 +6,8 @@ import (
 	"io/ioutil"
 	"os"
 	"strings"
+
+	"github.com/liumingmin/goutils/utils"
 
 	"github.com/liumingmin/goutils/container"
 
@@ -86,7 +88,7 @@ func ParseCsv(ctx context.Context, filePath string, comma rune) (records [][]str
 		return
 	}
 
-	fileContent, err := GBK2UTF8(bs)
+	fileContent, err := utils.GBK2UTF8(bs)
 	contentStr := string(fileContent)
 
 	csvReader := csv.NewReader(strings.NewReader(contentStr))

@@ -2,6 +2,7 @@ package middleware
 
 import (
 	"net/http"
+	"strings"
 	"sync"
 
 	"github.com/gin-gonic/gin"
@@ -103,4 +104,8 @@ func (l *LimitConn) Leaving(keyFunc LimitKeyFunc) gin.HandlerFunc {
 		c.Next()
 		return
 	}
+}
+
+func reqHostIp(c *gin.Context) (string, error) {
+	return strings.Split(c.Request.RemoteAddr, ":")[0], nil
 }

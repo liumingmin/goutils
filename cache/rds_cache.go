@@ -3,15 +3,17 @@ package cache
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"reflect"
 	"strings"
 	"time"
 
-	"github.com/demdxx/gocast"
 	"github.com/liumingmin/goutils/log"
-	"github.com/liumingmin/goutils/redis"
 	"github.com/liumingmin/goutils/utils"
+
+	"github.com/demdxx/gocast"
+	"github.com/go-redis/redis/v8"
 	"golang.org/x/sync/singleflight"
 	"google.golang.org/protobuf/proto"
 )
@@ -22,9 +24,7 @@ var (
 	pbIface  reflect.Type
 )
 
-func RdsDeleteCache(ctx context.Context, dbName string, keyFmt string, args ...interface{}) (err error) {
-	rds := redis.Get(dbName)
-
+func RdsDeleteCache(ctx context.Context, rds redis.UniversalClient, keyFmt string, args ...interface{}) (err error) {
 	key := fmt.Sprintf(keyFmt, args...)
 
 	log.Debug(ctx, "RdsDeleteCache cache key : %v", key)
@@ -32,17 +32,16 @@ func RdsDeleteCache(ctx context.Context, dbName string, keyFmt string, args ...i
 	return rds.Del(ctx, key).Err()
 }
 
-func RdsCacheFunc(ctx context.Context, dbName string, rdsExpire int, f interface{}, keyFmt string, args ...interface{}) (interface{}, error) {
+func RdsCacheFunc(ctx context.Context, rds redis.UniversalClient, rdsExpire int, f interface{}, keyFmt string,
+	args ...interface{}) (interface{}, error) {
 	defer log.Recover(ctx, func(e interface{}) string {
-		return fmt.Sprintf("RdscCacheFuncCtx err: %v", e)
+		return fmt.Sprintf("RdsCacheFunc err: %v", e)
 	})
-
-	rds := redis.Get(dbName)
 
 	ft := reflect.TypeOf(f)
 	if ft.NumOut() == 0 {
 		log.Error(ctx, "RdsCacheFunc f must have one return value")
-		return nil, nil
+		return nil, errors.New("f must have one return value")
 	}
 
 	key := fmt.Sprintf(keyFmt, args...)
@@ -56,12 +55,77 @@ func RdsCacheFunc(ctx context.Context, dbName string, rdsExpire int, f interface
 	}
 
 	data, err, _ := sg.Do(key, func() (interface{}, error) {
-		return rdsCacheCallFunc(ctx, dbName, rdsExpire, f, keyFmt, args...)
+		return rdsCacheCallFunc(ctx, rds, rdsExpire, f, keyFmt, args...)
 	})
 	return data, err
 }
 
-func rdsCacheCallFunc(ctx context.Context, dbName string, rdsExpire int, f interface{}, keyFmt string, args ...interface{}) (interface{}, error) {
+//缓存多个参数应该封装为结构传递，如果是基本类型可以type定义后实现接口,类似StringCacheKeyer
+type CacheKeyer interface {
+	RCMCacheKey() string
+}
+
+type StringCacheKeyer string
+
+func (t StringCacheKeyer) RCMCacheKey() string {
+	return string(t)
+}
+
+//无法防击穿，使用场景需要注意
+func RdsCacheMultiFunc(ctx context.Context, rds redis.UniversalClient, rdsExpire int, fMulti interface{}, keyFmt string,
+	args ...CacheKeyer) ([]interface{}, error) {
+	defer log.Recover(ctx, func(e interface{}) string {
+		return fmt.Sprintf("RdsCacheMultiFunc err: %v", e)
+	})
+
+	ft := reflect.TypeOf(fMulti)
+	if ft.NumOut() == 0 {
+		log.Error(ctx, "RdsCacheMultiFunc f must have one return value")
+		return nil, errors.New("f must have one return value")
+	}
+
+	//check return value
+	retSliceType := reflect.TypeOf(ft.Out(0))
+	if retSliceType.Kind() == reflect.Ptr {
+		retSliceType = retSliceType.Elem()
+	}
+
+	if retSliceType.Kind() != reflect.Slice {
+		log.Error(ctx, "RdsCacheMultiFunc f must have return slice value")
+		return nil, errors.New("f must have return slice value")
+	}
+	retType := retSliceType.Elem()
+
+	keys := make([]string, len(args))
+	for i := 0; i < len(args); i++ {
+		keys[i] = fmt.Sprintf(keyFmt, args[i].RCMCacheKey())
+	}
+
+	noCachedArgs := make([]CacheKeyer, 0, len(keys))
+	resultValues := make([]interface{}, 0, len(keys))
+
+	retValues, err := rds.MGet(ctx, keys...).Result()
+	if err == nil {
+		log.Debug(ctx, "RdsCacheMultiFunc hit caches : %v", len(retValues))
+
+		for i, retValue := range retValues {
+			if utils.IsNil(retValue) {
+				noCachedArgs = append(noCachedArgs, args[i])
+			} else {
+				retValueStr, _ := retValue.(string)
+				resultValues = append(resultValues, convertStringTo(ctx, retValueStr, retType))
+			}
+		}
+	}
+
+	if len(noCachedArgs) == 0 {
+		return resultValues, nil
+	}
+
+	return nil, nil
+}
+
+func rdsCacheCallFunc(ctx context.Context, rds redis.UniversalClient, rdsExpire int, f interface{}, keyFmt string, args ...interface{}) (interface{}, error) {
 	argValues := make([]reflect.Value, 0)
 
 	ft := reflect.TypeOf(f)
@@ -77,15 +141,14 @@ func rdsCacheCallFunc(ctx context.Context, dbName string, rdsExpire int, f inter
 	retValues := fv.Call(argValues)
 
 	var retErr error
-	if len(retValues) > 1 && retValues[1].IsValid() && !utils.SafeIsNil(&retValues[1]) {
+	if len(retValues) > 1 && !utils.SafeIsNil(&retValues[1]) {
 		retErr, _ = retValues[1].Interface().(error)
 	}
 
-	rds := redis.Get(dbName)
 	key := fmt.Sprintf(keyFmt, args...)
 
 	var result interface{}
-	if len(retValues) > 0 && retValues[0].IsValid() && !utils.SafeIsNil(&retValues[0]) && retErr == nil {
+	if len(retValues) > 0 && !utils.SafeIsNil(&retValues[0]) && retErr == nil {
 		result = retValues[0].Interface()
 		rds.Set(ctx, key, convertRetValueToString(ctx, result, ft.Out(0)), time.Duration(rdsExpire)*time.Second)
 	} else {
@@ -93,6 +156,68 @@ func rdsCacheCallFunc(ctx context.Context, dbName string, rdsExpire int, f inter
 		log.Debug(ctx, "RdsCacheFunc avoid cache through: %v", key)
 	}
 	return result, retErr
+}
+
+func rdsCacheMultiCallFunc(ctx context.Context, rds redis.UniversalClient, rdsExpire int, fMulti interface{}, keyFmt string,
+	args ...CacheKeyer) ([]interface{}, error) {
+	argValues := make([]reflect.Value, 0)
+
+	ft := reflect.TypeOf(fMulti)
+	if ft.NumIn() > 0 && ft.In(0).Implements(ctxIface) {
+		argValues = append(argValues, reflect.ValueOf(ctx))
+	}
+
+	//check in value
+	var argType reflect.Type
+	if ft.NumIn() > 0 && ft.In(0).Implements(ctxIface) {
+		if ft.NumIn() > 1 {
+			argType = ft.In(1)
+		}
+	} else {
+		if ft.NumIn() > 0 {
+			argType = ft.In(0)
+		}
+	}
+	if argType.Kind() != reflect.Slice {
+		return []interface{}{}, errors.New("arg type is not slice")
+	}
+
+	argItemType := argType.Elem()
+
+	argSliceValue := reflect.MakeSlice(argType, len(args), len(args))
+	for i := 0; i < len(args); i++ {
+		argSliceValue = reflect.Append(argSliceValue, reflect.ValueOf(args[i]).Convert(argItemType))
+	}
+
+	argValues = append(argValues, argSliceValue)
+
+	fv := reflect.ValueOf(fMulti)
+	retValues := fv.Call(argValues)
+
+	var retErr error
+	if len(retValues) > 1 && !utils.SafeIsNil(&retValues[1]) {
+		retErr, _ = retValues[1].Interface().(error)
+	}
+
+	var result interface{}
+	if len(retValues) > 0 && !utils.SafeIsNil(&retValues[0]) && retErr == nil {
+		//for i, retValue := range retValues {
+		//	if utils.IsNil(retValue) {
+		//		noCachedArgs = append(noCachedArgs, args[i])
+		//	} else {
+		//		retValueStr, _ := retValue.(string)
+		//		resultValues = append(resultValues, convertStringTo(ctx, retValueStr, retType))
+		//	}
+		//}
+
+		result = retValues[0].Interface()
+		rds.MSet(ctx, "", convertRetValueToString(ctx, result, ft.Out(0)), time.Duration(rdsExpire)*time.Second)
+	} else {
+		//rds.Set(ctx, "", "", time.Duration(utils.Min(rdsExpire, 10))*time.Second) //防止缓存穿透
+		//log.Debug(ctx, "RdsCacheFunc avoid cache through: %v", key)
+	}
+	//return result, retErr
+	return nil, retErr
 }
 
 func convertRetValueToString(ctx context.Context, retValue interface{}, t reflect.Type) string {
