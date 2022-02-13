@@ -73,7 +73,7 @@ func (t StringCacheKeyer) RCMCacheKey() string {
 
 //无法防击穿，使用场景需要注意
 func RdsCacheMultiFunc(ctx context.Context, rds redis.UniversalClient, rdsExpire int, fMulti interface{}, keyFmt string,
-	args ...CacheKeyer) ([]interface{}, error) {
+	args []CacheKeyer) (interface{}, error) {
 	defer log.Recover(ctx, func(e interface{}) string {
 		return fmt.Sprintf("RdsCacheMultiFunc err: %v", e)
 	})
@@ -84,9 +84,9 @@ func RdsCacheMultiFunc(ctx context.Context, rds redis.UniversalClient, rdsExpire
 		return nil, errors.New("f must have one return value")
 	}
 
-	//check return value
-	retSliceType := reflect.TypeOf(ft.Out(0))
-	if retSliceType.Kind() == reflect.Ptr {
+	//get and check return value
+	retSliceType := ft.Out(0)
+	if retSliceType.Kind() == reflect.Ptr { //todo return value addr()
 		retSliceType = retSliceType.Elem()
 	}
 
@@ -94,15 +94,18 @@ func RdsCacheMultiFunc(ctx context.Context, rds redis.UniversalClient, rdsExpire
 		log.Error(ctx, "RdsCacheMultiFunc f must have return slice value")
 		return nil, errors.New("f must have return slice value")
 	}
-	retType := retSliceType.Elem()
 
+	//slice item type, may be ptr or struct...
+	retItemType := retSliceType.Elem()
+
+	//prepare cache key
 	keys := make([]string, len(args))
 	for i := 0; i < len(args); i++ {
 		keys[i] = fmt.Sprintf(keyFmt, args[i].RCMCacheKey())
 	}
 
 	noCachedArgs := make([]CacheKeyer, 0, len(keys))
-	resultValues := make([]interface{}, 0, len(keys))
+	resultValues := reflect.MakeSlice(retSliceType, 0, len(keys))
 
 	retValues, err := rds.MGet(ctx, keys...).Result()
 	if err == nil {
@@ -113,19 +116,28 @@ func RdsCacheMultiFunc(ctx context.Context, rds redis.UniversalClient, rdsExpire
 				noCachedArgs = append(noCachedArgs, args[i])
 			} else {
 				retValueStr, _ := retValue.(string)
-				resultValues = append(resultValues, convertStringTo(ctx, retValueStr, retType))
+				resultValues = reflect.Append(resultValues, reflect.ValueOf(convertStringTo(ctx, retValueStr, retItemType)))
 			}
 		}
 	}
 
 	if len(noCachedArgs) == 0 {
-		return resultValues, nil
+		return resultValues.Interface(), nil
 	}
 
-	return nil, nil
+	callRetValues, err := rdsCacheMultiCallFunc(ctx, rds, rdsExpire, fMulti, keyFmt, noCachedArgs, retItemType)
+	if err == nil && callRetValues != nil {
+		callRetValueSlice := reflect.ValueOf(callRetValues)
+		for i := 0; i < callRetValueSlice.Len(); i++ {
+			resultValues = reflect.Append(resultValues, callRetValueSlice.Index(i))
+		}
+	}
+
+	return resultValues.Interface(), nil
 }
 
-func rdsCacheCallFunc(ctx context.Context, rds redis.UniversalClient, rdsExpire int, f interface{}, keyFmt string, args ...interface{}) (interface{}, error) {
+func rdsCacheCallFunc(ctx context.Context, rds redis.UniversalClient, rdsExpire int, f interface{}, keyFmt string,
+	args ...interface{}) (interface{}, error) {
 	argValues := make([]reflect.Value, 0)
 
 	ft := reflect.TypeOf(f)
@@ -159,9 +171,10 @@ func rdsCacheCallFunc(ctx context.Context, rds redis.UniversalClient, rdsExpire 
 }
 
 func rdsCacheMultiCallFunc(ctx context.Context, rds redis.UniversalClient, rdsExpire int, fMulti interface{}, keyFmt string,
-	args ...CacheKeyer) ([]interface{}, error) {
+	args []CacheKeyer, retItemType reflect.Type) (interface{}, error) {
 	argValues := make([]reflect.Value, 0)
 
+	//prepare arg1
 	ft := reflect.TypeOf(fMulti)
 	if ft.NumIn() > 0 && ft.In(0).Implements(ctxIface) {
 		argValues = append(argValues, reflect.ValueOf(ctx))
@@ -179,16 +192,17 @@ func rdsCacheMultiCallFunc(ctx context.Context, rds redis.UniversalClient, rdsEx
 		}
 	}
 	if argType.Kind() != reflect.Slice {
-		return []interface{}{}, errors.New("arg type is not slice")
+		return nil, errors.New("arg type is not slice")
 	}
 
+	//convert to real type? todo?
 	argItemType := argType.Elem()
-
 	argSliceValue := reflect.MakeSlice(argType, len(args), len(args))
 	for i := 0; i < len(args); i++ {
 		argSliceValue = reflect.Append(argSliceValue, reflect.ValueOf(args[i]).Convert(argItemType))
 	}
 
+	//prepare arg2
 	argValues = append(argValues, argSliceValue)
 
 	fv := reflect.ValueOf(fMulti)
@@ -201,23 +215,26 @@ func rdsCacheMultiCallFunc(ctx context.Context, rds redis.UniversalClient, rdsEx
 
 	var result interface{}
 	if len(retValues) > 0 && !utils.SafeIsNil(&retValues[0]) && retErr == nil {
-		//for i, retValue := range retValues {
-		//	if utils.IsNil(retValue) {
-		//		noCachedArgs = append(noCachedArgs, args[i])
-		//	} else {
-		//		retValueStr, _ := retValue.(string)
-		//		resultValues = append(resultValues, convertStringTo(ctx, retValueStr, retType))
-		//	}
-		//}
+		retValueSlice := retValues[0]
+		for i := 0; i < retValueSlice.Len(); i++ {
+			retValueItem := retValueSlice.Index(i).Interface()
+			cacheKeyer, ok := retValueItem.(CacheKeyer)
+			if !ok {
+				continue
+			}
 
-		result = retValues[0].Interface()
-		rds.MSet(ctx, "", convertRetValueToString(ctx, result, ft.Out(0)), time.Duration(rdsExpire)*time.Second)
+			rds.Set(ctx, cacheKeyer.RCMCacheKey(), convertRetValueToString(ctx, retValueItem, retItemType),
+				time.Duration(rdsExpire+(i%10))*time.Second)
+		}
+		result = retValueSlice.Interface()
 	} else {
-		//rds.Set(ctx, "", "", time.Duration(utils.Min(rdsExpire, 10))*time.Second) //防止缓存穿透
-		//log.Debug(ctx, "RdsCacheFunc avoid cache through: %v", key)
+		for i := 0; i < len(args); i++ {
+			key := fmt.Sprintf(keyFmt, args[i].RCMCacheKey())
+			rds.Set(ctx, key, "", time.Duration(utils.Min(rdsExpire, 10))*time.Second) //防止缓存穿透
+		}
+		log.Debug(ctx, "rdsCacheMultiCallFunc avoid cache through: %v", len(args))
 	}
-	//return result, retErr
-	return nil, retErr
+	return result, retErr
 }
 
 func convertRetValueToString(ctx context.Context, retValue interface{}, t reflect.Type) string {
