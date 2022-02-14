@@ -194,7 +194,7 @@ func TestRdsCacheMultiFunc(t *testing.T) {
 	const RDSC_DB = "rdscdb"
 
 	rds := redis.Get(RDSC_DB)
-	result, err := RdsCacheMultiFunc(ctx, rds, 30, getThingsByIds, "multikey:%s", []string{"1", "2", "5", "3", "4"})
+	result, err := RdsCacheMultiFunc(ctx, rds, 30, getThingsByIds, "multikey:%s", []string{"1", "2", "5", "3", "4", "10"})
 	if err == nil && result != nil {
 		mapValue, ok := result.(map[string]*Thing)
 		if ok {

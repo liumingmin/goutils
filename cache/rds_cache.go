@@ -175,28 +175,37 @@ func rdsCacheMultiCallFunc(ctx context.Context, rds redis.UniversalClient, rdsEx
 		retErr, _ = retValues[1].Interface().(error)
 	}
 
+	foundKeys := make([]string, 0, len(args))
+
 	var result interface{}
 	if len(retValues) > 0 && !utils.SafeIsNil(&retValues[0]) && retErr == nil {
 		mapIter := retValues[0].MapRange()
 		i := 0
 		for mapIter.Next() {
-			key := mapIter.Key()
+			key := mapIter.Key().String()
 			value := mapIter.Value()
 
-			rds.Set(ctx, key.String(), convertRetValueToString(ctx, value.Interface(), retItemType),
+			cacheKey := fmt.Sprintf(keyFmt, key)
+			rds.Set(ctx, cacheKey, convertRetValueToString(ctx, value.Interface(), retItemType),
 				time.Duration(rdsExpire+(i%10))*time.Second) //防缓存雪崩
 			i++
+
+			foundKeys = append(foundKeys, key)
 		}
 
 		result = retValues[0].Interface()
-	} else {
-		//prepare cache key
-		for i := 0; i < len(args); i++ {
-			key := fmt.Sprintf(keyFmt, args[i])
-			rds.Set(ctx, key, "", time.Duration(utils.Min(rdsExpire, 10))*time.Second) //防止缓存穿透
-		}
-		log.Debug(ctx, "rdsCacheMultiCallFunc avoid cache through: %v", len(args))
 	}
+
+	notFoundKeys := utils.StringsExcept(args, foundKeys)
+	if len(notFoundKeys) > 0 {
+		//prepare cache key
+		for i := 0; i < len(notFoundKeys); i++ {
+			cacheKey := fmt.Sprintf(keyFmt, notFoundKeys[i])
+			rds.Set(ctx, cacheKey, "", time.Duration(utils.Min(rdsExpire, 10))*time.Second) //防止缓存穿透
+		}
+		log.Debug(ctx, "rdsCacheMultiCallFunc avoid cache through: %v", len(notFoundKeys))
+	}
+
 	return result, retErr
 }
 
