@@ -187,3 +187,35 @@ func rawGetFunc9(p1, p2 string) (map[string]string, error) {
 //		Data:       []byte("pb" + p1 + p2),
 //	}, nil
 //}
+
+func TestRdsCacheMultiFunc(t *testing.T) {
+	redis.InitRedises()
+	ctx := context.Background()
+	const RDSC_DB = "rdscdb"
+
+	rds := redis.Get(RDSC_DB)
+	result, err := RdsCacheMultiFunc(ctx, rds, 30, getThingsByIds, "multikey:%s", []string{"1", "2", "5", "3", "4"})
+	if err == nil && result != nil {
+		mapValue, ok := result.(map[string]*Thing)
+		if ok {
+			for key, value := range mapValue {
+				log.Info(ctx, "%v===%v", key, value)
+			}
+		}
+	}
+}
+
+type Thing struct {
+	Id   string
+	Name string
+}
+
+func getThingsByIds(ctx context.Context, ids []string) (map[string]*Thing, error) {
+	return map[string]*Thing{
+		"1": {Id: "1"},
+		"2": {Id: "2"},
+		"3": {Id: "3"},
+		"4": {Id: "4"},
+		"5": {Id: "5"},
+	}, nil
+}
