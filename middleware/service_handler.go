@@ -79,3 +79,38 @@ func ServiceHandler(serviceFunc ServiceFunc, reqVal interface{}, sResp ServiceRe
 		c.JSON(http.StatusOK, sResp.NewDataResponse(data, tag))
 	}
 }
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+type DefaultServiceResponse struct {
+	Code int         `json:"code"`
+	Msg  string      `json:"msg"`
+	Tag  string      `json:"tag,omitempty"`
+	Data interface{} `json:"data"`
+}
+
+func (t *DefaultServiceResponse) IsJsonResponse(data interface{}) bool {
+	return true
+}
+
+func (t *DefaultServiceResponse) NewErrRespWithCode(code int, err error, data interface{}, tag string) interface{} {
+	var r DefaultServiceResponse
+	r.Code = code
+	r.Data = data
+	r.Tag = tag
+
+	r.Msg = "unknown error"
+	if err != nil {
+		r.Msg = err.Error()
+	}
+
+	return &r
+}
+func (t *DefaultServiceResponse) NewDataResponse(data interface{}, tag string) interface{} {
+	var r DefaultServiceResponse
+	r.Msg = "success"
+	r.Code = Success
+	r.Data = data
+	r.Tag = tag
+	return &r
+}
