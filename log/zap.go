@@ -82,6 +82,17 @@ func CnTimeEncoder(t time.Time, enc zapcore.PrimitiveArrayEncoder) {
 	enc.AppendString(t.Format("2006-01-02 15:04:05.000"))
 }
 
+func Log(c context.Context, level zapcore.Level, args ...interface{}) {
+	if !logger.Core().Enabled(level) {
+		return
+	}
+
+	msg := parseArgs(c, args...)
+	if ce := logger.Check(level, msg); ce != nil {
+		ce.Write()
+	}
+}
+
 func Debug(c context.Context, args ...interface{}) {
 	if !logger.Core().Enabled(zap.DebugLevel) {
 		return

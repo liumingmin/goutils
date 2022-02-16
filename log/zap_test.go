@@ -7,6 +7,8 @@ import (
 	"strings"
 	"testing"
 
+	"go.uber.org/zap/zapcore"
+
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 )
@@ -30,6 +32,7 @@ func TestZapJson(t *testing.T) {
 
 	Info(ctx, "我是日志3", "管理员") //json
 	Error(ctx, "我是日志3")       //json
+	Log(ctx, zapcore.ErrorLevel, "日志啊")
 }
 
 func TestPanicLog(t *testing.T) {

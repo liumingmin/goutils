@@ -5,7 +5,6 @@ import (
 	"net/http"
 	"reflect"
 
-	"github.com/liumingmin/goutils/errcode"
 	"github.com/liumingmin/goutils/log"
 
 	"github.com/gin-gonic/gin"
@@ -19,6 +18,18 @@ type ServiceResponse interface {
 	IsJsonResponse(data interface{}) bool
 	NewErrRespWithCode(code int, err error, data interface{}, tag string) interface{}
 	NewDataResponse(data interface{}, tag string) interface{}
+}
+
+const (
+	Success   = 0  // 成功
+	Unknown   = -1 // 未知错误
+	WrongArgs = -2 // 参数错误
+)
+
+type Errorx3 interface {
+	Error() string
+	Code() int
+	LogLevel() zapcore.Level
 }
 
 func ServiceHandler(serviceFunc ServiceFunc, reqVal interface{}, sResp ServiceResponse) func(*gin.Context) {
@@ -38,7 +49,7 @@ func ServiceHandler(serviceFunc ServiceFunc, reqVal interface{}, sResp ServiceRe
 
 			if err := c.ShouldBindBodyWith(req, binding.JSON); err != nil {
 				log.Error(c, "Bind json failed. error: %v", err)
-				c.JSON(http.StatusOK, sResp.NewErrRespWithCode(errcode.WrongArgs, err, nil, tag))
+				c.JSON(http.StatusOK, sResp.NewErrRespWithCode(WrongArgs, err, nil, tag))
 				return
 			}
 		}
@@ -46,22 +57,17 @@ func ServiceHandler(serviceFunc ServiceFunc, reqVal interface{}, sResp ServiceRe
 		data, err := serviceFunc(c, req)
 		if err != nil {
 			lvl := zapcore.ErrorLevel
-			code := errcode.Unknown
-			if errX, ok := err.(errcode.Errorx); ok {
+			code := Unknown
+			if errX, ok := err.(Errorx3); ok {
 				lvl = errX.LogLevel()
 				code = errX.Code()
 			}
 
-			if code == errcode.Success {
-				code = errcode.Unknown
+			if code == Success {
+				code = Unknown
 			}
 
-			if lvl == zapcore.ErrorLevel {
-				log.Error(c, tag+" failed. error: %v", err)
-			} else {
-				log.Info(c, tag+" failed. error: %v", err)
-			}
-
+			log.Log(c, lvl, tag+" failed. error: %v", err)
 			c.JSON(http.StatusOK, sResp.NewErrRespWithCode(code, err, data, tag))
 			return
 		}
