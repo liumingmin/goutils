@@ -96,13 +96,15 @@ func RdsCacheMultiFunc(ctx context.Context, rds redis.UniversalClient, rdsExpire
 				noCachedArgs = append(noCachedArgs, args[i])
 			} else {
 				retValueStr, _ := retValue.(string)
-				resultValues.SetMapIndex(reflect.ValueOf(args[i]), reflect.ValueOf(convertStringTo(ctx, retValueStr, retItemType)))
+				if retValueStr != "" {
+					resultValues.SetMapIndex(reflect.ValueOf(args[i]), reflect.ValueOf(convertStringTo(ctx, retValueStr, retItemType)))
+				}
 			}
 		}
 	}
 
 	if len(noCachedArgs) == 0 {
-		log.Debug(ctx, "RdsCacheMultiFunc all hit caches: %v", len(retValues))
+		log.Debug(ctx, "RdsCacheMultiFunc all hit caches: %v, ret values: %v", len(retValues), resultValues.Len())
 		return resultValues.Interface(), nil
 	}
 
