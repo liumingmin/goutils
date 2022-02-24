@@ -1,4 +1,4 @@
-package lighttimer
+package container
 
 import (
 	"hash/crc32"

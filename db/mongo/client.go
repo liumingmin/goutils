@@ -10,10 +10,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/liumingmin/goutils/utils/proxy"
-
 	"github.com/liumingmin/goutils/conf"
 	"github.com/liumingmin/goutils/log"
+	"github.com/liumingmin/goutils/net/proxy"
+
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/bsoncodec"
 	"go.mongodb.org/mongo-driver/bson/bsonoptions"

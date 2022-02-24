@@ -1,4 +1,4 @@
-package lighttimer
+package container
 
 import (
 	"container/heap"
