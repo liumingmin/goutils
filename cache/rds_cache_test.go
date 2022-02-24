@@ -6,8 +6,8 @@ import (
 	"reflect"
 	"testing"
 
+	"github.com/liumingmin/goutils/db/redis"
 	"github.com/liumingmin/goutils/log"
-	"github.com/liumingmin/goutils/redis"
 )
 
 func TestRdscCacheFunc(t *testing.T) {
