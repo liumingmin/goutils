@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/liumingmin/goutils/redis"
+	"github.com/liumingmin/goutils/db/redis"
 )
 
 func TestRdsLock(t *testing.T) {

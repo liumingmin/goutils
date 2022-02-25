@@ -5,10 +5,10 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/liumingmin/goutils/db/redis"
 	"github.com/liumingmin/goutils/log"
 
 	"github.com/google/uuid"
-	"github.com/liumingmin/goutils/redis"
 )
 
 type RdsLuaLock struct {
