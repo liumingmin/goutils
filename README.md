@@ -12,6 +12,7 @@
 │   ├── buffer_invoker.go            缓冲异步调用
 │   ├── const_hash.go                一致性HASH32位
 │   ├── mdb.go                       轻量级内存表
+│   ├── lighttimer.go                轻量级计时器
 ├── distlock
 │   ├── consullock.go                consul实现的分布式锁
 │   ├── filelock.go                  Linux文件锁
@@ -23,21 +24,21 @@
 │   ├── limit_req.go                 限流
 │   ├── service_handler.go           封装controller功能
 │   ├── thumb_image.go               缩略图
-├── mongo
-│   ├── client.go                    官方client封装
-│   ├── collection.go                官方主从方式collection封装
-├── redis
-│   ├── redis.go                     goredis封装
+├── db
+│   ├── mongo
+│   │   ├── client.go                    官方client封装
+│   │   ├── collection.go                官方主从方式collection封装
+│   ├── redis
+│   │   ├── redis.go                     goredis封装
+├── net
+│   ├── httpx
+│   │   └── httpclientx.go           httpclientx兼容1.x和2.0
 └── utils
 │   ├── cbk
 │   │   ├── cbk.go                   熔断接口
 │   │   ├── cbk_simple.go            熔断实现
 │   ├── fsm
 │   │   └── fsm.go                   状态机
-│   ├── httpx
-│   │   └── httpclientx.go           httpclientx兼容1.x和2.0
-│   ├── lighttimer
-│   │   ├── lighttimer.go            轻量级计时器
 │   ├── safego
 │   │   ├── safego.go                安全的goruntine
     ├── async.go                     带超时异步调用
