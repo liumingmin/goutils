@@ -85,6 +85,8 @@ func newConfig(dbconf *conf.Database) *Config {
 		Database:          dbconf.Name,
 		Username:          dbconf.User,
 		Password:          dbconf.Password,
+		MinPoolSize:       dbconf.MinPoolSize,
+		MaxPoolSize:       dbconf.MaxPoolSize,
 		Source:            dbconf.ExtString("authSource", dbconf.Name),
 		Safe:              safe,
 		Mode:              mode,
@@ -93,15 +95,15 @@ func newConfig(dbconf *conf.Database) *Config {
 		ConnectTimeout:    dbconf.ExtDuration("connectTimeout", "10s"),
 		ReadTimeout:       dbconf.ExtDuration("readTimeout", ""),
 		WriteTimeout:      dbconf.ExtDuration("writeTimeout", ""),
-		MinPoolSize:       dbconf.ExtInt("minPoolSize", 0),
-		MaxPoolSize:       dbconf.ExtInt("maxPoolSize", 10),
 		MaxPoolWaitTimeMS: dbconf.ExtInt("maxPoolWaitTimeMS", 0),
 		MaxPoolIdleTimeMS: dbconf.ExtInt("maxPoolIdleTimeMS", 0),
-		SshOn:             dbconf.ExtBool("sshOn", false),
-		SshAddress:        dbconf.ExtString("sshAddress", ""),
-		SshUser:           dbconf.ExtString("sshUser", ""),
-		SshKey:            sshKey,
-		SshKeyPass:        dbconf.ExtString("sshKeyPass", ""),
+
+		//use ssh connect, driver may be not stable
+		SshOn:      dbconf.ExtBool("sshOn", false),
+		SshAddress: dbconf.ExtString("sshAddress", ""),
+		SshUser:    dbconf.ExtString("sshUser", ""),
+		SshKey:     sshKey,
+		SshKeyPass: dbconf.ExtString("sshKeyPass", ""),
 	}
 }
 

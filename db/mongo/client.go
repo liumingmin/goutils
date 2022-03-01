@@ -10,6 +10,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/liumingmin/goutils/db"
+
 	"github.com/liumingmin/goutils/conf"
 	"github.com/liumingmin/goutils/log"
 	"github.com/liumingmin/goutils/net/proxy"
@@ -47,14 +49,14 @@ func InitClients() {
 		return
 	}
 
-	for _, db := range dbs {
-		if db.Type == "mongo" {
-			client, err := initClient(db)
+	for _, database := range dbs {
+		if database.Type == db.MONGO {
+			client, err := initClient(database)
 			if err != nil {
 				continue
 			}
 
-			mgoClients[db.Key] = client
+			mgoClients[database.Key] = client
 		}
 	}
 }

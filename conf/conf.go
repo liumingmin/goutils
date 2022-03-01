@@ -19,13 +19,15 @@ type Log struct {
 }
 
 type Database struct {
-	Key      string                 `yaml:"key"`
-	Type     string                 `yaml:"type"`
-	Host     string                 `yaml:"host"`
-	Name     string                 `yaml:"name"`
-	User     string                 `yaml:"user"`
-	Password string                 `yaml:"password"`
-	EXT      map[string]interface{} `yaml:",flow"`
+	Key         string                 `yaml:"key"`
+	Type        string                 `yaml:"type"`
+	Host        string                 `yaml:"host"`
+	Name        string                 `yaml:"name"`
+	User        string                 `yaml:"user"`
+	Password    string                 `yaml:"password"`
+	MinPoolSize int                    `yaml:"minPoolSize"`
+	MaxPoolSize int                    `yaml:"maxPoolSize"`
+	EXT         map[string]interface{} `yaml:",flow"`
 }
 
 type Redis struct {
