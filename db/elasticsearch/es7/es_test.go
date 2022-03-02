@@ -25,22 +25,20 @@ func TestCreateIndexByModel(t *testing.T) {
 
 	err := CreateIndexByModel(context.Background(), testUserIndexKey, testUserIndexName, &MappingModel{
 		Mappings: Mappings{
-			Doc: Doc{
-				Dynamic: false,
-				Properties: map[string]map[string]interface{}{
-					"userId": {
-						"type":  "text",
-						"index": false,
-					},
-					"nickname": {
-						"type": "text",
-					},
-					"status": {
-						"type": "keyword",
-					},
-					"pType": {
-						"type": "keyword",
-					},
+			Dynamic: false,
+			Properties: map[string]map[string]interface{}{
+				"userId": {
+					"type":  "text",
+					"index": false,
+				},
+				"nickname": {
+					"type": "text",
+				},
+				"status": {
+					"type": "keyword",
+				},
+				"pType": {
+					"type": "keyword",
 				},
 			},
 		},

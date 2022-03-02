@@ -369,10 +369,6 @@ type MappingModel struct {
 }
 
 type Mappings struct {
-	Doc `json:"_doc"`
-}
-
-type Doc struct {
 	Dynamic    bool                              `json:"dynamic"` // false
 	Properties map[string]map[string]interface{} `json:"properties"`
 }
