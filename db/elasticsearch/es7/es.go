@@ -30,7 +30,7 @@ func InitClients() {
 	}
 
 	for _, database := range dbs {
-		if database.Type == db.ES6 {
+		if database.Type == db.ES7 {
 			client, err := initClient(database)
 			if err != nil {
 				continue
