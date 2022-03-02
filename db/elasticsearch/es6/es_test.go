@@ -21,6 +21,40 @@ type testUser struct {
 	Type     string `json:"pType"`
 }
 
+func TestCreateIndexByModel(t *testing.T) {
+	InitClients()
+
+	err := CreateIndexByModel(context.Background(), testUserIndexKey, testUserIndexName, &MappingModel{
+		Mappings: Mappings{
+			Doc: Doc{
+				Dynamic: false,
+				Properties: map[string]map[string]interface{}{
+					"userId": {
+						"type":  "text",
+						"index": false,
+					},
+					"nickname": {
+						"type": "text",
+					},
+					"status": {
+						"type": "keyword",
+					},
+					"pType": {
+						"type": "keyword",
+					},
+				},
+			},
+		},
+		Settings: Settings{
+			IndexMappingIgnoreMalformed: true,
+			NumberOfReplicas:            1,
+			NumberOfShards:              3,
+		},
+	})
+
+	t.Log(err)
+}
+
 func TestEsInsert(t *testing.T) {
 	InitClients()
 
@@ -40,6 +74,31 @@ func TestEsInsert(t *testing.T) {
 	}
 }
 
+func TestEsBatchInsert(t *testing.T) {
+	InitClients()
+
+	ids := make([]string, 0)
+	items := make([]interface{}, 0)
+
+	for i := 0; i < 100; i++ {
+		ptype := "normal"
+		if i%10 == 5 {
+			ptype = "vip"
+		}
+		status := "valid"
+		if i%30 == 2 {
+			status = "invalid"
+		}
+		id := "x00000000" + fmt.Sprint(i)
+
+		ids = append(ids, id)
+		items = append(items, &testUser{UserId: id, Nickname: "超级棒" + id, Status: status, Type: ptype})
+	}
+
+	err := BatchInsert(context.Background(), testUserIndexKey, testUserIndexName, testUserTypeName, ids, items)
+	t.Log(err)
+}
+
 func TestEsUpdateById(t *testing.T) {
 	InitClients()
 
@@ -48,6 +107,12 @@ func TestEsUpdateById(t *testing.T) {
 	err := UpdateById(context.Background(), testUserIndexKey, testUserIndexName, testUserTypeName,
 		id, map[string]interface{}{
 			"status": "invalid",
+		})
+	t.Log(err)
+
+	err = UpdateById(context.Background(), testUserIndexKey, testUserIndexName, testUserTypeName,
+		id, map[string]interface{}{
+			"extField": "ext1234",
 		})
 	t.Log(err)
 }
@@ -131,7 +196,7 @@ func TestAggregateBySource(t *testing.T) {
     "aggregations": {
         "status": {
             "terms": {
-                "field": "status.keyword",
+                "field": "status",
                 "size": 200,
                 "min_doc_count": 1,
                 "shard_min_doc_count": 0,
@@ -148,7 +213,7 @@ func TestAggregateBySource(t *testing.T) {
             "aggregations": {
                 "pType": {
                     "terms": {
-                        "field": "pType.keyword",
+                        "field": "pType",
                         "size": 10,
                         "min_doc_count": 1,
                         "shard_min_doc_count": 0,

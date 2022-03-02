@@ -12,13 +12,46 @@ import (
 
 const testUserIndexKey = "testUser"
 const testUserIndexName = "test_user2"
-const testUserTypeName = "doc"
 
 type testUser struct {
 	UserId   string `json:"userId"`
 	Nickname string `json:"nickname"`
 	Status   string `json:"status"`
 	Type     string `json:"pType"`
+}
+
+func TestCreateIndexByModel(t *testing.T) {
+	InitClients()
+
+	err := CreateIndexByModel(context.Background(), testUserIndexKey, testUserIndexName, &MappingModel{
+		Mappings: Mappings{
+			Doc: Doc{
+				Dynamic: false,
+				Properties: map[string]map[string]interface{}{
+					"userId": {
+						"type":  "text",
+						"index": false,
+					},
+					"nickname": {
+						"type": "text",
+					},
+					"status": {
+						"type": "keyword",
+					},
+					"pType": {
+						"type": "keyword",
+					},
+				},
+			},
+		},
+		Settings: Settings{
+			IndexMappingIgnoreMalformed: true,
+			NumberOfReplicas:            1,
+			NumberOfShards:              3,
+		},
+	})
+
+	t.Log(err)
 }
 
 func TestEsInsert(t *testing.T) {
@@ -34,10 +67,35 @@ func TestEsInsert(t *testing.T) {
 			status = "invalid"
 		}
 		id := "000000000" + fmt.Sprint(i)
-		err := Insert(context.Background(), testUserIndexKey, testUserIndexName, testUserTypeName,
+		err := Insert(context.Background(), testUserIndexKey, testUserIndexName,
 			id, testUser{UserId: id, Nickname: "超级棒" + id, Status: status, Type: ptype})
 		t.Log(err)
 	}
+}
+
+func TestEsBatchInsert(t *testing.T) {
+	InitClients()
+
+	ids := make([]string, 0)
+	items := make([]interface{}, 0)
+
+	for i := 0; i < 100; i++ {
+		ptype := "normal"
+		if i%10 == 5 {
+			ptype = "vip"
+		}
+		status := "valid"
+		if i%30 == 2 {
+			status = "invalid"
+		}
+		id := "x00000000" + fmt.Sprint(i)
+
+		ids = append(ids, id)
+		items = append(items, &testUser{UserId: id, Nickname: "超级棒" + id, Status: status, Type: ptype})
+	}
+
+	err := BatchInsert(context.Background(), testUserIndexKey, testUserIndexName, ids, items)
+	t.Log(err)
 }
 
 func TestEsUpdateById(t *testing.T) {
@@ -45,9 +103,15 @@ func TestEsUpdateById(t *testing.T) {
 
 	id := "000000000" + fmt.Sprint(30)
 
-	err := UpdateById(context.Background(), testUserIndexKey, testUserIndexName, testUserTypeName,
+	err := UpdateById(context.Background(), testUserIndexKey, testUserIndexName,
 		id, map[string]interface{}{
 			"status": "invalid",
+		})
+	t.Log(err)
+
+	err = UpdateById(context.Background(), testUserIndexKey, testUserIndexName,
+		id, map[string]interface{}{
+			"extField": "ext1234",
 		})
 	t.Log(err)
 }
@@ -57,8 +121,7 @@ func TestDeleteById(t *testing.T) {
 
 	id := "000000000" + fmt.Sprint(9)
 
-	err := DeleteById(context.Background(), testUserIndexKey, testUserIndexName, testUserTypeName,
-		id)
+	err := DeleteById(context.Background(), testUserIndexKey, testUserIndexName, id)
 	t.Log(err)
 }
 
@@ -74,7 +137,6 @@ func TestQueryEs(t *testing.T) {
 		BaseModel: elasticsearch.BaseModel{
 			KeyName:   testUserIndexKey,
 			IndexName: testUserIndexName,
-			TypeName:  testUserTypeName,
 		},
 		Query:   bq,
 		Size:    5,
@@ -132,7 +194,7 @@ func TestAggregateBySource(t *testing.T) {
     "aggregations": {
         "status": {
             "terms": {
-                "field": "status.keyword",
+                "field": "status",
                 "size": 200,
                 "min_doc_count": 1,
                 "shard_min_doc_count": 0,
@@ -149,7 +211,7 @@ func TestAggregateBySource(t *testing.T) {
             "aggregations": {
                 "pType": {
                     "terms": {
-                        "field": "pType.keyword",
+                        "field": "pType",
                         "size": 10,
                         "min_doc_count": 1,
                         "shard_min_doc_count": 0,

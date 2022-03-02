@@ -109,10 +109,6 @@ func FindByModel(ctx context.Context, model elasticsearch.QueryModel) error {
 
 	searchService := client.Search().Index(model.IndexName)
 
-	if model.TypeName != "" {
-		searchService = searchService.Type(model.TypeName)
-	}
-
 	searchService = searchService.Query(model.Query.(elastic.Query))
 	if model.Cursor > 0 {
 		searchService = searchService.From(model.Cursor)
@@ -146,9 +142,6 @@ func FindBySource(ctx context.Context, model elasticsearch.SourceModel) error {
 
 	searchService := client.Search().Index(model.IndexName)
 
-	if model.TypeName != "" {
-		searchService = searchService.Type(model.TypeName)
-	}
 	searchService = searchService.Source(model.Source)
 
 	return find(ctx, searchService, model.Results, model.Total)
@@ -168,9 +161,6 @@ func AggregateBySource(ctx context.Context, model elasticsearch.AggregateModel, 
 
 	searchService := client.Search().Index(model.IndexName)
 
-	if model.TypeName != "" {
-		searchService = searchService.Type(model.TypeName)
-	}
 	searchService = searchService.Source(model.Source)
 
 	searchResult, err := searchService.Do(ctx)
@@ -249,7 +239,7 @@ func find(ctx context.Context, searchService *elastic.SearchService, results int
 	return nil
 }
 
-func Insert(ctx context.Context, esKeyName, esIndexName, esTypeName, id string, data interface{}) (err error) {
+func Insert(ctx context.Context, esKeyName, esIndexName, id string, data interface{}) (err error) {
 	defer log.Recover(ctx, func(e interface{}) string {
 		err = fmt.Errorf("%v", e)
 		return fmt.Sprintf("Insert error: %v", err)
@@ -261,14 +251,14 @@ func Insert(ctx context.Context, esKeyName, esIndexName, esTypeName, id string, 
 		return errors.New("ES client is nil")
 	}
 
-	_, err = client.Index().Index(esIndexName).Type(esTypeName).Id(id).BodyJson(data).Do(ctx)
+	_, err = client.Index().Index(esIndexName).Id(id).BodyJson(data).Do(ctx)
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
-func BatchInsert(ctx context.Context, esKeyName, esIndexName, esTypeName string, ids []string, items []interface{}) (err error) {
+func BatchInsert(ctx context.Context, esKeyName, esIndexName string, ids []string, items []interface{}) (err error) {
 	defer log.Recover(ctx, func(e interface{}) string {
 		err = fmt.Errorf("%v", e)
 		return fmt.Sprintf("BatchInsert error: %v", err)
@@ -283,7 +273,7 @@ func BatchInsert(ctx context.Context, esKeyName, esIndexName, esTypeName string,
 	bulkService := client.Bulk()
 
 	for i, id := range ids {
-		bulkService.Add(elastic.NewBulkIndexRequest().Index(esIndexName).Type(esTypeName).
+		bulkService.Add(elastic.NewBulkIndexRequest().Index(esIndexName).
 			Id(id).Doc(items[i]))
 	}
 
@@ -294,7 +284,7 @@ func BatchInsert(ctx context.Context, esKeyName, esIndexName, esTypeName string,
 	return nil
 }
 
-func UpdateById(ctx context.Context, esKeyName, esIndexName, esTypeName, id string, updateM map[string]interface{}) (err error) {
+func UpdateById(ctx context.Context, esKeyName, esIndexName, id string, updateM map[string]interface{}) (err error) {
 	defer log.Recover(ctx, func(e interface{}) string {
 		err = fmt.Errorf("%v", e)
 		return fmt.Sprintf("Update error: %v", err)
@@ -310,7 +300,7 @@ func UpdateById(ctx context.Context, esKeyName, esIndexName, esTypeName, id stri
 	for field, _ := range updateM {
 		fmt.Fprintf(&b, "ctx._source.%s=params.%s;", field, field)
 	}
-	_, err = client.Update().Index(esIndexName).Type(esTypeName).Id(id).
+	_, err = client.Update().Index(esIndexName).Id(id).
 		Script(elastic.NewScriptInline(b.String()).Lang("painless").Params(updateM)).
 		Do(ctx)
 	if err != nil {
@@ -319,7 +309,7 @@ func UpdateById(ctx context.Context, esKeyName, esIndexName, esTypeName, id stri
 	return nil
 }
 
-func DeleteById(ctx context.Context, esKeyName, esIndexName, esTypeName, id string) (err error) {
+func DeleteById(ctx context.Context, esKeyName, esIndexName, id string) (err error) {
 	defer log.Recover(ctx, func(e interface{}) string {
 		err = fmt.Errorf("%v", e)
 		return fmt.Sprintf("Delete error: %v", err)
@@ -331,9 +321,64 @@ func DeleteById(ctx context.Context, esKeyName, esIndexName, esTypeName, id stri
 		return errors.New("ES client is nil")
 	}
 
-	_, err = client.Delete().Index(esIndexName).Type(esTypeName).Id(id).Do(ctx)
+	_, err = client.Delete().Index(esIndexName).Id(id).Do(ctx)
 	if err != nil {
 		return err
 	}
 	return nil
+}
+
+func CreateIndex(ctx context.Context, esKeyName, esIndexName, esMapping string) (err error) {
+	defer log.Recover(ctx, func(e interface{}) string {
+		err = fmt.Errorf("%v", e)
+		return fmt.Sprintf("CreateIndexIfNotExist error: %v", err)
+	})
+
+	client := GetEsClient(ctx, esKeyName) // get ES 客户端
+	if client == nil {
+		log.Error(ctx, "ES client is nil")
+		return errors.New("ES client is nil")
+	}
+
+	exist, _ := client.IndexExists(esIndexName).Do(ctx)
+	if exist {
+		return nil
+	}
+
+	_, err = client.CreateIndex(esIndexName).Body(esMapping).Do(ctx)
+	if err != nil {
+		log.Error(ctx, "CreateIndexIfNotExist failed, err: %v", err)
+	}
+	return err
+}
+
+func CreateIndexByModel(ctx context.Context, esKeyName, esIndexName string, model *MappingModel) (err error) {
+	esMapping, err := json.Marshal(model)
+	if err != nil {
+		log.Error(ctx, "CreateIndexByModelIfNotExist failed, err: %v", err)
+		return err
+	}
+
+	return CreateIndex(ctx, esKeyName, esIndexName, string(esMapping))
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+type MappingModel struct {
+	Mappings `json:"mappings"`
+	Settings `json:"settings"`
+}
+
+type Mappings struct {
+	Doc `json:"_doc"`
+}
+
+type Doc struct {
+	Dynamic    bool                              `json:"dynamic"` // false
+	Properties map[string]map[string]interface{} `json:"properties"`
+}
+
+type Settings struct {
+	IndexMappingIgnoreMalformed bool  `json:"index.mapping.ignore_malformed"` // true
+	NumberOfReplicas            int64 `json:"number_of_replicas"`             // 1
+	NumberOfShards              int64 `json:"number_of_shards"`               // 3
 }

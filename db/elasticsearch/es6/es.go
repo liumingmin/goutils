@@ -337,3 +337,58 @@ func DeleteById(ctx context.Context, esKeyName, esIndexName, esTypeName, id stri
 	}
 	return nil
 }
+
+func CreateIndex(ctx context.Context, esKeyName, esIndexName, esMapping string) (err error) {
+	defer log.Recover(ctx, func(e interface{}) string {
+		err = fmt.Errorf("%v", e)
+		return fmt.Sprintf("CreateIndexIfNotExist error: %v", err)
+	})
+
+	client := GetEsClient(ctx, esKeyName) // get ES 客户端
+	if client == nil {
+		log.Error(ctx, "ES client is nil")
+		return errors.New("ES client is nil")
+	}
+
+	exist, _ := client.IndexExists(esIndexName).Do(ctx)
+	if exist {
+		return nil
+	}
+
+	_, err = client.CreateIndex(esIndexName).Body(esMapping).Do(ctx)
+	if err != nil {
+		log.Error(ctx, "CreateIndexIfNotExist failed, err: %v", err)
+	}
+	return err
+}
+
+func CreateIndexByModel(ctx context.Context, esKeyName, esIndexName string, model *MappingModel) (err error) {
+	esMapping, err := json.Marshal(model)
+	if err != nil {
+		log.Error(ctx, "CreateIndexByModelIfNotExist failed, err: %v", err)
+		return err
+	}
+
+	return CreateIndex(ctx, esKeyName, esIndexName, string(esMapping))
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+type MappingModel struct {
+	Mappings `json:"mappings"`
+	Settings `json:"settings"`
+}
+
+type Mappings struct {
+	Doc `json:"_doc"`
+}
+
+type Doc struct {
+	Dynamic    bool                              `json:"dynamic"` // false
+	Properties map[string]map[string]interface{} `json:"properties"`
+}
+
+type Settings struct {
+	IndexMappingIgnoreMalformed bool  `json:"index.mapping.ignore_malformed"` // true
+	NumberOfReplicas            int64 `json:"number_of_replicas"`             // 1
+	NumberOfShards              int64 `json:"number_of_shards"`               // 3
+}
