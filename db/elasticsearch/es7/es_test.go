@@ -11,8 +11,8 @@ import (
 )
 
 const testUserIndexKey = "testUser"
-const testUserIndexName = "test_user"
-const testUserTypeName = "_doc"
+const testUserIndexName = "test_user2"
+const testUserTypeName = "doc"
 
 type testUser struct {
 	UserId   string `json:"userId"`
@@ -74,6 +74,7 @@ func TestQueryEs(t *testing.T) {
 		BaseModel: elasticsearch.BaseModel{
 			KeyName:   testUserIndexKey,
 			IndexName: testUserIndexName,
+			TypeName:  testUserTypeName,
 		},
 		Query:   bq,
 		Size:    5,
