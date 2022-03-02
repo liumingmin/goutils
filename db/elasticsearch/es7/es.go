@@ -1,4 +1,4 @@
-package es
+package es7
 
 import (
 	"context"
@@ -16,6 +16,7 @@ import (
 	"github.com/liumingmin/goutils/db"
 	"github.com/liumingmin/goutils/db/elasticsearch"
 	"github.com/liumingmin/goutils/log"
+
 	"github.com/olivere/elastic/v7"
 )
 
@@ -29,7 +30,7 @@ func InitClients() {
 	}
 
 	for _, database := range dbs {
-		if database.Type == db.ES7 {
+		if database.Type == db.ES6 {
 			client, err := initClient(database)
 			if err != nil {
 				continue
@@ -312,6 +313,25 @@ func UpdateById(ctx context.Context, esKeyName, esIndexName, esTypeName, id stri
 	_, err = client.Update().Index(esIndexName).Type(esTypeName).Id(id).
 		Script(elastic.NewScriptInline(b.String()).Lang("painless").Params(updateM)).
 		Do(ctx)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func DeleteById(ctx context.Context, esKeyName, esIndexName, esTypeName, id string) (err error) {
+	defer log.Recover(ctx, func(e interface{}) string {
+		err = fmt.Errorf("%v", e)
+		return fmt.Sprintf("Delete error: %v", err)
+	})
+
+	client := GetEsClient(ctx, esKeyName) // get ES 客户端
+	if client == nil {
+		log.Error(ctx, "ES client is nil")
+		return errors.New("ES client is nil")
+	}
+
+	_, err = client.Delete().Index(esIndexName).Type(esTypeName).Id(id).Do(ctx)
 	if err != nil {
 		return err
 	}
