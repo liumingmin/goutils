@@ -1,8 +1,8 @@
 bin/
 target/
-.*
+.idea
 *.log
-.*/
+.idea/
 *.iml
 *.class
 *.exe
