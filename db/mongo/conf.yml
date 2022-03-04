@@ -1,0 +1,14 @@
+log:
+  filename: "test.log"
+  logLevel: debug
+  stdout: true
+databases:
+  -
+    key: testDbKey
+    type: mongo
+    host: 127.0.0.1:27017
+    user:
+    password:
+    ext:
+      direct: true
+      maxPoolSize: 2
