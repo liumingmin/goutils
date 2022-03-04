@@ -41,6 +41,32 @@ type Redis struct {
 	IdleTimeout  string   `yaml:"idleTimeout"`
 }
 
+type KafkaProducer struct {
+	Key           string   `yaml:"key"`
+	Address       []string `yaml:"address"`
+	Async         bool     `yaml:"async"`
+	ReturnSuccess bool     `yaml:"returnSuccess"`
+	ReturnError   bool     `yaml:"returnError"`
+	//username and password for SASL/PLAIN  or SASL/SCRAM authentication
+	User     string `yaml:"user"`
+	Password string `yaml:"password"`
+}
+
+type KafkaConsumer struct {
+	Key          string        `yaml:"key"`
+	Address      []string      `yaml:"address"` // kafka地址
+	Group        string        `yaml:"group"`   // groupId
+	Offset       int64         `yaml:"offset"`
+	Ack          int           `yaml:"ack"`          // ack类型
+	DialTimeout  time.Duration `yaml:"dialTimeout"`  // How long to wait for the initial connection.
+	ReadTimeout  time.Duration `yaml:"readTimeout"`  // How long to wait for a response.
+	WriteTimeout time.Duration `yaml:"writeTimeout"` // How long to wait for a transmit.
+	KeepAlive    time.Duration `yaml:"keepAlive"`
+	//username and password for SASL/PLAIN  or SASL/SCRAM authentication
+	User     string `yaml:"user"`
+	Password string `yaml:"password"`
+}
+
 // Get value of given key of Database section.
 func (d *Database) Ext(key string, defaultVal ...interface{}) interface{} {
 	if v, exist := d.EXT[key]; exist {
@@ -77,10 +103,12 @@ func (d *Database) ExtBool(key string, defaultVal ...interface{}) bool {
 }
 
 type Config struct {
-	Log       Log                    `yaml:"log,flow"`
-	Databases []*Database            `yaml:"databases,flow"`
-	Redises   []*Redis               `yaml:"redises,flow"`
-	EXT       map[string]interface{} `yaml:"ext,flow"`
+	Log            Log                    `yaml:"log,flow"`
+	Databases      []*Database            `yaml:"databases,flow"`
+	Redises        []*Redis               `yaml:"redises,flow"`
+	KafkaProducers []*KafkaProducer       `yaml:"kafkaProducers,flow"`
+	KafkaConsumers []*KafkaConsumer       `yaml:"kafkaConsumers,flow"`
+	EXT            map[string]interface{} `yaml:"ext,flow"`
 }
 
 // Ext will return the value of the EXT config, the keys is a string

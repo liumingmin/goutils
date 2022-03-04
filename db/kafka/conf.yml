@@ -1,0 +1,22 @@
+log:
+  filename: "test.log"
+  logLevel: debug
+  stdout: true
+
+
+# kafka生产者配置
+kafkaProducers:
+  - key: "user_producer"
+    address: ["127.0.0.1:9092"]
+    async: false
+    returnSuccess: false
+    returnError: false
+
+# kafka消费者配置
+kafkaConsumers:
+  - key: "user_consumer"
+    address: ["127.0.0.1:9092"]
+    group: "demo1"
+    offset: 0
+    ack: 0
+
