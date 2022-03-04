@@ -24,9 +24,11 @@ type testUser struct {
 func TestCreateIndexByModel(t *testing.T) {
 	InitClients()
 
-	err := CreateIndexByModel(context.Background(), testUserIndexKey, testUserIndexName, &MappingModel{
-		Mappings: Mappings{
-			Doc: Doc{
+	client := GetEsClient(testUserIndexKey)
+
+	err := client.CreateIndexByModel(context.Background(), testUserIndexName, &MappingModel{
+		Mappings: map[string]Mapping{
+			testUserTypeName: {
 				Dynamic: false,
 				Properties: map[string]map[string]interface{}{
 					"userId": {
@@ -58,6 +60,8 @@ func TestCreateIndexByModel(t *testing.T) {
 func TestEsInsert(t *testing.T) {
 	InitClients()
 
+	client := GetEsClient(testUserIndexKey)
+
 	for i := 0; i < 100; i++ {
 		ptype := "normal"
 		if i%10 == 5 {
@@ -68,7 +72,7 @@ func TestEsInsert(t *testing.T) {
 			status = "invalid"
 		}
 		id := "000000000" + fmt.Sprint(i)
-		err := Insert(context.Background(), testUserIndexKey, testUserIndexName, testUserTypeName,
+		err := client.Insert(context.Background(), testUserIndexName, testUserTypeName,
 			id, testUser{UserId: id, Nickname: "超级棒" + id, Status: status, Type: ptype})
 		t.Log(err)
 	}
@@ -76,6 +80,8 @@ func TestEsInsert(t *testing.T) {
 
 func TestEsBatchInsert(t *testing.T) {
 	InitClients()
+
+	client := GetEsClient(testUserIndexKey)
 
 	ids := make([]string, 0)
 	items := make([]interface{}, 0)
@@ -95,22 +101,23 @@ func TestEsBatchInsert(t *testing.T) {
 		items = append(items, &testUser{UserId: id, Nickname: "超级棒" + id, Status: status, Type: ptype})
 	}
 
-	err := BatchInsert(context.Background(), testUserIndexKey, testUserIndexName, testUserTypeName, ids, items)
+	err := client.BatchInsert(context.Background(), testUserIndexName, testUserTypeName, ids, items)
 	t.Log(err)
 }
 
 func TestEsUpdateById(t *testing.T) {
 	InitClients()
+	client := GetEsClient(testUserIndexKey)
 
 	id := "000000000" + fmt.Sprint(30)
 
-	err := UpdateById(context.Background(), testUserIndexKey, testUserIndexName, testUserTypeName,
+	err := client.UpdateById(context.Background(), testUserIndexName, testUserTypeName,
 		id, map[string]interface{}{
 			"status": "invalid",
 		})
 	t.Log(err)
 
-	err = UpdateById(context.Background(), testUserIndexKey, testUserIndexName, testUserTypeName,
+	err = client.UpdateById(context.Background(), testUserIndexName, testUserTypeName,
 		id, map[string]interface{}{
 			"extField": "ext1234",
 		})
@@ -119,31 +126,31 @@ func TestEsUpdateById(t *testing.T) {
 
 func TestDeleteById(t *testing.T) {
 	InitClients()
+	client := GetEsClient(testUserIndexKey)
 
 	id := "000000000" + fmt.Sprint(9)
 
-	err := DeleteById(context.Background(), testUserIndexKey, testUserIndexName, testUserTypeName,
+	err := client.DeleteById(context.Background(), testUserIndexName, testUserTypeName,
 		id)
 	t.Log(err)
 }
 
 func TestQueryEs(t *testing.T) {
 	InitClients()
+	client := GetEsClient(testUserIndexKey)
 
 	bq := elastic.NewBoolQuery()
 	bq.Must(elastic.NewMatchQuery("nickname", "超级棒"))
 
 	var users []testUser
 	total := int64(0)
-	err := FindByModel(context.Background(), elasticsearch.QueryModel{
-		BaseModel: elasticsearch.BaseModel{
-			KeyName:   testUserIndexKey,
-			IndexName: testUserIndexName,
-		},
-		Query:   bq,
-		Size:    5,
-		Results: &users,
-		Total:   &total,
+	err := client.FindByModel(context.Background(), elasticsearch.QueryModel{
+		IndexName: testUserIndexName,
+		TypeName:  testUserTypeName,
+		Query:     bq,
+		Size:      5,
+		Results:   &users,
+		Total:     &total,
 	})
 	bs, _ := json.Marshal(users)
 	t.Log(len(users), total, string(bs), err)
@@ -151,6 +158,7 @@ func TestQueryEs(t *testing.T) {
 
 func TestQueryEsQuerySource(t *testing.T) {
 	InitClients()
+	client := GetEsClient(testUserIndexKey)
 
 	source := `{
 	"from":0,
@@ -162,14 +170,12 @@ func TestQueryEsQuerySource(t *testing.T) {
 
 	var users []testUser
 	total := int64(0)
-	err := FindBySource(context.Background(), elasticsearch.SourceModel{
-		BaseModel: elasticsearch.BaseModel{
-			KeyName:   testUserIndexKey,
-			IndexName: testUserIndexName,
-		},
-		Source:  source,
-		Results: &users,
-		Total:   &total,
+	err := client.FindBySource(context.Background(), elasticsearch.SourceModel{
+		IndexName: testUserIndexName,
+		TypeName:  testUserTypeName,
+		Source:    source,
+		Results:   &users,
+		Total:     &total,
 	})
 	bs, _ := json.Marshal(users)
 	t.Log(len(users), total, string(bs), err)
@@ -177,6 +183,7 @@ func TestQueryEsQuerySource(t *testing.T) {
 
 func TestAggregateBySource(t *testing.T) {
 	InitClients()
+	client := GetEsClient(testUserIndexKey)
 
 	source := `{
     "from": 0,
@@ -241,13 +248,11 @@ func TestAggregateBySource(t *testing.T) {
 }`
 
 	var test AggregationTest
-	AggregateBySource(context.Background(), elasticsearch.AggregateModel{
-		BaseModel: elasticsearch.BaseModel{
-			KeyName:   testUserIndexKey,
-			IndexName: testUserIndexName,
-		},
-		Source:  source,
-		AggKeys: []string{"status"},
+	client.AggregateBySource(context.Background(), elasticsearch.AggregateModel{
+		IndexName: testUserIndexName,
+		TypeName:  testUserTypeName,
+		Source:    source,
+		AggKeys:   []string{"status"},
 	}, &test)
 	t.Log(test)
 }

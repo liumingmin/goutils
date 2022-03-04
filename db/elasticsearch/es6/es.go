@@ -20,7 +20,11 @@ import (
 	"github.com/olivere/elastic"
 )
 
-var esClients = make(map[string]*elastic.Client)
+type Client struct {
+	*elastic.Client
+}
+
+var esClients = make(map[string]*Client)
 
 func InitClients() {
 	dbs := conf.Conf.Databases
@@ -41,7 +45,7 @@ func InitClients() {
 	}
 }
 
-func initClient(dbconf *conf.Database) (ret *elastic.Client, err error) {
+func initClient(dbconf *conf.Database) (ret *Client, err error) {
 	defer log.Recover(context.Background(), func(e interface{}) string {
 		err = e.(error)
 		return fmt.Sprintf("initClient failed. error: %v", err)
@@ -92,22 +96,23 @@ func initClient(dbconf *conf.Database) (ret *elastic.Client, err error) {
 	if err != nil {
 		log.Error(context.Background(), "elastic.NewClient err: %v", err)
 	}
-	return client, err
+	return &Client{client}, err
 }
 
-func GetEsClient(ctx context.Context, key string) *elastic.Client {
+// get ES 封装客户端
+//client := GetEsClient(keyName)
+//if client == nil {
+//log.Error(ctx, "ES client is nil")
+//return errors.New("ES client is nil")
+//}
+
+func GetEsClient(key string) *Client {
 	client, _ := esClients[key]
 	return client
 }
 
-func FindByModel(ctx context.Context, model elasticsearch.QueryModel) error {
-	client := GetEsClient(ctx, model.KeyName) // get ES 客户端
-	if client == nil {
-		log.Error(ctx, "ES client is nil")
-		return errors.New("ES client is nil")
-	}
-
-	searchService := client.Search().Index(model.IndexName)
+func (t *Client) FindByModel(ctx context.Context, model elasticsearch.QueryModel) error {
+	searchService := t.Search().Index(model.IndexName)
 
 	if model.TypeName != "" {
 		searchService = searchService.Type(model.TypeName)
@@ -134,39 +139,27 @@ func FindByModel(ctx context.Context, model elasticsearch.QueryModel) error {
 		searchService = searchService.Sort(field, bSort)
 	}
 
-	return find(ctx, searchService, model.Results, model.Total)
+	return t.find(ctx, searchService, model.Results, model.Total)
 }
 
-func FindBySource(ctx context.Context, model elasticsearch.SourceModel) error {
-	client := GetEsClient(ctx, model.KeyName) // get ES 客户端
-	if client == nil {
-		log.Error(ctx, "ES client is nil")
-		return errors.New("ES client is nil")
-	}
-
-	searchService := client.Search().Index(model.IndexName)
+func (t *Client) FindBySource(ctx context.Context, model elasticsearch.SourceModel) error {
+	searchService := t.Search().Index(model.IndexName)
 
 	if model.TypeName != "" {
 		searchService = searchService.Type(model.TypeName)
 	}
 	searchService = searchService.Source(model.Source)
 
-	return find(ctx, searchService, model.Results, model.Total)
+	return t.find(ctx, searchService, model.Results, model.Total)
 }
 
-func AggregateBySource(ctx context.Context, model elasticsearch.AggregateModel, result ...interface{}) (err error) {
+func (t *Client) AggregateBySource(ctx context.Context, model elasticsearch.AggregateModel, result ...interface{}) (err error) {
 	defer log.Recover(ctx, func(e interface{}) string {
 		err = fmt.Errorf("%v", e)
 		return fmt.Sprintf("agg error: %v", err)
 	})
 
-	client := GetEsClient(ctx, model.KeyName) // get ES 客户端
-	if client == nil {
-		log.Error(ctx, "ES client is nil")
-		return errors.New("ES client is nil")
-	}
-
-	searchService := client.Search().Index(model.IndexName)
+	searchService := t.Search().Index(model.IndexName)
 
 	if model.TypeName != "" {
 		searchService = searchService.Type(model.TypeName)
@@ -187,7 +180,7 @@ func AggregateBySource(ctx context.Context, model elasticsearch.AggregateModel, 
 		if rawMsg, ok := searchResult.Aggregations[aggKey]; ok && rawMsg != nil {
 			rawData, err1 := rawMsg.MarshalJSON()
 			if err1 != nil {
-				log.Error(ctx, "RawMsg marshalJSON err: %v", err1)
+				log.Error(ctx, "RawData marshalJSON err: %v", err1)
 				continue
 			}
 
@@ -201,7 +194,7 @@ func AggregateBySource(ctx context.Context, model elasticsearch.AggregateModel, 
 	return nil
 }
 
-func find(ctx context.Context, searchService *elastic.SearchService, results interface{}, total *int64) (err error) {
+func (t *Client) find(ctx context.Context, searchService *elastic.SearchService, results interface{}, total *int64) (err error) {
 	defer log.Recover(ctx, func(e interface{}) string {
 		err = fmt.Errorf("%v", e)
 		return fmt.Sprintf("Find error: %v", err)
@@ -249,42 +242,38 @@ func find(ctx context.Context, searchService *elastic.SearchService, results int
 	return nil
 }
 
-func Insert(ctx context.Context, esKeyName, esIndexName, esTypeName, id string, data interface{}) (err error) {
+func (t *Client) Insert(ctx context.Context, esIndexName, esTypeName, id string, data interface{}) (err error) {
 	defer log.Recover(ctx, func(e interface{}) string {
 		err = fmt.Errorf("%v", e)
 		return fmt.Sprintf("Insert error: %v", err)
 	})
 
-	client := GetEsClient(ctx, esKeyName) // get ES 客户端
-	if client == nil {
-		log.Error(ctx, "ES client is nil")
-		return errors.New("ES client is nil")
+	indexService := t.Index().Index(esIndexName)
+	if esTypeName != "" {
+		indexService = indexService.Type(esTypeName)
 	}
 
-	_, err = client.Index().Index(esIndexName).Type(esTypeName).Id(id).BodyJson(data).Do(ctx)
+	_, err = indexService.Id(id).BodyJson(data).Do(ctx)
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
-func BatchInsert(ctx context.Context, esKeyName, esIndexName, esTypeName string, ids []string, items []interface{}) (err error) {
+func (t *Client) BatchInsert(ctx context.Context, esIndexName, esTypeName string, ids []string, items []interface{}) (err error) {
 	defer log.Recover(ctx, func(e interface{}) string {
 		err = fmt.Errorf("%v", e)
 		return fmt.Sprintf("BatchInsert error: %v", err)
 	})
 
-	client := GetEsClient(ctx, esKeyName) // get ES 客户端
-	if client == nil {
-		log.Error(ctx, "ES client is nil")
-		return errors.New("ES client is nil")
-	}
-
-	bulkService := client.Bulk()
+	bulkService := t.Bulk()
 
 	for i, id := range ids {
-		bulkService.Add(elastic.NewBulkIndexRequest().Index(esIndexName).Type(esTypeName).
-			Id(id).Doc(items[i]))
+		bulkRequest := elastic.NewBulkIndexRequest().Index(esIndexName)
+		if esTypeName != "" {
+			bulkRequest = bulkRequest.Type(esTypeName)
+		}
+		bulkService.Add(bulkRequest.Id(id).Doc(items[i]))
 	}
 
 	_, err = bulkService.Do(ctx)
@@ -294,24 +283,23 @@ func BatchInsert(ctx context.Context, esKeyName, esIndexName, esTypeName string,
 	return nil
 }
 
-func UpdateById(ctx context.Context, esKeyName, esIndexName, esTypeName, id string, updateM map[string]interface{}) (err error) {
+func (t *Client) UpdateById(ctx context.Context, esIndexName, esTypeName, id string, updateM map[string]interface{}) (err error) {
 	defer log.Recover(ctx, func(e interface{}) string {
 		err = fmt.Errorf("%v", e)
 		return fmt.Sprintf("Update error: %v", err)
 	})
 
-	client := GetEsClient(ctx, esKeyName) // get ES 客户端
-	if client == nil {
-		log.Error(ctx, "ES client is nil")
-		return errors.New("ES client is nil")
-	}
-
 	var b strings.Builder
 	for field, _ := range updateM {
 		fmt.Fprintf(&b, "ctx._source.%s=params.%s;", field, field)
 	}
-	_, err = client.Update().Index(esIndexName).Type(esTypeName).Id(id).
-		Script(elastic.NewScriptInline(b.String()).Lang("painless").Params(updateM)).
+
+	updateService := t.Update().Index(esIndexName)
+	if esTypeName != "" {
+		updateService = updateService.Type(esTypeName)
+	}
+
+	_, err = updateService.Id(id).Script(elastic.NewScriptInline(b.String()).Lang("painless").Params(updateM)).
 		Do(ctx)
 	if err != nil {
 		return err
@@ -319,70 +307,60 @@ func UpdateById(ctx context.Context, esKeyName, esIndexName, esTypeName, id stri
 	return nil
 }
 
-func DeleteById(ctx context.Context, esKeyName, esIndexName, esTypeName, id string) (err error) {
+func (t *Client) DeleteById(ctx context.Context, esIndexName, esTypeName, id string) (err error) {
 	defer log.Recover(ctx, func(e interface{}) string {
 		err = fmt.Errorf("%v", e)
 		return fmt.Sprintf("Delete error: %v", err)
 	})
 
-	client := GetEsClient(ctx, esKeyName) // get ES 客户端
-	if client == nil {
-		log.Error(ctx, "ES client is nil")
-		return errors.New("ES client is nil")
+	deleteService := t.Delete().Index(esIndexName)
+	if esTypeName != "" {
+		deleteService = deleteService.Type(esTypeName)
 	}
-
-	_, err = client.Delete().Index(esIndexName).Type(esTypeName).Id(id).Do(ctx)
+	_, err = deleteService.Id(id).Do(ctx)
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
-func CreateIndex(ctx context.Context, esKeyName, esIndexName, esMapping string) (err error) {
+func (t *Client) CreateIndexByMapping(ctx context.Context, esIndexName, esMapping string) (err error) {
 	defer log.Recover(ctx, func(e interface{}) string {
 		err = fmt.Errorf("%v", e)
-		return fmt.Sprintf("CreateIndexIfNotExist error: %v", err)
+		return fmt.Sprintf("CreateIndexByMapping error: %v", err)
 	})
 
-	client := GetEsClient(ctx, esKeyName) // get ES 客户端
-	if client == nil {
-		log.Error(ctx, "ES client is nil")
-		return errors.New("ES client is nil")
-	}
-
-	exist, _ := client.IndexExists(esIndexName).Do(ctx)
+	exist, _ := t.IndexExists(esIndexName).Do(ctx)
 	if exist {
 		return nil
 	}
 
-	_, err = client.CreateIndex(esIndexName).Body(esMapping).Do(ctx)
+	_, err = t.CreateIndex(esIndexName).Body(esMapping).Do(ctx)
 	if err != nil {
-		log.Error(ctx, "CreateIndexIfNotExist failed, err: %v", err)
+		log.Error(ctx, "CreateIndexByMapping failed, err: %v", err)
 	}
 	return err
 }
 
-func CreateIndexByModel(ctx context.Context, esKeyName, esIndexName string, model *MappingModel) (err error) {
+func (t *Client) CreateIndexByModel(ctx context.Context, esIndexName string, model *MappingModel) (err error) {
 	esMapping, err := json.Marshal(model)
 	if err != nil {
-		log.Error(ctx, "CreateIndexByModelIfNotExist failed, err: %v", err)
+		log.Error(ctx, "CreateIndexByModel failed, err: %v", err)
 		return err
 	}
 
-	return CreateIndex(ctx, esKeyName, esIndexName, string(esMapping))
+	mappingBody := string(esMapping)
+	log.Debug(ctx, "CreateIndexByModel mapping is: %v", mappingBody)
+	return t.CreateIndexByMapping(ctx, esIndexName, mappingBody)
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 type MappingModel struct {
-	Mappings `json:"mappings"`
+	Mappings map[string]Mapping `json:"mappings"`
 	Settings `json:"settings"`
 }
 
-type Mappings struct {
-	Doc `json:"_doc"`
-}
-
-type Doc struct {
+type Mapping struct {
 	Dynamic    bool                              `json:"dynamic"` // false
 	Properties map[string]map[string]interface{} `json:"properties"`
 }
