@@ -46,3 +46,15 @@ func StringsExcept(ss1 []string, ss2 []string) (se []string) {
 	}
 	return
 }
+
+func ParseContentByTag(content, tagStart, tagEnd string) (string, int) {
+	if sIdx := strings.Index(content, tagStart); sIdx >= 0 {
+		pos := sIdx + len(tagStart)
+		content = content[pos:]
+		if eIdx := strings.Index(content, tagEnd); eIdx >= 0 {
+			tagContent := content[:eIdx]
+			return tagContent, pos + eIdx + len(tagEnd)
+		}
+	}
+	return "", 0
+}
