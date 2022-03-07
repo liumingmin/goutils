@@ -161,12 +161,12 @@ func TestQueryEsQuerySource(t *testing.T) {
 	client := GetEsClient(testUserIndexKey)
 
 	source := `{
-	"from":0,
-	"size":25,
-	"query":{
-		"match":{"nickname":"超级"}
-	}
-}`
+		"from":0,
+		"size":25,
+		"query":{
+			"match":{"nickname":"超级"}
+		}
+	}`
 
 	var users []testUser
 	total := int64(0)
@@ -186,66 +186,66 @@ func TestAggregateBySource(t *testing.T) {
 	client := GetEsClient(testUserIndexKey)
 
 	source := `{
-    "from": 0,
-    "size": 0,
-    "_source": {
-        "includes": [
-            "status",
-            "pType",
-            "COUNT"
-        ],
-        "excludes": []
-    },
-    "stored_fields": [
-        "status",
-        "pType"
-    ],
-    "aggregations": {
-        "status": {
-            "terms": {
-                "field": "status",
-                "size": 200,
-                "min_doc_count": 1,
-                "shard_min_doc_count": 0,
-                "show_term_doc_count_error": false,
-                "order": [
-                    {
-                        "_count": "desc"
-                    },
-                    {
-                        "_key": "asc"
-                    }
-                ]
-            },
-            "aggregations": {
-                "pType": {
-                    "terms": {
-                        "field": "pType",
-                        "size": 10,
-                        "min_doc_count": 1,
-                        "shard_min_doc_count": 0,
-                        "show_term_doc_count_error": false,
-                        "order": [
-                            {
-                                "_count": "desc"
-                            },
-                            {
-                                "_key": "asc"
-                            }
-                        ]
-                    },
-                    "aggregations": {
-                        "statusCnt": {
-                            "value_count": {
-                                "field": "_index"
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
-}`
+		"from": 0,
+		"size": 0,
+		"_source": {
+			"includes": [
+				"status",
+				"pType",
+				"COUNT"
+			],
+			"excludes": []
+		},
+		"stored_fields": [
+			"status",
+			"pType"
+		],
+		"aggregations": {
+			"status": {
+				"terms": {
+					"field": "status",
+					"size": 200,
+					"min_doc_count": 1,
+					"shard_min_doc_count": 0,
+					"show_term_doc_count_error": false,
+					"order": [
+						{
+							"_count": "desc"
+						},
+						{
+							"_key": "asc"
+						}
+					]
+				},
+				"aggregations": {
+					"pType": {
+						"terms": {
+							"field": "pType",
+							"size": 10,
+							"min_doc_count": 1,
+							"shard_min_doc_count": 0,
+							"show_term_doc_count_error": false,
+							"order": [
+								{
+									"_count": "desc"
+								},
+								{
+									"_key": "asc"
+								}
+							]
+						},
+						"aggregations": {
+							"statusCnt": {
+								"value_count": {
+									"field": "_index"
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+	}`
 
 	var test AggregationTest
 	client.AggregateBySource(context.Background(), elasticsearch.AggregateModel{

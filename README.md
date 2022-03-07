@@ -602,11 +602,24 @@ protoc --js_out=library=protobuf,binary:ws/js  ws/msg.proto
 	client := GetEsClient(testUserIndexKey)
 
 	source := `{
-	"from":0,
-	"size":25,
-	"query":{
-		"match":{"nickname":"超级"}
-	}
+		"from":0,
+		"size":25,
+		"query":{
+			"match":{"nickname":"超级"}
+		}
+	}`
+
+	var users []testUser
+	total := int64(0)
+	err := client.FindBySource(context.Background(), elasticsearch.SourceModel{
+		IndexName: testUserIndexName,
+		TypeName:  testUserTypeName,
+		Source:    source,
+		Results:   &users,
+		Total:     &total,
+	})
+	bs, _ := json.Marshal(users)
+	t.Log(len(users), total, string(bs), err)
 ```
 ###### TestAggregateBySource
 ```go
@@ -615,65 +628,75 @@ protoc --js_out=library=protobuf,binary:ws/js  ws/msg.proto
 	client := GetEsClient(testUserIndexKey)
 
 	source := `{
-    "from": 0,
-    "size": 0,
-    "_source": {
-        "includes": [
-            "status",
-            "pType",
-            "COUNT"
-        ],
-        "excludes": []
-    },
-    "stored_fields": [
-        "status",
-        "pType"
-    ],
-    "aggregations": {
-        "status": {
-            "terms": {
-                "field": "status",
-                "size": 200,
-                "min_doc_count": 1,
-                "shard_min_doc_count": 0,
-                "show_term_doc_count_error": false,
-                "order": [
-                    {
-                        "_count": "desc"
-                    },
-                    {
-                        "_key": "asc"
-                    }
-                ]
-            },
-            "aggregations": {
-                "pType": {
-                    "terms": {
-                        "field": "pType",
-                        "size": 10,
-                        "min_doc_count": 1,
-                        "shard_min_doc_count": 0,
-                        "show_term_doc_count_error": false,
-                        "order": [
-                            {
-                                "_count": "desc"
-                            },
-                            {
-                                "_key": "asc"
-                            }
-                        ]
-                    },
-                    "aggregations": {
-                        "statusCnt": {
-                            "value_count": {
-                                "field": "_index"
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
+		"from": 0,
+		"size": 0,
+		"_source": {
+			"includes": [
+				"status",
+				"pType",
+				"COUNT"
+			],
+			"excludes": []
+		},
+		"stored_fields": [
+			"status",
+			"pType"
+		],
+		"aggregations": {
+			"status": {
+				"terms": {
+					"field": "status",
+					"size": 200,
+					"min_doc_count": 1,
+					"shard_min_doc_count": 0,
+					"show_term_doc_count_error": false,
+					"order": [
+						{
+							"_count": "desc"
+						},
+						{
+							"_key": "asc"
+						}
+					]
+				},
+				"aggregations": {
+					"pType": {
+						"terms": {
+							"field": "pType",
+							"size": 10,
+							"min_doc_count": 1,
+							"shard_min_doc_count": 0,
+							"show_term_doc_count_error": false,
+							"order": [
+								{
+									"_count": "desc"
+								},
+								{
+									"_key": "asc"
+								}
+							]
+						},
+						"aggregations": {
+							"statusCnt": {
+								"value_count": {
+									"field": "_index"
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+	}`
+
+	var test AggregationTest
+	client.AggregateBySource(context.Background(), elasticsearch.AggregateModel{
+		IndexName: testUserIndexName,
+		TypeName:  testUserTypeName,
+		Source:    source,
+		AggKeys:   []string{"status"},
+	}, &test)
+	t.Log(test)
 ```
 #### es7ES7版本API
 ##### es_test.go
@@ -818,11 +841,23 @@ protoc --js_out=library=protobuf,binary:ws/js  ws/msg.proto
 	InitClients()
 	client := GetEsClient(testUserIndexKey)
 	source := `{
-	"from":0,
-	"size":25,
-	"query":{
-		"match":{"nickname":"超级"}
-	}
+		"from":0,
+		"size":25,
+		"query":{
+			"match":{"nickname":"超级"}
+		}
+	}`
+
+	var users []testUser
+	total := int64(0)
+	err := client.FindBySource(context.Background(), elasticsearch.SourceModel{
+		IndexName: testUserIndexName,
+		Source:    source,
+		Results:   &users,
+		Total:     &total,
+	})
+	bs, _ := json.Marshal(users)
+	t.Log(len(users), total, string(bs), err)
 ```
 ###### TestAggregateBySource
 ```go
@@ -830,65 +865,74 @@ protoc --js_out=library=protobuf,binary:ws/js  ws/msg.proto
 	InitClients()
 	client := GetEsClient(testUserIndexKey)
 	source := `{
-    "from": 0,
-    "size": 0,
-    "_source": {
-        "includes": [
-            "status",
-            "pType",
-            "COUNT"
-        ],
-        "excludes": []
-    },
-    "stored_fields": [
-        "status",
-        "pType"
-    ],
-    "aggregations": {
-        "status": {
-            "terms": {
-                "field": "status",
-                "size": 200,
-                "min_doc_count": 1,
-                "shard_min_doc_count": 0,
-                "show_term_doc_count_error": false,
-                "order": [
-                    {
-                        "_count": "desc"
-                    },
-                    {
-                        "_key": "asc"
-                    }
-                ]
-            },
-            "aggregations": {
-                "pType": {
-                    "terms": {
-                        "field": "pType",
-                        "size": 10,
-                        "min_doc_count": 1,
-                        "shard_min_doc_count": 0,
-                        "show_term_doc_count_error": false,
-                        "order": [
-                            {
-                                "_count": "desc"
-                            },
-                            {
-                                "_key": "asc"
-                            }
-                        ]
-                    },
-                    "aggregations": {
-                        "statusCnt": {
-                            "value_count": {
-                                "field": "_index"
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
+		"from": 0,
+		"size": 0,
+		"_source": {
+			"includes": [
+				"status",
+				"pType",
+				"COUNT"
+			],
+			"excludes": []
+		},
+		"stored_fields": [
+			"status",
+			"pType"
+		],
+		"aggregations": {
+			"status": {
+				"terms": {
+					"field": "status",
+					"size": 200,
+					"min_doc_count": 1,
+					"shard_min_doc_count": 0,
+					"show_term_doc_count_error": false,
+					"order": [
+						{
+							"_count": "desc"
+						},
+						{
+							"_key": "asc"
+						}
+					]
+				},
+				"aggregations": {
+					"pType": {
+						"terms": {
+							"field": "pType",
+							"size": 10,
+							"min_doc_count": 1,
+							"shard_min_doc_count": 0,
+							"show_term_doc_count_error": false,
+							"order": [
+								{
+									"_count": "desc"
+								},
+								{
+									"_key": "asc"
+								}
+							]
+						},
+						"aggregations": {
+							"statusCnt": {
+								"value_count": {
+									"field": "_index"
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+	}`
+
+	var test AggregationTest
+	client.AggregateBySource(context.Background(), elasticsearch.AggregateModel{
+		IndexName: testUserIndexName,
+		Source:    source,
+		AggKeys:   []string{"status"},
+	}, &test)
+	t.Log(test)
 ```
 ### kafkakafka消息队列
 #### kafka_test.go
