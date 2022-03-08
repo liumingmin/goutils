@@ -25,7 +25,7 @@ func (c *Connection) KickClient(displace bool) {
 		c.setDisplaced()
 	}
 
-	Clients.unregister <- c
+	ClientConnHub.unregister <- c
 }
 
 func AcceptGin(ctx *gin.Context, meta ConnectionMeta, opts ...ConnOption) (*Connection, error) {
@@ -63,7 +63,7 @@ func Accept(ctx context.Context, w http.ResponseWriter, r *http.Request, meta Co
 
 	connection.conn = conn
 
-	Clients.register <- connection
+	ClientConnHub.register <- connection
 
 	conn.SetCloseHandler(func(code int, text string) error {
 		connection.KickClient(false)

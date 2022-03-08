@@ -35,6 +35,20 @@ func init() {
 		hook.MaxAge = 7
 	}
 
+	// 设置日志级别
+	loggerLevel = zap.NewAtomicLevelAt(zapcore.DebugLevel)
+	if conf.Conf.Log.LogLevel != "" {
+		loggerLevel.UnmarshalText([]byte(conf.Conf.Log.LogLevel))
+	}
+
+	writeSyncers := make([]zapcore.WriteSyncer, 0)
+	if conf.Conf.Log.Stdout {
+		writeSyncers = append(writeSyncers, zapcore.AddSync(os.Stdout))
+	}
+	if conf.Conf.Log.FileOut {
+		writeSyncers = append(writeSyncers, zapcore.AddSync(&hook))
+	}
+
 	encoderConfig := zapcore.EncoderConfig{
 		TimeKey:        "time",
 		LevelKey:       "level",
@@ -48,17 +62,6 @@ func init() {
 		EncodeDuration: zapcore.SecondsDurationEncoder,   //
 		EncodeCaller:   zapcore.FullCallerEncoder,        // 全路径编码器
 		EncodeName:     zapcore.FullNameEncoder,
-	}
-
-	// 设置日志级别
-	loggerLevel = zap.NewAtomicLevelAt(zapcore.DebugLevel)
-	if conf.Conf.Log.LogLevel != "" {
-		loggerLevel.UnmarshalText([]byte(conf.Conf.Log.LogLevel))
-	}
-
-	writeSyncers := []zapcore.WriteSyncer{zapcore.AddSync(&hook)}
-	if conf.Conf.Log.Stdout {
-		writeSyncers = append(writeSyncers, zapcore.AddSync(os.Stdout))
 	}
 
 	core := zapcore.NewCore(

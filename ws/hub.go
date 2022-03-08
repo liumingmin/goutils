@@ -12,13 +12,13 @@ import (
 
 //连接管理器
 type Hub struct {
-	connections *sync.Map        // 客户端连接
+	connections *sync.Map        // 连接容器
 	register    chan *Connection // 注册队列
 	unregister  chan *Connection // 注销队列
 }
 
-var Clients = newHub()
-var Servers = newHub()
+var ClientConnHub = newHub()
+var ServerConnHub = newHub()
 
 func newHub() *Hub {
 	h := Hub{
@@ -144,7 +144,10 @@ func (h *Hub) RangeConnsByFunc(f func(string, *Connection) bool) {
 	})
 }
 
-func init() {
-	safego.Go(Clients.run)
-	safego.Go(Servers.run)
+func InitServer() {
+	safego.Go(ClientConnHub.run)
+}
+
+func InitClient() {
+	safego.Go(ServerConnHub.run)
 }

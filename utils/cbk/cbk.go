@@ -24,7 +24,7 @@ func (c Error) Error() string {
 	return "CircuitBreaker is break"
 }
 
-func init() {
+func InitCbk() {
 	simple := &CircuitBreakerSimple{}
 	simple.Init()
 	Impls[SIMPLE] = simple

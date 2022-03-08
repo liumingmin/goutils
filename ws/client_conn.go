@@ -18,7 +18,7 @@ func (c *Connection) KickServer(displace bool) {
 		c.setDisplaced()
 	}
 
-	Servers.unregister <- c
+	ServerConnHub.unregister <- c
 }
 
 func Connect(ctx context.Context, sId, sUrl string, secureWss bool, header http.Header, opts ...ConnOption) (*Connection, error) {
@@ -84,7 +84,7 @@ func Connect(ctx context.Context, sId, sUrl string, secureWss bool, header http.
 		SendBufferOption(8)(connection)
 	}
 
-	Servers.register <- connection
+	ServerConnHub.register <- connection
 
 	conn.SetCloseHandler(func(code int, text string) error {
 		connection.KickServer(false)

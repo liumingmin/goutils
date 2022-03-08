@@ -7,6 +7,8 @@ import (
 )
 
 func TestCbkFailed(t *testing.T) {
+	InitCbk()
+
 	var ok bool
 	var lastBreaked bool
 	for j := 0; j < 200; j++ {

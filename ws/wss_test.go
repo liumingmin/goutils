@@ -2,6 +2,7 @@ package ws
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"testing"
 	"time"
@@ -11,6 +12,9 @@ import (
 )
 
 func TestWssRun(t *testing.T) {
+	InitServer()
+	InitClient()
+
 	e := gin.Default()
 	e.GET("/join", join)
 	go e.Run(":8003")
@@ -22,10 +26,11 @@ func TestWssRun(t *testing.T) {
 
 func connectWss(uid string) {
 	conn, _ := Connect(context.Background(), "server1", "ws://127.0.0.1:8003/join?uid="+uid, false, http.Header{})
-	go func() {
-		time.Sleep(time.Minute * 2)
-		conn.KickServer(false)
-	}()
+	//go func() {
+	//	time.Sleep(time.Minute * 2)
+	//	conn.KickServer(false)
+	//}()
+	fmt.Println(conn)
 }
 
 func join(ctx *gin.Context) {

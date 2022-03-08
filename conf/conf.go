@@ -12,10 +12,13 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
+var confPath = os.Getenv("GOUTILS_CONF_PATH")
+
 type Log struct {
 	lumberjack.Logger `yaml:",inline"`
 	LogLevel          string `yaml:"logLevel"`
 	Stdout            bool   `yaml:"stdout"`
+	FileOut           bool   `yaml:"fileOut"`
 }
 
 type Database struct {
@@ -275,5 +278,8 @@ func ExtDuration(keys string, defVal ...interface{}) time.Duration {
 }
 
 func init() {
-	LoadConf("conf.yml")
+	if confPath == "" {
+		confPath = "conf.yml"
+	}
+	LoadConf(confPath)
 }

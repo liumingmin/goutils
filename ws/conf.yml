@@ -1,0 +1,4 @@
+log:
+  filename: "test.log"
+  logLevel: debug
+  stdout: true
