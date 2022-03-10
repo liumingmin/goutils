@@ -7,42 +7,42 @@ gotuils目标是快速搭建应用的辅助代码库,扫码加讨论群。
 
 - [ws模块用法](#ws%E6%A8%A1%E5%9D%97%E7%94%A8%E6%B3%95)
 - [常用工具库](#%E5%B8%B8%E7%94%A8%E5%B7%A5%E5%85%B7%E5%BA%93)
-- [cache缓存模块](#cache%E7%BC%93%E5%AD%98%E6%A8%A1%E5%9D%97)
-  * [mem_cache_test.go内存缓存](#mem_cache_testgo%E5%86%85%E5%AD%98%E7%BC%93%E5%AD%98)
-  * [rds_cache_test.goRedis缓存](#rds_cache_testgoredis%E7%BC%93%E5%AD%98)
-- [confyaml配置模块](#confyaml%E9%85%8D%E7%BD%AE%E6%A8%A1%E5%9D%97)
-- [container容器模块](#container%E5%AE%B9%E5%99%A8%E6%A8%A1%E5%9D%97)
-  * [bitmap_test.go比特位表](#bitmap_testgo%E6%AF%94%E7%89%B9%E4%BD%8D%E8%A1%A8)
-  * [const_hash_test.go一致性HASH](#const_hash_testgo%E4%B8%80%E8%87%B4%E6%80%A7hash)
-  * [lighttimer_test.go轻量级计时器](#lighttimer_testgo%E8%BD%BB%E9%87%8F%E7%BA%A7%E8%AE%A1%E6%97%B6%E5%99%A8)
-- [db数据库](#db%E6%95%B0%E6%8D%AE%E5%BA%93)
-  * [elasticsearchES搜索引擎](#elasticsearches%E6%90%9C%E7%B4%A2%E5%BC%95%E6%93%8E)
-  * [kafkakafka消息队列](#kafkakafka%E6%B6%88%E6%81%AF%E9%98%9F%E5%88%97)
-  * [mongomongo数据库](#mongomongo%E6%95%B0%E6%8D%AE%E5%BA%93)
-  * [redisgo-redis](#redisgo-redis)
-- [logzap日志库](#logzap%E6%97%A5%E5%BF%97%E5%BA%93)
+- [cache 缓存模块](#cache-%E7%BC%93%E5%AD%98%E6%A8%A1%E5%9D%97)
+  * [mem_cache_test.go 内存缓存](#mem_cache_testgo-%E5%86%85%E5%AD%98%E7%BC%93%E5%AD%98)
+  * [rds_cache_test.go Redis缓存](#rds_cache_testgo-redis%E7%BC%93%E5%AD%98)
+- [conf yaml配置模块](#conf-yaml%E9%85%8D%E7%BD%AE%E6%A8%A1%E5%9D%97)
+- [container 容器模块](#container-%E5%AE%B9%E5%99%A8%E6%A8%A1%E5%9D%97)
+  * [bitmap_test.go 比特位表](#bitmap_testgo-%E6%AF%94%E7%89%B9%E4%BD%8D%E8%A1%A8)
+  * [const_hash_test.go 一致性HASH](#const_hash_testgo-%E4%B8%80%E8%87%B4%E6%80%A7hash)
+  * [lighttimer_test.go 轻量级计时器](#lighttimer_testgo-%E8%BD%BB%E9%87%8F%E7%BA%A7%E8%AE%A1%E6%97%B6%E5%99%A8)
+- [db 数据库](#db-%E6%95%B0%E6%8D%AE%E5%BA%93)
+  * [elasticsearch ES搜索引擎](#elasticsearch-es%E6%90%9C%E7%B4%A2%E5%BC%95%E6%93%8E)
+  * [kafka kafka消息队列](#kafka-kafka%E6%B6%88%E6%81%AF%E9%98%9F%E5%88%97)
+  * [mongo mongo数据库](#mongo-mongo%E6%95%B0%E6%8D%AE%E5%BA%93)
+  * [redis go-redis](#redis-go-redis)
+- [log zap日志库](#log-zap%E6%97%A5%E5%BF%97%E5%BA%93)
   * [zap_test.go](#zap_testgo)
-- [middleware中间件](#middleware%E4%B8%AD%E9%97%B4%E4%BB%B6)
-  * [captcha_test.go验证码模块](#captcha_testgo%E9%AA%8C%E8%AF%81%E7%A0%81%E6%A8%A1%E5%9D%97)
-  * [limit_conn_test.go限连接模块](#limit_conn_testgo%E9%99%90%E8%BF%9E%E6%8E%A5%E6%A8%A1%E5%9D%97)
-  * [limit_req_test.go限流模块](#limit_req_testgo%E9%99%90%E6%B5%81%E6%A8%A1%E5%9D%97)
-  * [service_handler_test.goservice封装器](#service_handler_testgoservice%E5%B0%81%E8%A3%85%E5%99%A8)
-  * [thumb_image_test.go缩略图](#thumb_image_testgo%E7%BC%A9%E7%95%A5%E5%9B%BE)
-- [net网络库](#net%E7%BD%91%E7%BB%9C%E5%BA%93)
-  * [httpx兼容http1.x和2.0的httpclient](#httpx%E5%85%BC%E5%AE%B9http1x%E5%92%8C20%E7%9A%84httpclient)
-  * [packettcp包model](#packettcp%E5%8C%85model)
-  * [proxyssh proxy](#proxyssh-proxy)
-  * [serverx兼容http1.x和2.0的http server](#serverx%E5%85%BC%E5%AE%B9http1x%E5%92%8C20%E7%9A%84http-server)
-- [utils通用工具库](#utils%E9%80%9A%E7%94%A8%E5%B7%A5%E5%85%B7%E5%BA%93)
-  * [buffer_invoker异步调用](#buffer_invoker%E5%BC%82%E6%AD%A5%E8%B0%83%E7%94%A8)
-  * [cbk熔断器](#cbk%E7%86%94%E6%96%AD%E5%99%A8)
-  * [csvCSV文件解析为MDB内存表](#csvcsv%E6%96%87%E4%BB%B6%E8%A7%A3%E6%9E%90%E4%B8%BAmdb%E5%86%85%E5%AD%98%E8%A1%A8)
-  * [distlock分布式锁](#distlock%E5%88%86%E5%B8%83%E5%BC%8F%E9%94%81)
-  * [fsm有限状态机](#fsm%E6%9C%89%E9%99%90%E7%8A%B6%E6%80%81%E6%9C%BA)
-  * [hchttpclient工具](#hchttpclient%E5%B7%A5%E5%85%B7)
-  * [ismtp邮件工具](#ismtp%E9%82%AE%E4%BB%B6%E5%B7%A5%E5%85%B7)
-  * [safego安全的go协程](#safego%E5%AE%89%E5%85%A8%E7%9A%84go%E5%8D%8F%E7%A8%8B)
-- [wswebsocket客户端和服务段库](#wswebsocket%E5%AE%A2%E6%88%B7%E7%AB%AF%E5%92%8C%E6%9C%8D%E5%8A%A1%E6%AE%B5%E5%BA%93)
+- [middleware 中间件](#middleware-%E4%B8%AD%E9%97%B4%E4%BB%B6)
+  * [captcha_test.go 验证码模块](#captcha_testgo-%E9%AA%8C%E8%AF%81%E7%A0%81%E6%A8%A1%E5%9D%97)
+  * [limit_conn_test.go 限连接模块](#limit_conn_testgo-%E9%99%90%E8%BF%9E%E6%8E%A5%E6%A8%A1%E5%9D%97)
+  * [limit_req_test.go 限流模块](#limit_req_testgo-%E9%99%90%E6%B5%81%E6%A8%A1%E5%9D%97)
+  * [service_handler_test.go service封装器](#service_handler_testgo-service%E5%B0%81%E8%A3%85%E5%99%A8)
+  * [thumb_image_test.go 缩略图](#thumb_image_testgo-%E7%BC%A9%E7%95%A5%E5%9B%BE)
+- [net 网络库](#net-%E7%BD%91%E7%BB%9C%E5%BA%93)
+  * [httpx 兼容http1.x和2.0的httpclient](#httpx-%E5%85%BC%E5%AE%B9http1x%E5%92%8C20%E7%9A%84httpclient)
+  * [packet tcp包model](#packet-tcp%E5%8C%85model)
+  * [proxy ssh proxy](#proxy-ssh-proxy)
+  * [serverx 兼容http1.x和2.0的http server](#serverx-%E5%85%BC%E5%AE%B9http1x%E5%92%8C20%E7%9A%84http-server)
+- [utils 通用工具库](#utils-%E9%80%9A%E7%94%A8%E5%B7%A5%E5%85%B7%E5%BA%93)
+  * [buffer_invoker 异步调用](#buffer_invoker-%E5%BC%82%E6%AD%A5%E8%B0%83%E7%94%A8)
+  * [cbk 熔断器](#cbk-%E7%86%94%E6%96%AD%E5%99%A8)
+  * [csv CSV文件解析为MDB内存表](#csv-csv%E6%96%87%E4%BB%B6%E8%A7%A3%E6%9E%90%E4%B8%BAmdb%E5%86%85%E5%AD%98%E8%A1%A8)
+  * [distlock 分布式锁](#distlock-%E5%88%86%E5%B8%83%E5%BC%8F%E9%94%81)
+  * [fsm 有限状态机](#fsm-%E6%9C%89%E9%99%90%E7%8A%B6%E6%80%81%E6%9C%BA)
+  * [hc httpclient工具](#hc-httpclient%E5%B7%A5%E5%85%B7)
+  * [ismtp 邮件工具](#ismtp-%E9%82%AE%E4%BB%B6%E5%B7%A5%E5%85%B7)
+  * [safego 安全的go协程](#safego-%E5%AE%89%E5%85%A8%E7%9A%84go%E5%8D%8F%E7%A8%8B)
+- [ws websocket客户端和服务段库](#ws-websocket%E5%AE%A2%E6%88%B7%E7%AB%AF%E5%92%8C%E6%9C%8D%E5%8A%A1%E6%AE%B5%E5%BA%93)
   * [js](#js)
   * [wss_test.go](#wss_testgo)
 
@@ -73,8 +73,8 @@ protoc --js_out=library=protobuf,binary:ws/js  ws/msg.proto
 |utils.go|其他工具类 |  
 
 ​                     
-## cache缓存模块
-### mem_cache_test.go内存缓存
+## cache 缓存模块
+### mem_cache_test.go 内存缓存
 #### TestMemCacheFunc
 ```go
 
@@ -153,7 +153,7 @@ protoc --js_out=library=protobuf,binary:ws/js  ws/msg.proto
 	log.Info(ctx, "%v %v %v", result, err, printKind(result))
 	MemCacheDelete(ctx, lCache, cacheKey, "p1", "p2")
 ```
-### rds_cache_test.goRedis缓存
+### rds_cache_test.go Redis缓存
 #### TestRdscCacheFunc
 ```go
 
@@ -261,9 +261,9 @@ protoc --js_out=library=protobuf,binary:ws/js  ws/msg.proto
 		}
 	}
 ```
-## confyaml配置模块
-## container容器模块
-### bitmap_test.go比特位表
+## conf yaml配置模块
+## container 容器模块
+### bitmap_test.go 比特位表
 #### TestBitmapExists
 ```go
 
@@ -315,7 +315,7 @@ protoc --js_out=library=protobuf,binary:ws/js  ws/msg.proto
 	t.Log(bitmap.Exists(66))
 
 ```
-### const_hash_test.go一致性HASH
+### const_hash_test.go 一致性HASH
 #### TestConstHash
 ```go
 
@@ -374,7 +374,7 @@ protoc --js_out=library=protobuf,binary:ws/js  ws/msg.proto
 
 	fmt.Println(ringchash.Get("xvd:fs:xcvd"))
 ```
-### lighttimer_test.go轻量级计时器
+### lighttimer_test.go 轻量级计时器
 #### TestStartTicks
 ```go
 
@@ -450,9 +450,9 @@ protoc --js_out=library=protobuf,binary:ws/js  ws/msg.proto
 
 	time.Sleep(time.Hour)
 ```
-## db数据库
-### elasticsearchES搜索引擎
-#### es6ES6版本API
+## db 数据库
+### elasticsearch ES搜索引擎
+#### es6 ES6版本API
 ##### es_test.go
 ###### TestCreateIndexByModel
 ```go
@@ -698,7 +698,7 @@ protoc --js_out=library=protobuf,binary:ws/js  ws/msg.proto
 	}, &test)
 	t.Log(test)
 ```
-#### es7ES7版本API
+#### es7 ES7版本API
 ##### es_test.go
 ###### TestCreateIndexByModel
 ```go
@@ -934,7 +934,7 @@ protoc --js_out=library=protobuf,binary:ws/js  ws/msg.proto
 	}, &test)
 	t.Log(test)
 ```
-### kafkakafka消息队列
+### kafka kafka消息队列
 #### kafka_test.go
 ##### TestKafkaProducer
 ```go
@@ -975,7 +975,7 @@ protoc --js_out=library=protobuf,binary:ws/js  ws/msg.proto
 
 	time.Sleep(time.Second * 5)
 ```
-### mongomongo数据库
+### mongo mongo数据库
 #### collection_test.go
 ##### TestInsert
 ```go
@@ -1036,8 +1036,8 @@ protoc --js_out=library=protobuf,binary:ws/js  ws/msg.proto
 
 	log.Info(ctx, "result: %v", result)
 ```
-### redisgo-redis
-## logzap日志库
+### redis go-redis
+## log zap日志库
 ### zap_test.go
 #### TestZap
 ```go
@@ -1097,8 +1097,8 @@ protoc --js_out=library=protobuf,binary:ws/js  ws/msg.proto
 
 	fmt.Println(LogMore(), "============")
 ```
-## middleware中间件
-### captcha_test.go验证码模块
+## middleware 中间件
+### captcha_test.go 验证码模块
 #### TestVerifyCaptcha
 ```go
 
@@ -1131,7 +1131,7 @@ protoc --js_out=library=protobuf,binary:ws/js  ws/msg.proto
 	})
 	router.Run(":8080")
 ```
-### limit_conn_test.go限连接模块
+### limit_conn_test.go 限连接模块
 #### TestLimitConn
 ```go
 
@@ -1174,7 +1174,7 @@ protoc --js_out=library=protobuf,binary:ws/js  ws/msg.proto
 	//}
 	time.Sleep(time.Minute * 20)
 ```
-### limit_req_test.go限流模块
+### limit_req_test.go 限流模块
 #### TestLimitReq
 ```go
 
@@ -1217,7 +1217,7 @@ protoc --js_out=library=protobuf,binary:ws/js  ws/msg.proto
 	//}
 	time.Sleep(time.Minute * 20)
 ```
-### service_handler_test.goservice封装器
+### service_handler_test.go service封装器
 #### TestServiceHandler
 ```go
 
@@ -1226,7 +1226,7 @@ protoc --js_out=library=protobuf,binary:ws/js  ws/msg.proto
 
 	router.Run(":8080")
 ```
-### thumb_image_test.go缩略图
+### thumb_image_test.go 缩略图
 #### TestThumbImageServe
 ```go
 
@@ -1234,8 +1234,8 @@ protoc --js_out=library=protobuf,binary:ws/js  ws/msg.proto
 	router.Use(ThumbImageServe("/images", GinHttpFs("G:/images", false)))
 	router.Run(":8080")
 ```
-## net网络库
-### httpx兼容http1.x和2.0的httpclient
+## net 网络库
+### httpx 兼容http1.x和2.0的httpclient
 #### httpclientx_test.go
 ##### TestHttpXGet
 ```go
@@ -1265,8 +1265,8 @@ protoc --js_out=library=protobuf,binary:ws/js  ws/msg.proto
 		t.Log(resp.Proto)
 	}
 ```
-### packettcp包model
-### proxyssh proxy
+### packet tcp包model
+### proxy ssh proxy
 #### ssh_client_test.go
 ##### TestSshClient
 ```go
@@ -1313,9 +1313,9 @@ protoc --js_out=library=protobuf,binary:ws/js  ws/msg.proto
 
 	}
 ```
-### serverx兼容http1.x和2.0的http server
-## utils通用工具库
-### buffer_invoker异步调用
+### serverx 兼容http1.x和2.0的http server
+## utils 通用工具库
+### buffer_invoker 异步调用
 #### buffer_invoker_test.go
 ##### TestFuncBuffer
 ```go
@@ -1342,10 +1342,12 @@ protoc --js_out=library=protobuf,binary:ws/js  ws/msg.proto
 
 	time.Sleep(time.Second * 60)
 ```
-### cbk熔断器
+### cbk 熔断器
 #### cbk_test.go
 ##### TestCbkFailed
 ```go
+
+	InitCbk()
 
 	var ok bool
 	var lastBreaked bool
@@ -1374,7 +1376,7 @@ protoc --js_out=library=protobuf,binary:ws/js  ws/msg.proto
 		//})
 	}
 ```
-### csvCSV文件解析为MDB内存表
+### csv CSV文件解析为MDB内存表
 #### csv_parse_test.go
 ##### TestReadCsvToDataTable
 ```go
@@ -1396,7 +1398,7 @@ protoc --js_out=library=protobuf,binary:ws/js  ws/msg.proto
 
 	t.Log(dt.Row("17"))
 ```
-### distlock分布式锁
+### distlock 分布式锁
 #### consullock_test.go
 ##### TestAquireConsulLock
 ```go
@@ -1470,9 +1472,9 @@ protoc --js_out=library=protobuf,binary:ws/js  ws/msg.proto
 
 	//t.Log(l2.Lock(5))
 ```
-### fsm有限状态机
-### hchttpclient工具
-### ismtp邮件工具
+### fsm 有限状态机
+### hc httpclient工具
+### ismtp 邮件工具
 #### ismtp_test.go
 ##### TestSendEmail
 ```go
@@ -1507,12 +1509,15 @@ protoc --js_out=library=protobuf,binary:ws/js  ws/msg.proto
 
 	return
 ```
-### safego安全的go协程
-## wswebsocket客户端和服务段库
+### safego 安全的go协程
+## ws websocket客户端和服务段库
 ### js
 ### wss_test.go
 #### TestWssRun
 ```go
+
+	InitServer()
+	InitClient()
 
 	e := gin.Default()
 	e.GET("/join", join)

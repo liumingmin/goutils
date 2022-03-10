@@ -103,7 +103,7 @@ func genDirLevel(dirName string, level int, sb *strings.Builder) {
 
 	dirCnName, ok := moduleCnName[dirName]
 	if ok {
-		dirCnName = dirName + dirCnName
+		dirCnName = dirName + " " + dirCnName
 	} else {
 		dirCnName = dirName
 	}
