@@ -63,7 +63,7 @@ var moduleCnName = map[string]string{
 	"ismtp":                   "邮件工具",
 	"safego":                  "安全的go协程",
 	"ws":                      "websocket客户端和服务端库",
-	"docgen":                  "文档自动生产",
+	"docgen":                  "文档自动生成",
 }
 
 //dir := filepath.Dir(filePath)
