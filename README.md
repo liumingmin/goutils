@@ -38,11 +38,12 @@ gotuils目标是快速搭建应用的辅助代码库,扫码加讨论群。
   * [cbk 熔断器](#cbk-%E7%86%94%E6%96%AD%E5%99%A8)
   * [csv CSV文件解析为MDB内存表](#csv-csv%E6%96%87%E4%BB%B6%E8%A7%A3%E6%9E%90%E4%B8%BAmdb%E5%86%85%E5%AD%98%E8%A1%A8)
   * [distlock 分布式锁](#distlock-%E5%88%86%E5%B8%83%E5%BC%8F%E9%94%81)
+  * [docgen 文档自动生产](#docgen-%E6%96%87%E6%A1%A3%E8%87%AA%E5%8A%A8%E7%94%9F%E4%BA%A7)
   * [fsm 有限状态机](#fsm-%E6%9C%89%E9%99%90%E7%8A%B6%E6%80%81%E6%9C%BA)
   * [hc httpclient工具](#hc-httpclient%E5%B7%A5%E5%85%B7)
   * [ismtp 邮件工具](#ismtp-%E9%82%AE%E4%BB%B6%E5%B7%A5%E5%85%B7)
   * [safego 安全的go协程](#safego-%E5%AE%89%E5%85%A8%E7%9A%84go%E5%8D%8F%E7%A8%8B)
-- [ws websocket客户端和服务段库](#ws-websocket%E5%AE%A2%E6%88%B7%E7%AB%AF%E5%92%8C%E6%9C%8D%E5%8A%A1%E6%AE%B5%E5%BA%93)
+- [ws websocket客户端和服务端库](#ws-websocket%E5%AE%A2%E6%88%B7%E7%AB%AF%E5%92%8C%E6%9C%8D%E5%8A%A1%E7%AB%AF%E5%BA%93)
   * [js](#js)
   * [wss_test.go](#wss_testgo)
 
@@ -1472,6 +1473,34 @@ protoc --js_out=library=protobuf,binary:ws/js  ws/msg.proto
 
 	//t.Log(l2.Lock(5))
 ```
+### docgen 文档自动生产
+#### cmd
+##### doc
+##### testuser_test.go
+###### TestGenDocTestUser
+```go
+
+	sb := strings.Builder{}
+	sb.WriteString(genDocTestUserQuery())
+	sb.WriteString(genDocTestUserCreate())
+	sb.WriteString(genDocTestUserUpdate())
+	sb.WriteString(genDocTestUserDelete())
+
+	docgen.GenDoc(context.Background(), "用户管理", "doc/TestUser.md", 2, sb.String())
+```
+#### doc
+#### docgen_test.go
+##### TestGenDocTestUser
+```go
+
+	sb := strings.Builder{}
+	sb.WriteString(genDocTestUserQuery())
+	sb.WriteString(genDocTestUserCreate())
+	sb.WriteString(genDocTestUserUpdate())
+	sb.WriteString(genDocTestUserDelete())
+
+	GenDoc(context.Background(), "用户管理", "doc/testuser.md", 2, sb.String())
+```
 ### fsm 有限状态机
 ### hc httpclient工具
 ### ismtp 邮件工具
@@ -1510,7 +1539,7 @@ protoc --js_out=library=protobuf,binary:ws/js  ws/msg.proto
 	return
 ```
 ### safego 安全的go协程
-## ws websocket客户端和服务段库
+## ws websocket客户端和服务端库
 ### js
 ### wss_test.go
 #### TestWssRun

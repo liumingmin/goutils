@@ -18,6 +18,7 @@ type ServiceResponse interface {
 	IsJsonResponse(data interface{}) bool
 	NewErrRespWithCode(code int, err error, data interface{}, tag string) interface{}
 	NewDataResponse(data interface{}, tag string) interface{}
+	GetCode() int
 }
 
 const (
@@ -113,4 +114,8 @@ func (t *DefaultServiceResponse) NewDataResponse(data interface{}, tag string) i
 	r.Data = data
 	r.Tag = tag
 	return &r
+}
+
+func (t *DefaultServiceResponse) GetCode() int {
+	return t.Code
 }
