@@ -1,17 +1,17 @@
 package csv
 
 import (
+	"bytes"
 	"context"
 	"encoding/csv"
+	"errors"
 	"io/ioutil"
 	"os"
 	"strings"
 
-	"github.com/liumingmin/goutils/utils"
-
 	"github.com/liumingmin/goutils/container"
-
 	"github.com/liumingmin/goutils/log"
+	"github.com/liumingmin/goutils/utils"
 )
 
 func ReadCsvToDataTable(ctx context.Context, filePath string, comma rune, colNames []string, pkCol string,
@@ -28,7 +28,7 @@ func ReadCsvToDataTable(ctx context.Context, filePath string, comma rune, colNam
 	log.Info(ctx, "%s keys: %v, %d", filePath, keys, len(keys))
 
 	dataTable = container.NewDataTable(keys, pkCol, indexes, len(rowsData))
-	dataTable.PushAll(rowsData[1:])
+	dataTable.PushAll(rowsData)
 
 	return
 }
@@ -88,15 +88,26 @@ func ParseCsv(ctx context.Context, filePath string, comma rune) (records [][]str
 		return
 	}
 
-	fileContent, err := utils.GBK2UTF8(bs)
-	contentStr := string(fileContent)
+	var fileContent []byte
+	if utils.IsUtf8(bs) {
+		fileContent = bs
+	} else if utils.IsGBK(bs) {
+		fileContent, err = utils.GBK2UTF8(bs)
+		if err != nil {
+			log.Error(ctx, "GBK2UTF8: %v failed. error: %v", filePath, err)
+			return
+		}
+	} else {
+		err = errors.New("unsupport encoding")
+		return
+	}
 
-	csvReader := csv.NewReader(strings.NewReader(contentStr))
+	csvReader := csv.NewReader(bytes.NewReader(fileContent))
 	csvReader.Comma = comma
 	csvReader.LazyQuotes = true
 	records, err = csvReader.ReadAll() // `rows` is of type [][]string
 	if err != nil {
-		records = ParseCsvRaw(ctx, contentStr)
+		records = ParseCsvRaw(ctx, string(fileContent))
 		err = nil
 		log.Error(ctx, "Read file %s failed. error: %v, try parse raw: %v", filePath, err, len(records))
 	}

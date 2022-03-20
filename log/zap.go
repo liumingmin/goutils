@@ -11,7 +11,7 @@ import (
 	"go.uber.org/zap/zapcore"
 )
 
-const LOG_TRADE_ID = "__traceId"
+const LOG_TRADE_ID = "__GTraceId__"
 
 var (
 	logger      *zap.Logger

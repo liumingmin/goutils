@@ -7,6 +7,9 @@ gotuils目标是快速搭建应用的辅助代码库,扫码加讨论群。
 
 - [ws模块用法](#ws%E6%A8%A1%E5%9D%97%E7%94%A8%E6%B3%95)
 - [常用工具库](#%E5%B8%B8%E7%94%A8%E5%B7%A5%E5%85%B7%E5%BA%93)
+- [algorithm](#algorithm)
+  * [crc16_test.go crc16算法](#crc16_testgo-crc16%E7%AE%97%E6%B3%95)
+  * [descartes_test.go 笛卡尔组合](#descartes_testgo-%E7%AC%9B%E5%8D%A1%E5%B0%94%E7%BB%84%E5%90%88)
 - [cache 缓存模块](#cache-%E7%BC%93%E5%AD%98%E6%A8%A1%E5%9D%97)
   * [mem_cache_test.go 内存缓存](#mem_cache_testgo-%E5%86%85%E5%AD%98%E7%BC%93%E5%AD%98)
   * [rds_cache_test.go Redis缓存](#rds_cache_testgo-redis%E7%BC%93%E5%AD%98)
@@ -74,6 +77,22 @@ protoc --js_out=library=protobuf,binary:ws/js  ws/msg.proto
 |utils.go|其他工具类 |  
 
 ​                     
+## algorithm
+### crc16_test.go crc16算法
+#### TestCrc16
+```go
+
+	t.Log(Crc16([]byte("abcdefg")))
+```
+### descartes_test.go 笛卡尔组合
+#### TestDescartes
+```go
+
+	result := DescartesCombine([][]string{{"A", "B"}, {"1", "2", "3"}, {"a", "b", "c", "d"}})
+	for _, item := range result {
+		t.Log(item)
+	}
+```
 ## cache 缓存模块
 ### mem_cache_test.go 内存缓存
 #### TestMemCacheFunc
@@ -1038,6 +1057,34 @@ protoc --js_out=library=protobuf,binary:ws/js  ws/msg.proto
 	log.Info(ctx, "result: %v", result)
 ```
 ### redis go-redis
+#### zset_test.go Redis ZSet工具库
+##### TestZDescartes
+```go
+
+	InitRedises()
+	rds := Get("rdscdb")
+	ctx := context.Background()
+	dimValues := [][]string{{"dim1a", "dim1b"}, {"dim2a", "dim2b", "dim2c", "dim2d"}, {"dim3a", "dim3b", "dim3c"}}
+
+	dt, err := csv.ReadCsvToDataTable(ctx, "data.csv", ',',
+		[]string{"id", "name", "createtime", "dim1", "dim2", "dim3", "member"}, "id", []string{})
+	if err != nil {
+		t.Log(err)
+		return
+	}
+
+	ZDescartes(ctx, rds, dimValues, func(strs []string) (string, map[string]int64) {
+		dimData := make(map[string]int64)
+		for _, row := range dt.Rows() {
+			if row.String("dim1") == strs[0] &&
+				row.String("dim2") == strs[1] &&
+				row.String("dim3") == strs[2] {
+				dimData[row.String("member")] = row.Int64("createtime")
+			}
+		}
+		return "rds" + strings.Join(strs, "-"), dimData
+	}, 1000, 30)
+```
 ## log zap日志库
 ### zap_test.go
 #### TestZap

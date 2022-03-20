@@ -207,8 +207,8 @@ func MergeStructs(src, dest interface{}, f StructConvFunc, keyField string, fiel
 	return nil
 }
 
-func fieldMappingToIndex(srcElemType, destElemType reflect.Type, fieldMapping ...string) []TupleInts {
-	tupleInts := make([]TupleInts, 0)
+func fieldMappingToIndex(srcElemType, destElemType reflect.Type, fieldMapping ...string) []structTupleInts {
+	tupleInts := make([]structTupleInts, 0)
 	for _, item := range fieldMapping {
 		keyFields := strings.Split(item, ":")
 		if len(keyFields) < 2 {
@@ -228,12 +228,12 @@ func fieldMappingToIndex(srcElemType, destElemType reflect.Type, fieldMapping ..
 			continue
 		}
 
-		tupleInts = append(tupleInts, TupleInts{Ints1: srcField.Index, Ints2: dstField.Index})
+		tupleInts = append(tupleInts, structTupleInts{Ints1: srcField.Index, Ints2: dstField.Index})
 	}
 	return tupleInts
 }
 
-func copyStructFields(src, dest interface{}, f StructConvFunc, tupleInts []TupleInts) {
+func copyStructFields(src, dest interface{}, f StructConvFunc, tupleInts []structTupleInts) {
 	srcValue := reflect.Indirect(reflect.ValueOf(src))
 	destValue := reflect.Indirect(reflect.ValueOf(dest))
 
@@ -284,4 +284,9 @@ func BaseConvert(src interface{}, dstType reflect.Type) interface{} {
 		}
 	}
 	return nil
+}
+
+type structTupleInts struct {
+	Ints1 []int
+	Ints2 []int
 }

@@ -16,8 +16,13 @@ func (r *DataRow) String(fieldName string) string {
 	return ""
 }
 
-func (r *DataRow) Int(fieldName string) int {
-	i, _ := strconv.Atoi(r.String(fieldName))
+func (r *DataRow) Int64(fieldName string) int64 {
+	i, _ := strconv.ParseInt(r.String(fieldName), 10, 64)
+	return i
+}
+
+func (r *DataRow) UInt64(fieldName string) uint64 {
+	i, _ := strconv.ParseUint(r.String(fieldName), 10, 64)
 	return i
 }
 

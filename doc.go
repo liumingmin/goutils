@@ -64,6 +64,9 @@ var moduleCnName = map[string]string{
 	"safego":                  "安全的go协程",
 	"ws":                      "websocket客户端和服务端库",
 	"docgen":                  "文档自动生成",
+	"crc16_test.go":           "crc16算法",
+	"descartes_test.go":       "笛卡尔组合",
+	"zset_test.go":            "Redis ZSet工具库",
 }
 
 //dir := filepath.Dir(filePath)
