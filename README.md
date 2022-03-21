@@ -1057,6 +1057,24 @@ protoc --js_out=library=protobuf,binary:ws/js  ws/msg.proto
 	log.Info(ctx, "result: %v", result)
 ```
 ### redis go-redis
+#### list_test.go Redis List工具库
+##### TestList
+```go
+
+	InitRedises()
+	rds := Get("rdscdb")
+	ctx := context.Background()
+
+	err := ListPush(ctx, rds, "test_list", "stringvalue")
+	t.Log(err)
+	ListPop(rds, []string{"test_list"}, 3600, 1000, func(key, data string) {
+		fmt.Println(key, data)
+	})
+
+	err = ListPush(ctx, rds, "test_list", "stringvalue")
+	t.Log(err)
+	time.Sleep(time.Second * 20)
+```
 #### zset_test.go Redis ZSet工具库
 ##### TestZDescartes
 ```go
@@ -1073,7 +1091,7 @@ protoc --js_out=library=protobuf,binary:ws/js  ws/msg.proto
 		return
 	}
 
-	ZDescartes(ctx, rds, dimValues, func(strs []string) (string, map[string]int64) {
+	err = ZDescartes(ctx, rds, dimValues, func(strs []string) (string, map[string]int64) {
 		dimData := make(map[string]int64)
 		for _, row := range dt.Rows() {
 			if row.String("dim1") == strs[0] &&
@@ -1084,6 +1102,8 @@ protoc --js_out=library=protobuf,binary:ws/js  ws/msg.proto
 		}
 		return "rds" + strings.Join(strs, "-"), dimData
 	}, 1000, 30)
+
+	t.Log(err)
 ```
 ## log zap日志库
 ### zap_test.go

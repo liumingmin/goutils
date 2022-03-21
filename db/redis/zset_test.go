@@ -21,7 +21,7 @@ func TestZDescartes(t *testing.T) {
 		return
 	}
 
-	ZDescartes(ctx, rds, dimValues, func(strs []string) (string, map[string]int64) {
+	err = ZDescartes(ctx, rds, dimValues, func(strs []string) (string, map[string]int64) {
 		dimData := make(map[string]int64)
 		for _, row := range dt.Rows() {
 			if row.String("dim1") == strs[0] &&
@@ -32,4 +32,6 @@ func TestZDescartes(t *testing.T) {
 		}
 		return "rds" + strings.Join(strs, "-"), dimData
 	}, 1000, 30)
+
+	t.Log(err)
 }

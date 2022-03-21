@@ -66,6 +66,7 @@ var moduleCnName = map[string]string{
 	"docgen":                  "文档自动生成",
 	"crc16_test.go":           "crc16算法",
 	"descartes_test.go":       "笛卡尔组合",
+	"list_test.go":            "Redis List工具库",
 	"zset_test.go":            "Redis ZSet工具库",
 }
 

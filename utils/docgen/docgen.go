@@ -128,15 +128,11 @@ func genRespDoc(ctx context.Context, moduleName, moduleUri string, paramMap map[
 				commonRespPtr.Tag = moduleUri
 				respModel = commonRespPtr
 				code = commonRespPtr.Code
-			}
-
-			if commonResp, ok := resp.(middleware.DefaultServiceResponse); ok {
+			} else if commonResp, ok := resp.(middleware.DefaultServiceResponse); ok {
 				commonResp.Tag = moduleUri
 				respModel = commonResp
 				code = commonResp.Code
-			}
-
-			if commonResp, ok := resp.(middleware.ServiceResponse); ok {
+			} else if commonResp, ok := resp.(middleware.ServiceResponse); ok {
 				respModel = commonResp
 				code = commonResp.GetCode()
 			}
