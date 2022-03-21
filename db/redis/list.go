@@ -65,7 +65,6 @@ func listPopLoop(ctx context.Context, rds redis.UniversalClient, keys []string, 
 				default:
 				}
 			}()
-			log.Debug(ctx, "listPopLoop: %s", kvReply)
 			handler(kvReply[0], kvReply[1]) //handler(listKey,value)
 		})
 	}

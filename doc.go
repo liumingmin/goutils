@@ -68,6 +68,8 @@ var moduleCnName = map[string]string{
 	"descartes_test.go":       "笛卡尔组合",
 	"list_test.go":            "Redis List工具库",
 	"zset_test.go":            "Redis ZSet工具库",
+	"mq_test.go":              "Redis PubSub工具库",
+	"lock_test.go":            "Redis 锁工具库",
 }
 
 //dir := filepath.Dir(filePath)

@@ -1075,6 +1075,76 @@ protoc --js_out=library=protobuf,binary:ws/js  ws/msg.proto
 	t.Log(err)
 	time.Sleep(time.Second * 20)
 ```
+#### lock_test.go Redis 锁工具库
+##### TestRdsAllowActionWithCD
+```go
+
+	InitRedises()
+	rds := Get("rdscdb")
+	ctx := context.Background()
+
+	cd, ok := RdsAllowActionWithCD(ctx, rds, "test:action", 2)
+	t.Log(cd, ok)
+	cd, ok = RdsAllowActionWithCD(ctx, rds, "test:action", 2)
+	t.Log(cd, ok)
+	time.Sleep(time.Second * 3)
+
+	cd, ok = RdsAllowActionWithCD(ctx, rds, "test:action", 2)
+	t.Log(cd, ok)
+```
+##### TestRdsAllowActionByMTs
+```go
+
+	InitRedises()
+	rds := Get("rdscdb")
+	ctx := context.Background()
+
+	cd, ok := RdsAllowActionByMTs(ctx, rds, "test:action", 500, 10)
+	t.Log(cd, ok)
+	cd, ok = RdsAllowActionByMTs(ctx, rds, "test:action", 500, 10)
+	t.Log(cd, ok)
+	time.Sleep(time.Second)
+
+	cd, ok = RdsAllowActionByMTs(ctx, rds, "test:action", 500, 10)
+	t.Log(cd, ok)
+```
+##### TestRdsLockResWithCD
+```go
+
+	InitRedises()
+	rds := Get("rdscdb")
+	ctx := context.Background()
+
+	ok := RdsLockResWithCD(ctx, rds, "test:res", "res-1", 3)
+	t.Log(ok)
+	ok = RdsLockResWithCD(ctx, rds, "test:res", "res-2", 3)
+	t.Log(ok)
+	time.Sleep(time.Second * 4)
+
+	ok = RdsLockResWithCD(ctx, rds, "test:res", "res-2", 3)
+	t.Log(ok)
+```
+#### mq_test.go Redis PubSub工具库
+##### TestMqPSubscribe
+```go
+
+	InitRedises()
+	rds := Get("rdscdb")
+	ctx := context.Background()
+
+	MqPSubscribe(ctx, rds, "testkey:*", func(channel string, data string) {
+		fmt.Println(channel, data)
+	}, 10)
+
+	err := MqPublish(ctx, rds, "testkey:1", "id:1")
+	t.Log(err)
+	err = MqPublish(ctx, rds, "testkey:2", "id:2")
+	t.Log(err)
+	err = MqPublish(ctx, rds, "testkey:3", "id:3")
+	t.Log(err)
+
+	time.Sleep(time.Second * 3)
+```
 #### zset_test.go Redis ZSet工具库
 ##### TestZDescartes
 ```go
