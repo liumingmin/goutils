@@ -361,8 +361,8 @@ type MappingModel struct {
 }
 
 type Mapping struct {
-	Dynamic    bool                              `json:"dynamic"` // false
-	Properties map[string]map[string]interface{} `json:"properties"`
+	Dynamic    bool                                      `json:"dynamic"` // false
+	Properties map[string]*elasticsearch.MappingProperty `json:"properties"`
 }
 
 type Settings struct {

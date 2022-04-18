@@ -1,5 +1,7 @@
 package elasticsearch
 
+import "encoding/json"
+
 type QueryModel struct {
 	IndexName string
 	TypeName  string
@@ -24,4 +26,38 @@ type AggregateModel struct {
 	TypeName  string
 	Source    string
 	AggKeys   []string
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+type MappingProperty struct {
+	Type     string                      `json:"type"`               //
+	Index    bool                        `json:"index,omitempty"`    //
+	Analyzer string                      `json:"analyzer,omitempty"` //
+	Fields   map[string]*MappingProperty `json:"fields,omitempty"`   //
+	ExtProps map[string]interface{}      `json:"-"`
+}
+
+func (t *MappingProperty) MarshalJSON() ([]byte, error) {
+	propJson, err := json.Marshal(*t)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(t.ExtProps) == 0 {
+		return propJson, nil
+	}
+
+	var props map[string]interface{}
+	err = json.Unmarshal(propJson, &props)
+	if err != nil {
+		return nil, err
+	}
+
+	for k, v := range t.ExtProps {
+		if _, ok := props[k]; !ok {
+			props[k] = v
+		}
+	}
+	return json.Marshal(props)
 }

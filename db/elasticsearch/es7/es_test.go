@@ -28,19 +28,32 @@ func TestCreateIndexByModel(t *testing.T) {
 	err := client.CreateIndexByModel(context.Background(), testUserIndexName, &MappingModel{
 		Mapping: Mapping{
 			Dynamic: false,
-			Properties: map[string]map[string]interface{}{
+			Properties: map[string]*elasticsearch.MappingProperty{
 				"userId": {
-					"type":  "text",
-					"index": false,
+					Type:  "text",
+					Index: false,
 				},
 				"nickname": {
-					"type": "text",
+					Type:     "text",
+					Analyzer: "standard",
+					Fields: map[string]*elasticsearch.MappingProperty{
+						"std": {
+							Type:     "text",
+							Analyzer: "standard",
+							ExtProps: map[string]interface{}{
+								"term_vector": "with_offsets",
+							},
+						},
+						"keyword": {
+							Type: "keyword",
+						},
+					},
 				},
 				"status": {
-					"type": "keyword",
+					Type: "keyword",
 				},
 				"pType": {
-					"type": "keyword",
+					Type: "keyword",
 				},
 			},
 		},
