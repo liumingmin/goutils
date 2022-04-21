@@ -48,6 +48,7 @@ gotuils目标是快速搭建应用的辅助代码库,扫码加讨论群。
   * [ismtp 邮件工具](#ismtp-%E9%82%AE%E4%BB%B6%E5%B7%A5%E5%85%B7)
   * [safego 安全的go协程](#safego-%E5%AE%89%E5%85%A8%E7%9A%84go%E5%8D%8F%E7%A8%8B)
   * [snowflake](#snowflake)
+  * [tags_test.go 结构体TAG生成器](#tags_testgo-%E7%BB%93%E6%9E%84%E4%BD%93tag%E7%94%9F%E6%88%90%E5%99%A8)
 - [ws websocket客户端和服务端库](#ws-websocket%E5%AE%A2%E6%88%B7%E7%AB%AF%E5%92%8C%E6%9C%8D%E5%8A%A1%E7%AB%AF%E5%BA%93)
   * [js](#js)
   * [wss_test.go](#wss_testgo)
@@ -1733,6 +1734,23 @@ protoc --js_out=library=protobuf,binary:ws/js  ws/msg.proto
 ```
 ### safego 安全的go协程
 ### snowflake
+#### snowflake_test.go 雪花ID生成器
+##### TestSnowflake
+```go
+
+	n, _ := NewNode(1)
+	t.Log(n.Generate(), ",", n.Generate(), ",", n.Generate())
+```
+### tags_test.go 结构体TAG生成器
+#### TestAutoGenTags
+```go
+
+	fmt.Println(AutoGenTags(testUser{}, map[string]TAG_STYLE{
+		"json": TAG_STYLE_SNAKE,
+		"bson": TAG_STYLE_UNDERLINE,
+		"form": TAG_STYLE_ORIG,
+	}))
+```
 ## ws websocket客户端和服务端库
 ### js
 ### wss_test.go

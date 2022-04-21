@@ -70,6 +70,8 @@ var moduleCnName = map[string]string{
 	"zset_test.go":            "Redis ZSet工具库",
 	"mq_test.go":              "Redis PubSub工具库",
 	"lock_test.go":            "Redis 锁工具库",
+	"tags_test.go":            "结构体TAG生成器",
+	"snowflake_test.go":       "雪花ID生成器",
 }
 
 //dir := filepath.Dir(filePath)
