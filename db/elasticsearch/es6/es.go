@@ -366,7 +366,7 @@ type Mapping struct {
 }
 
 type Settings struct {
-	IndexMappingIgnoreMalformed bool  `json:"index.mapping.ignore_malformed"` // true
-	NumberOfReplicas            int64 `json:"number_of_replicas"`             // 1
-	NumberOfShards              int64 `json:"number_of_shards"`               // 3
+	IndexMappingIgnoreMalformed bool  `json:"index.mapping.ignore_malformed,omitempty"` // true
+	NumberOfReplicas            int64 `json:"number_of_replicas"`                       // 1
+	NumberOfShards              int64 `json:"number_of_shards"`                         // 3
 }

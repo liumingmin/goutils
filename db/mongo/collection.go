@@ -3,6 +3,8 @@ package mongo
 import (
 	"context"
 
+	"go.mongodb.org/mongo-driver/bson"
+
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -106,6 +108,20 @@ func (c *CollectionOp) Aggregate(ctx context.Context, pipeline interface{}, resu
 	return c.client.Aggregate(ctx, c.collection, pipeline, result)
 }
 
-func (c *CollectionOp) Upsert(ctx context.Context, selector interface{}, updateOp interface{}) error {
+//setOnInsertM only write on insert
+func (c *CollectionOp) Upsert(ctx context.Context, selector interface{}, updateOp bson.M, setOnInsertItem interface{}) error {
+	if setOnInsertItem != nil {
+		updateOp["$setOnInsert"] = setOnInsertItem
+	}
 	return c.client.Update(ctx, c.collection, selector, updateOp, options.Update().SetUpsert(true))
+}
+
+func (c *CollectionOp) BulkUpdateItems(ctx context.Context, bulkUpdateItems []*BulkUpdateItem,
+	opts ...*options.BulkWriteOptions) error {
+	return c.client.BulkUpdateItems(ctx, c.collection, bulkUpdateItems, opts...)
+}
+
+func (c *CollectionOp) BulkUpsertItem(ctx context.Context, bulkUpertItems []*BulkUpsertItem,
+	opts ...*options.BulkWriteOptions) error {
+	return c.client.BulkUpsertItems(ctx, c.collection, bulkUpertItems, opts...)
 }

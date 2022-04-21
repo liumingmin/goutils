@@ -1084,6 +1084,47 @@ protoc --js_out=library=protobuf,binary:ws/js  ws/msg.proto
 
 	log.Info(ctx, "result: %v", result)
 ```
+##### TestUpert
+```go
+
+	ctx := context.Background()
+	InitClients()
+	c, _ := MgoClient(dbKey)
+
+	op := NewCompCollectionOp(c, dbName, collectionName)
+	err := op.Upsert(ctx, bson.M{"name": "tom2"}, bson.M{"$set": bson.M{"birth": "2020"}}, bson.M{"birth2": "2024"})
+	t.Log(err)
+```
+##### TestBulkUpdateItems
+```go
+
+	ctx := context.Background()
+	InitClients()
+	c, _ := MgoClient(dbKey)
+
+	op := NewCompCollectionOp(c, dbName, collectionName)
+
+	err := op.BulkUpdateItems(ctx, []*BulkUpdateItem{
+		{Selector: bson.M{"name": "tom"}, Update: bson.M{"$set": bson.M{"birth": "1"}}},
+		{Selector: bson.M{"name": "tom1"}, Update: bson.M{"$set": bson.M{"birth2": "2"}}},
+	})
+	t.Log(err)
+```
+##### TestBulkUpsertItems
+```go
+
+	ctx := context.Background()
+	InitClients()
+	c, _ := MgoClient(dbKey)
+
+	op := NewCompCollectionOp(c, dbName, collectionName)
+
+	err := op.BulkUpsertItem(ctx, []*BulkUpsertItem{
+		{Selector: bson.M{"name": "tim"}, Replacement: bson.M{"name": "tim", "birth": "3"}},
+		{Selector: bson.M{"name": "tim1"}, Replacement: bson.M{"name": "tim1", "birth2": "4"}},
+	})
+	t.Log(err)
+```
 ### redis go-redis
 #### list_test.go Redis List工具库
 ##### TestList

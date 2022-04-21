@@ -294,10 +294,9 @@ func (client *Client) Upsert(ctx context.Context, collection *mongo.Collection, 
 }
 
 type BulkUpdateItem struct {
-	Selector    bson.M
-	Update      bson.M
-	Replacement interface{}
-	IsMulti     bool
+	Selector bson.M
+	Update   bson.M
+	IsMulti  bool
 }
 
 func (client *Client) BulkUpdateItems(ctx context.Context, collection *mongo.Collection, bulkUpdateItems []*BulkUpdateItem,
@@ -320,15 +319,22 @@ func (client *Client) BulkUpdateItems(ctx context.Context, collection *mongo.Col
 	return client.BulkUpdate(ctx, collection, bulkModels, opts...)
 }
 
+type BulkUpsertItem struct {
+	Selector    bson.M
+	Replacement interface{}
+}
+
 //The replacement parameter must be a document that will be used to replace the selected document.
 //It cannot be nil and cannot contain any update operators
-func (client *Client) BulkUpsertItems(ctx context.Context, collection *mongo.Collection, bulkUpdateItems []*BulkUpdateItem,
+func (client *Client) BulkUpsertItems(ctx context.Context, collection *mongo.Collection, bulkUpsertItems []*BulkUpsertItem,
 	opts ...*options.BulkWriteOptions) error {
 	bulkModels := make([]mongo.WriteModel, 0)
-	for _, bulkUpdateItem := range bulkUpdateItems {
+	upsert := true
+	for _, bulkUpsertItem := range bulkUpsertItems {
 		upsertModel := mongo.NewReplaceOneModel()
-		upsertModel.Filter = bulkUpdateItem.Selector
-		upsertModel.Replacement = bulkUpdateItem.Replacement
+		upsertModel.Filter = bulkUpsertItem.Selector
+		upsertModel.Replacement = bulkUpsertItem.Replacement
+		upsertModel.Upsert = &upsert
 		bulkModels = append(bulkModels, upsertModel)
 	}
 	return client.BulkUpdate(ctx, collection, bulkModels, opts...)
