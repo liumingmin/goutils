@@ -52,7 +52,10 @@ func listPopLoop(ctx context.Context, rds redis.UniversalClient, keys []string, 
 		}
 
 		if !timer.Stop() {
-			<-timer.C
+			select {
+			case <-timer.C:
+			default:
+			}
 		}
 		timer.Reset(timerTick)
 

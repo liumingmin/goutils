@@ -41,7 +41,10 @@ func MqPSubscribe(c context.Context, rds redis.UniversalClient, pChannel string,
 					}
 
 					if !timer.Stop() {
-						<-timer.C
+						select {
+						case <-timer.C:
+						default:
+						}
 					}
 					timer.Reset(timerTick)
 
