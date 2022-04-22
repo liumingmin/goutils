@@ -51,6 +51,9 @@ func listPopLoop(ctx context.Context, rds redis.UniversalClient, keys []string, 
 			continue
 		}
 
+		if !timer.Stop() {
+			<-timer.C
+		}
 		timer.Reset(timerTick)
 
 		select {
