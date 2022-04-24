@@ -6,9 +6,11 @@ databases:
   -
     key: testDbKey
     type: mongo
-    host: 10.11.179.167:27017
+    host: 127.0.0.1:27017
     user:
     password:
     ext:
       direct: true
       maxPoolSize: 2
+      mode: "primary"
+      safe: {"w":1}
