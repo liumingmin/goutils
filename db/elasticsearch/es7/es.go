@@ -331,16 +331,10 @@ func (t *Client) CreateIndexByModel(ctx context.Context, esIndexName string, mod
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 type MappingModel struct {
 	Mapping  `json:"mappings"`
-	Settings `json:"settings"`
+	Settings elasticsearch.MappingSettings `json:"settings"`
 }
 
 type Mapping struct {
 	Dynamic    bool                                      `json:"dynamic"` // false
 	Properties map[string]*elasticsearch.MappingProperty `json:"properties"`
-}
-
-type Settings struct {
-	IndexMappingIgnoreMalformed bool  `json:"index.mapping.ignore_malformed,omitempty"` // true
-	NumberOfReplicas            int64 `json:"number_of_replicas"`                       // 1
-	NumberOfShards              int64 `json:"number_of_shards"`                         // 3
 }

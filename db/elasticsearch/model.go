@@ -61,3 +61,13 @@ func (t *MappingProperty) MarshalJSON() ([]byte, error) {
 	}
 	return json.Marshal(props)
 }
+
+type MappingSettings struct {
+	SettingsIndex `json:"index"`
+}
+
+type SettingsIndex struct {
+	IgnoreMalformed  bool `json:"mapping.ignore_malformed,omitempty"` // true
+	NumberOfReplicas int  `json:"number_of_replicas"`                 // 1
+	NumberOfShards   int  `json:"number_of_shards"`                   // 3
+}

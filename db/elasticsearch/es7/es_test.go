@@ -57,10 +57,12 @@ func TestCreateIndexByModel(t *testing.T) {
 				},
 			},
 		},
-		Settings: Settings{
-			IndexMappingIgnoreMalformed: true,
-			NumberOfReplicas:            1,
-			NumberOfShards:              3,
+		Settings: elasticsearch.MappingSettings{
+			SettingsIndex: elasticsearch.SettingsIndex{
+				IgnoreMalformed:  true,
+				NumberOfReplicas: 2,
+				NumberOfShards:   3,
+			},
 		},
 	})
 
