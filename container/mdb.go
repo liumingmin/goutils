@@ -75,6 +75,20 @@ func NewDataTable(cols []string, pkCol string, indexes []string, initCap int) *D
 	return dt
 }
 
+//meta info
+func (t *DataTable) Cols() []string {
+	return t.cols[:]
+}
+
+func (t *DataTable) PkCol() string {
+	return t.pkCol
+}
+
+func (t *DataTable) Indexes() []string {
+	return t.indexes[:]
+}
+
+//data info
 func (t *DataTable) Row(pk string) *DataRow {
 	return t.pkMap[pk]
 }
