@@ -11,6 +11,10 @@ type DataRow struct {
 
 func (r *DataRow) String(fieldName string) string {
 	if colIdx, ok := r.colMap[fieldName]; ok {
+		if colIdx >= len(r.row) {
+			return ""
+		}
+
 		return r.row[colIdx]
 	}
 	return ""
