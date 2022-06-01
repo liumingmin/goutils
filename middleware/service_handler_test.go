@@ -9,7 +9,7 @@ import (
 
 func TestServiceHandler(t *testing.T) {
 	router := gin.New()
-	router.POST("/foo", ServiceHandler(serviceFoo, fooReq{}, &DefaultServiceResponse{}))
+	router.POST("/foo", ServiceHandler(serviceFoo, fooReq{}, nil))
 
 	router.Run(":8080")
 }

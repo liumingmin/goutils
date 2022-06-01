@@ -14,11 +14,15 @@ import (
 
 type ServiceFunc func(context.Context, interface{}) (interface{}, error)
 
-type ServiceResponse interface {
+type ServiceRespFactory interface {
 	IsJsonResponse(data interface{}) bool
-	NewErrRespWithCode(code int, err error, data interface{}, tag string) interface{}
-	NewDataResponse(data interface{}, tag string) interface{}
+	NewErrRespWithCode(code int, err error, data interface{}, tag string) ServiceResponse
+	NewDataResponse(data interface{}, tag string) ServiceResponse
+}
+
+type ServiceResponse interface {
 	GetCode() int
+	GetMsg() string
 }
 
 const (
@@ -33,11 +37,15 @@ type Errorx3 interface {
 	LogLevel() zapcore.Level
 }
 
-func ServiceHandler(serviceFunc ServiceFunc, reqVal interface{}, sResp ServiceResponse) func(*gin.Context) {
+func ServiceHandler(serviceFunc ServiceFunc, reqVal interface{}, respFactory ServiceRespFactory) func(*gin.Context) {
 	var reqType reflect.Type = nil
 	if reqVal != nil {
 		value := reflect.Indirect(reflect.ValueOf(reqVal))
 		reqType = value.Type()
+	}
+
+	if respFactory == nil {
+		respFactory = defaultServiceRespFactory
 	}
 
 	return func(c *gin.Context) {
@@ -50,7 +58,7 @@ func ServiceHandler(serviceFunc ServiceFunc, reqVal interface{}, sResp ServiceRe
 
 			if err := c.ShouldBindBodyWith(req, binding.JSON); err != nil {
 				log.Error(c, "Bind json failed. error: %v", err)
-				c.JSON(http.StatusOK, sResp.NewErrRespWithCode(WrongArgs, err, nil, tag))
+				c.JSON(http.StatusOK, respFactory.NewErrRespWithCode(WrongArgs, err, nil, tag))
 				return
 			}
 		}
@@ -69,32 +77,30 @@ func ServiceHandler(serviceFunc ServiceFunc, reqVal interface{}, sResp ServiceRe
 			}
 
 			log.Log(c, lvl, tag+" failed. error: %v", err)
-			c.JSON(http.StatusOK, sResp.NewErrRespWithCode(code, err, data, tag))
+			c.JSON(http.StatusOK, respFactory.NewErrRespWithCode(code, err, data, tag))
 			return
 		}
 
-		if data != nil && !sResp.IsJsonResponse(data) {
+		if data != nil && !respFactory.IsJsonResponse(data) {
 			return
 		}
 
-		c.JSON(http.StatusOK, sResp.NewDataResponse(data, tag))
+		c.JSON(http.StatusOK, respFactory.NewDataResponse(data, tag))
 	}
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-type DefaultServiceResponse struct {
-	Code int         `json:"code"`
-	Msg  string      `json:"msg"`
-	Tag  string      `json:"tag,omitempty"`
-	Data interface{} `json:"data"`
+var defaultServiceRespFactory = &DefaultServiceRespFactory{}
+
+type DefaultServiceRespFactory struct {
 }
 
-func (t *DefaultServiceResponse) IsJsonResponse(data interface{}) bool {
+func (t *DefaultServiceRespFactory) IsJsonResponse(data interface{}) bool {
 	return true
 }
 
-func (t *DefaultServiceResponse) NewErrRespWithCode(code int, err error, data interface{}, tag string) interface{} {
+func (t *DefaultServiceRespFactory) NewErrRespWithCode(code int, err error, data interface{}, tag string) ServiceResponse {
 	var r DefaultServiceResponse
 	r.Code = code
 	r.Data = data
@@ -107,7 +113,7 @@ func (t *DefaultServiceResponse) NewErrRespWithCode(code int, err error, data in
 
 	return &r
 }
-func (t *DefaultServiceResponse) NewDataResponse(data interface{}, tag string) interface{} {
+func (t *DefaultServiceRespFactory) NewDataResponse(data interface{}, tag string) ServiceResponse {
 	var r DefaultServiceResponse
 	r.Msg = "success"
 	r.Code = Success
@@ -116,6 +122,17 @@ func (t *DefaultServiceResponse) NewDataResponse(data interface{}, tag string) i
 	return &r
 }
 
+type DefaultServiceResponse struct {
+	Code int         `json:"code"`
+	Msg  string      `json:"msg"`
+	Tag  string      `json:"tag,omitempty"`
+	Data interface{} `json:"data"`
+}
+
 func (t *DefaultServiceResponse) GetCode() int {
 	return t.Code
+}
+
+func (t *DefaultServiceResponse) GetMsg() string {
+	return t.Msg
 }
