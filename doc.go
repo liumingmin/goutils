@@ -128,7 +128,19 @@ func parseTestCode(level int, content string, sb *strings.Builder) {
 		genDirLevel(item[1], level+1, sb)
 
 		sb.WriteString("```go\n")
-		sb.WriteString(item[2] + "\n")
+		sb.WriteString(removePrefixTab(item[2]) + "\n")
 		sb.WriteString("```\n")
 	}
+}
+
+func removePrefixTab(code string) string {
+	lines := strings.Split(code, "\n")
+	newLines := make([]string, 0)
+	for _, line := range lines {
+		if strings.HasPrefix(line, "\t") {
+			line = strings.Replace(line, "\t", "", 1)
+		}
+		newLines = append(newLines, line)
+	}
+	return strings.Join(newLines, "\n")
 }
