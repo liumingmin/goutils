@@ -6,21 +6,29 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/liumingmin/goutils/db/redis"
+	"github.com/go-redis/redis/v8"
+	redisDao "github.com/liumingmin/goutils/db/redis"
 	"github.com/liumingmin/goutils/log"
 )
 
 func TestRdscCacheFunc(t *testing.T) {
-	redis.InitRedises()
+	redisDao.InitRedises()
 	ctx := context.Background()
 
 	const cacheKey = "UT:%v:%v"
 	const RDSC_DB = "rdscdb"
 
-	rds := redis.Get(RDSC_DB)
+	rds := redisDao.Get(RDSC_DB)
 
 	result, err := RdsCacheFunc(ctx, rds, 60, rawGetFunc0, cacheKey, "p1", "p2")
 	log.Info(ctx, "%v %v %v", result, err, printKind(result))
+
+	_rdsDeleteCacheTestMore(ctx, rds, cacheKey)
+}
+
+func _rdsDeleteCacheTestMore(ctx context.Context, rds redis.UniversalClient, cacheKey string) {
+	var result interface{}
+	var err error
 
 	result, err = RdsCacheFunc(ctx, rds, 60, rawGetFunc0, cacheKey, "p1", "p2")
 	log.Info(ctx, "%v %v %v", result, err, printKind(result))
@@ -189,11 +197,11 @@ func rawGetFunc9(p1, p2 string) (map[string]string, error) {
 //}
 
 func TestRdsCacheMultiFunc(t *testing.T) {
-	redis.InitRedises()
+	redisDao.InitRedises()
 	ctx := context.Background()
 	const RDSC_DB = "rdscdb"
 
-	rds := redis.Get(RDSC_DB)
+	rds := redisDao.Get(RDSC_DB)
 	result, err := RdsCacheMultiFunc(ctx, rds, 30, getThingsByIds, "multikey:%s", []string{"1", "2", "5", "3", "4", "10"})
 	if err == nil && result != nil {
 		mapValue, ok := result.(map[string]*Thing)

@@ -22,15 +22,61 @@ type Log struct {
 }
 
 type Database struct {
-	Key         string                 `yaml:"key"`
-	Type        string                 `yaml:"type"`
-	Host        string                 `yaml:"host"`
-	Name        string                 `yaml:"name"`
-	User        string                 `yaml:"user"`
-	Password    string                 `yaml:"password"`
-	MinPoolSize int                    `yaml:"minPoolSize"`
-	MaxPoolSize int                    `yaml:"maxPoolSize"`
-	EXT         map[string]interface{} `yaml:",flow"`
+	Key      string                 `yaml:"key"`
+	Addrs    []string               `yaml:"addrs,flow"`
+	User     string                 `yaml:"user"`
+	Password string                 `yaml:"password"`
+	DBName   string                 `yaml:"dbName"`
+	EXT      map[string]interface{} `yaml:",flow"`
+}
+
+type DBSsh struct {
+	On      bool   `yaml:"on"`
+	Address string `yaml:"address"` //ip:port
+	User    string `yaml:"user"`    //ssh user
+	PriKey  string `yaml:"priKey"`  //base64
+	KeyPass string `yaml:"keyPass"` //key password
+}
+
+type Mongo struct {
+	Database   `yaml:",inline"`
+	AuthSource string `yaml:"authSource"`
+
+	// 连接管理
+	Direct         bool          `yaml:"direct"`
+	ConnectTimeout time.Duration `yaml:"connectTimeout"` //连接超时. 默认为10秒
+	Keepalive      time.Duration `yaml:"keepalive"`      //DialInfo.DialServer实现
+	WriteTimeout   time.Duration `yaml:"writeTimeout"`   //写超时, 默认为ConnectTimeout
+	ReadTimeout    time.Duration `yaml:"readTimeout"`    //读超时, 默认为ConnectTimeout
+	Compressors    []string      `yaml:"compressors,flow"`
+
+	// 连接池管理
+	MinPoolSize       int `yaml:"minPoolSize"`       //对应DialInfo.MinPoolSize
+	MaxPoolSize       int `yaml:"maxPoolSize"`       //对应DialInfo.PoolLimit
+	MaxPoolWaitTimeMS int `yaml:"maxPoolWaitTimeMS"` //对应DialInfo.PoolTimeout获取连接超时, 默认为0永不超时
+	MaxPoolIdleTimeMS int `yaml:"maxPoolIdleTimeMS"` //对应DialInfo.MaxIdleTimeMS
+
+	//读写偏好
+	Mode string     `yaml:"mode"`
+	Safe *MongoSafe `yaml:"safe"`
+
+	//ssh tune(experimental)
+	Ssh *DBSsh `yaml:"ssh"`
+}
+
+type MongoSafe struct {
+	W        int    `yaml:"w"`        // Min # of servers to ack before success
+	WMode    string `yaml:"wMode"`    // Write mode for MongoDB 2.0+ (e.g. "majority")
+	RMode    string `yaml:"rMode"`    // Read mode for MonogDB 3.2+ ("majority", "local", "linearizable")
+	WTimeout int    `yaml:"wTimeout"` // Milliseconds to wait for W before timing out
+	FSync    bool   `yaml:"fSync"`    // Sync via the journal if present, or via data files sync otherwise
+	J        bool   `yaml:"j"`        // Sync via the journal if present
+}
+
+type Elasticsearch struct {
+	Database    `yaml:",inline"`
+	Type        string `yaml:"type"`
+	MaxPoolSize int    `yaml:"maxPoolSize"`
 }
 
 type Redis struct {
@@ -106,12 +152,13 @@ func (d *Database) ExtBool(key string, defaultVal ...interface{}) bool {
 }
 
 type Config struct {
-	Log            Log                    `yaml:"log,flow"`
-	Databases      []*Database            `yaml:"databases,flow"`
-	Redises        []*Redis               `yaml:"redises,flow"`
-	KafkaProducers []*KafkaProducer       `yaml:"kafkaProducers,flow"`
-	KafkaConsumers []*KafkaConsumer       `yaml:"kafkaConsumers,flow"`
-	EXT            map[string]interface{} `yaml:"ext,flow"`
+	Log             Log                    `yaml:"log,flow"`
+	Mongos          []*Mongo               `yaml:"mongos,flow"`
+	Elasticsearches []*Elasticsearch       `yaml:"elasticsearches,flow"`
+	Redises         []*Redis               `yaml:"redises,flow"`
+	KafkaProducers  []*KafkaProducer       `yaml:"kafkaProducers,flow"`
+	KafkaConsumers  []*KafkaConsumer       `yaml:"kafkaConsumers,flow"`
+	EXT             map[string]interface{} `yaml:"ext,flow"`
 }
 
 // Ext will return the value of the EXT config, the keys is a string

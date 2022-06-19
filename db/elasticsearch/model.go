@@ -2,6 +2,11 @@ package elasticsearch
 
 import "encoding/json"
 
+const (
+	ES6 = "es6"
+	ES7 = "es7"
+)
+
 type QueryModel struct {
 	IndexName string
 	TypeName  string

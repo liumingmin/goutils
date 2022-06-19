@@ -2,15 +2,13 @@ package mongo
 
 import (
 	"context"
+	"encoding/base64"
 	"errors"
 	"fmt"
 	"net"
-	"os"
 	"reflect"
 	"strings"
 	"time"
-
-	"github.com/liumingmin/goutils/db"
 
 	"github.com/liumingmin/goutils/conf"
 	"github.com/liumingmin/goutils/log"
@@ -43,127 +41,136 @@ func MgoClient(key string) (mongo *Client, err error) {
 }
 
 func InitClients() {
-	dbs := conf.Conf.Databases
-	if dbs == nil {
-		fmt.Fprintf(os.Stderr, "No database configuration")
+	dbs := conf.Conf.Mongos
+	if len(dbs) == 0 {
 		return
 	}
 
 	for _, database := range dbs {
-		if database.Type == db.MONGO {
-			client, err := initClient(database)
-			if err != nil {
-				continue
-			}
-
-			mgoClients[database.Key] = client
+		client, err := initClient(database)
+		if err != nil {
+			continue
 		}
+
+		mgoClients[database.Key] = client
 	}
 }
 
-func initClient(dbconf *conf.Database) (ret *Client, err error) {
-	return NewClient(newConfig(dbconf))
-}
-
-func NewClient(opt *Config) (ret *Client, err error) {
+func initClient(dbconf *conf.Mongo) (ret *Client, err error) {
 	opts := options.Client()
-	opts.SetHosts(opt.Address)
-	if opt.Username != "" {
+	opts.SetHosts(dbconf.Addrs)
+	if dbconf.User != "" {
 		var auth options.Credential
-		auth.Username = opt.Username
-		auth.Password = opt.Password
+		auth.Username = dbconf.User
+		auth.Password = dbconf.Password
 		auth.PasswordSet = true
-		if opt.Source != "" {
-			auth.AuthSource = opt.Source
+		if dbconf.AuthSource != "" {
+			auth.AuthSource = dbconf.AuthSource
 		} else {
-			auth.AuthSource = opt.Database
+			auth.AuthSource = dbconf.DBName
 		}
 		opts.SetAuth(auth)
 	}
-	if len(opt.Compressors) > 0 {
-		opts.SetCompressors(opt.Compressors)
+
+	if len(dbconf.Compressors) > 0 {
+		opts.SetCompressors(dbconf.Compressors)
 	}
 
-	if opt.SshOn {
-		sshConfig, err := proxy.NewSshClient(opt.SshAddress, opt.SshUser, opt.SshKey, opt.SshKeyPass)
+	if dbconf.Ssh != nil && dbconf.Ssh.On {
+		var sshKey []byte
+		if dbconf.Ssh.PriKey != "" {
+			sshKey, err = base64.StdEncoding.DecodeString(dbconf.Ssh.PriKey)
+			if err != nil {
+				log.Error(context.Background(), "Decode sshKeyB64 failed: %v", err)
+				return nil, err
+			}
+		}
+
+		sshConfig, err := proxy.NewSshClient(dbconf.Ssh.Address, dbconf.Ssh.User, sshKey, dbconf.Ssh.KeyPass)
 		if err != nil {
 			log.Error(context.Background(), "NewSshClient err: %v", err)
+			return nil, err
 		}
 		opts.SetDialer(sshConfig)
 	} else {
 		var dialer net.Dialer
-		if opt.Keepalive > 0 {
-			dialer.KeepAlive = opt.Keepalive
+		if dbconf.Keepalive > 0 {
+			dialer.KeepAlive = dbconf.Keepalive
 		}
 
-		if opt.ConnectTimeout > 0 {
-			dialer.Timeout = opt.ConnectTimeout
+		if dbconf.ConnectTimeout > 0 {
+			dialer.Timeout = dbconf.ConnectTimeout
 		}
 		opts.SetDialer(&dialer)
 	}
 
-	if opt.ConnectTimeout > 0 {
-		opts.SetConnectTimeout(opt.ConnectTimeout)
+	if dbconf.ConnectTimeout > 0 {
+		opts.SetConnectTimeout(dbconf.ConnectTimeout)
 	}
 
-	opts.SetDirect(opt.Direct)
+	opts.SetDirect(dbconf.Direct)
 
-	socketTimeout := opt.ReadTimeout
-	if socketTimeout < opt.WriteTimeout {
-		socketTimeout = opt.WriteTimeout
+	socketTimeout := dbconf.ReadTimeout
+	if socketTimeout < dbconf.WriteTimeout {
+		socketTimeout = dbconf.WriteTimeout
 	}
 	if socketTimeout > 0 {
 		opts.SetSocketTimeout(socketTimeout)
 	}
 
-	if opt.MaxPoolIdleTimeMS > 0 {
-		opts.SetMaxConnIdleTime(time.Duration(opt.MaxPoolIdleTimeMS) * time.Millisecond)
+	if dbconf.MaxPoolIdleTimeMS > 0 {
+		opts.SetMaxConnIdleTime(time.Duration(dbconf.MaxPoolIdleTimeMS) * time.Millisecond)
 	}
-	if opt.MaxPoolSize > 0 {
-		opts.SetMaxPoolSize(uint64(opt.MaxPoolSize))
+	if dbconf.MaxPoolSize > 0 {
+		opts.SetMaxPoolSize(uint64(dbconf.MaxPoolSize))
 	}
-	if opt.MinPoolSize > 0 {
-		opts.SetMinPoolSize(uint64(opt.MinPoolSize))
+	if dbconf.MinPoolSize > 0 {
+		opts.SetMinPoolSize(uint64(dbconf.MinPoolSize))
 	}
-	if opt.MaxPoolWaitTimeMS > 0 {
-		opts.SetServerSelectionTimeout(time.Duration(opt.MaxPoolWaitTimeMS) * time.Millisecond)
+	if dbconf.MaxPoolWaitTimeMS > 0 {
+		opts.SetServerSelectionTimeout(time.Duration(dbconf.MaxPoolWaitTimeMS) * time.Millisecond)
 	}
 
-	if opt.Mode > 0 {
+	//mode
+	mode := getMode(dbconf.Mode)
+	if mode > 0 {
 		var pref *readpref.ReadPref
-		if pref, err = readpref.New(opt.Mode); err != nil {
+		if pref, err = readpref.New(mode); err != nil {
 			return
 		}
 		opts.SetReadPreference(pref)
 	}
 
-	if opt.Safe != nil {
-
-		if opt.Safe.RMode != "" {
-			opts.SetReadConcern(readconcern.New(readconcern.Level(strings.ToLower(opt.Safe.RMode))))
-		}
-
-		var ops []writeconcern.Option
-		if opt.Safe.J {
-			ops = append(ops, writeconcern.J(true))
-		}
-		if opt.Safe.W > 0 {
-			ops = append(ops, writeconcern.W(opt.Safe.W))
-		}
-		if strings.ToLower(opt.Safe.WMode) == "majority" {
-			ops = append(ops, writeconcern.WMajority())
-		}
-		if opt.Safe.WTimeout > 0 {
-			ops = append(ops, writeconcern.WTimeout(time.Duration(opt.Safe.WTimeout)*time.Millisecond))
-		}
-		opts.SetWriteConcern(writeconcern.New(ops...))
+	//safe
+	if dbconf.Safe == nil {
+		dbconf.Safe = &conf.MongoSafe{W: 1}
+	}
+	if dbconf.Safe.RMode != "" {
+		opts.SetReadConcern(readconcern.New(readconcern.Level(strings.ToLower(dbconf.Safe.RMode))))
 	}
 
+	var ops []writeconcern.Option
+	if dbconf.Safe.J {
+		ops = append(ops, writeconcern.J(true))
+	}
+	if dbconf.Safe.W > 0 {
+		ops = append(ops, writeconcern.W(dbconf.Safe.W))
+	}
+	if strings.ToLower(dbconf.Safe.WMode) == "majority" {
+		ops = append(ops, writeconcern.WMajority())
+	}
+	if dbconf.Safe.WTimeout > 0 {
+		ops = append(ops, writeconcern.WTimeout(time.Duration(dbconf.Safe.WTimeout)*time.Millisecond))
+	}
+	opts.SetWriteConcern(writeconcern.New(ops...))
+
+	//time
 	useLocalTimeZone := true
 	tc := bsoncodec.NewTimeCodec(&bsonoptions.TimeCodecOptions{UseLocalTimeZone: &useLocalTimeZone})
 	r := bson.NewRegistryBuilder().RegisterTypeDecoder(reflect.TypeOf(time.Time{}), tc).Build()
 	opts.SetRegistry(r)
 
+	//finished
 	log.Info(context.Background(), "mgo official readPreference: %s, writeConcern: %#v",
 		opts.ReadPreference.Mode(), opts.WriteConcern)
 
@@ -175,6 +182,27 @@ func NewClient(opt *Config) (ret *Client, err error) {
 		Client: client,
 	}
 	return
+}
+
+func getMode(val interface{}) readpref.Mode {
+	switch val := val.(type) {
+	case string:
+		if val == "" {
+			return readpref.PrimaryMode
+		}
+
+		ret, err := readpref.ModeFromString(val)
+		if err != nil {
+			return readpref.PrimaryMode
+		}
+		return ret
+	case int:
+		return readpref.Mode(val)
+	case int64:
+		return readpref.Mode(val)
+	}
+	log.Error(context.Background(), "unsupport mode type: "+fmt.Sprint(val))
+	return readpref.PrimaryMode
 }
 
 //需要mongodb4.2以上才能支持事务

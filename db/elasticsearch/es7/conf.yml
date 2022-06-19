@@ -2,11 +2,11 @@ log:
   filename: "test.log"
   logLevel: debug
   stdout: true
-databases:
+elasticsearches:
   -
     key: testUser
     type: es7
-    host: http://127.0.0.1:9200
+    addrs: ["http://127.0.0.1:9200"]
     user:
     password:
     ext:

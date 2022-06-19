@@ -7,13 +7,11 @@ import (
 	"fmt"
 	"net"
 	"net/http"
-	"os"
 	"reflect"
 	"strings"
 	"time"
 
 	"github.com/liumingmin/goutils/conf"
-	"github.com/liumingmin/goutils/db"
 	"github.com/liumingmin/goutils/db/elasticsearch"
 	"github.com/liumingmin/goutils/log"
 
@@ -27,14 +25,13 @@ type Client struct {
 var esClients = make(map[string]*Client)
 
 func InitClients() {
-	dbs := conf.Conf.Databases
-	if dbs == nil {
-		fmt.Fprintf(os.Stderr, "No database configuration")
+	dbs := conf.Conf.Elasticsearches
+	if len(dbs) == 0 {
 		return
 	}
 
 	for _, database := range dbs {
-		if database.Type == db.ES6 {
+		if database.Type == elasticsearch.ES6 {
 			client, err := initClient(database)
 			if err != nil {
 				continue
@@ -45,7 +42,7 @@ func InitClients() {
 	}
 }
 
-func initClient(dbconf *conf.Database) (ret *Client, err error) {
+func initClient(dbconf *conf.Elasticsearch) (ret *Client, err error) {
 	defer log.Recover(context.Background(), func(e interface{}) string {
 		err = e.(error)
 		return fmt.Sprintf("initClient failed. error: %v", err)
@@ -53,8 +50,7 @@ func initClient(dbconf *conf.Database) (ret *Client, err error) {
 
 	//初始化
 	var options []elastic.ClientOptionFunc
-	hosts := strings.Split(dbconf.Host, ",")
-	options = append(options, elastic.SetURL(hosts...))
+	options = append(options, elastic.SetURL(dbconf.Addrs...))
 
 	if dbconf.User != "" {
 		options = append(options, elastic.SetBasicAuth(dbconf.User, dbconf.Password))
@@ -73,7 +69,7 @@ func initClient(dbconf *conf.Database) (ret *Client, err error) {
 	}
 
 	// http.DefaultClient.set
-	maxPerHost := dbconf.MaxPoolSize / len(hosts)
+	maxPerHost := dbconf.MaxPoolSize / len(dbconf.Addrs)
 	if maxPerHost > 2 {
 		httpClient := &http.Client{
 			Transport: &http.Transport{

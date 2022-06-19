@@ -58,6 +58,28 @@ func TestUpdate(t *testing.T) {
 	log.Info(ctx, "result: %v", result)
 }
 
+func TestFind(t *testing.T) {
+	ctx := context.Background()
+	InitClients()
+	c, _ := MgoClient(dbKey)
+
+	op := NewCompCollectionOp(c, dbName, collectionName)
+
+	var result []bson.M
+	err := op.Find(ctx, FindModel{
+		Query:   bson.M{"user_id": "1"},
+		Results: &result,
+	})
+	if err != nil {
+		log.Error(ctx, "Mgo find err: %v", err)
+		return
+	}
+
+	for _, item := range result {
+		t.Log(item)
+	}
+}
+
 func TestDelete(t *testing.T) {
 	ctx := context.Background()
 	InitClients()

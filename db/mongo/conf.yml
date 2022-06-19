@@ -2,15 +2,14 @@ log:
   filename: "test.log"
   logLevel: debug
   stdout: true
-databases:
+mongos:
   -
     key: testDbKey
-    type: mongo
-    host: 127.0.0.1:27017
+    addrs: ["127.0.0.1:27017"]
     user:
     password:
-    ext:
-      direct: true
-      maxPoolSize: 2
-      mode: "primary"
-      safe: {"w":1}
+    authSource: "admin"
+    direct: true
+    maxPoolSize: 2
+    #mode: "secondarypreferred"
+    #safe: {"w":2}

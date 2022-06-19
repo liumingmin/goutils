@@ -109,171 +109,33 @@ protoc --js_out=library=protobuf,binary:ws/js  ws/msg.proto
 	result, err := MemCacheFunc(ctx, lCache, 60*time.Second, rawGetFunc0, cacheKey, "p1", "p2")
 	log.Info(ctx, "%v %v %v", result, err, printKind(result))
 
-	result, err = MemCacheFunc(ctx, lCache, 60*time.Second, rawGetFunc0, cacheKey, "p1", "p2")
-	log.Info(ctx, "%v %v %v", result, err, printKind(result))
-	MemCacheDelete(ctx, lCache, cacheKey, "p1", "p2")
-
-	result, err = MemCacheFunc(ctx, lCache, 60*time.Second, rawGetFunc1, cacheKey, "p1", "p2")
-	log.Info(ctx, "%v %v %v", result, err, printKind(result))
-
-	result, err = MemCacheFunc(ctx, lCache, 60*time.Second, rawGetFunc1, cacheKey, "p1", "p2")
-	log.Info(ctx, "%v %v %v", result, err, printKind(result))
-	MemCacheDelete(ctx, lCache, cacheKey, "p1", "p2")
-
-	result, err = MemCacheFunc(ctx, lCache, 60*time.Second, rawGetFunc2, cacheKey, "p1", "p2")
-	log.Info(ctx, "%v %v %v", result, err, printKind(result))
-
-	result, err = MemCacheFunc(ctx, lCache, 60*time.Second, rawGetFunc2, cacheKey, "p1", "p2")
-	log.Info(ctx, "%v %v %v", result, err, printKind(result))
-	MemCacheDelete(ctx, lCache, cacheKey, "p1", "p2")
-
-	result, err = MemCacheFunc(ctx, lCache, 60*time.Second, rawGetFunc3, cacheKey, "p1", "p2")
-	log.Info(ctx, "%v %v %v", result, err, printKind(result))
-
-	result, err = MemCacheFunc(ctx, lCache, 60*time.Second, rawGetFunc3, cacheKey, "p1", "p2")
-	log.Info(ctx, "%v %v %v", result, err, printKind(result))
-	MemCacheDelete(ctx, lCache, cacheKey, "p1", "p2")
-
-	result, err = MemCacheFunc(ctx, lCache, 60*time.Second, rawGetFunc4, cacheKey, "p1", "p2")
-	log.Info(ctx, "%v %v %v", result, err, printKind(result))
-
-	result, err = MemCacheFunc(ctx, lCache, 60*time.Second, rawGetFunc4, cacheKey, "p1", "p2")
-	log.Info(ctx, "%v %v %v", result, err, printKind(result))
-	MemCacheDelete(ctx, lCache, cacheKey, "p1", "p2")
-
-	result, err = MemCacheFunc(ctx, lCache, 60*time.Second, rawGetFunc5, cacheKey, "p1", "p2")
-	log.Info(ctx, "%v %v %v", result, err, printKind(result))
-
-	result, err = MemCacheFunc(ctx, lCache, 60*time.Second, rawGetFunc5, cacheKey, "p1", "p2")
-	log.Info(ctx, "%v %v %v", result, err, printKind(result))
-	MemCacheDelete(ctx, lCache, cacheKey, "p1", "p2")
-
-	result, err = MemCacheFunc(ctx, lCache, 60*time.Second, rawGetFunc6, cacheKey, "p1", "p2")
-	log.Info(ctx, "%v %v %v", result, err, printKind(result))
-
-	result, err = MemCacheFunc(ctx, lCache, 60*time.Second, rawGetFunc6, cacheKey, "p1", "p2")
-	log.Info(ctx, "%v %v %v", drainToArray(result), err, printKind(result))
-	MemCacheDelete(ctx, lCache, cacheKey, "p1", "p2")
-
-	result, err = MemCacheFunc(ctx, lCache, 60*time.Second, rawGetFunc7, cacheKey, "p1", "p2")
-	log.Info(ctx, "%v %v %v", result, err, printKind(result))
-
-	result, err = MemCacheFunc(ctx, lCache, 60*time.Second, rawGetFunc7, cacheKey, "p1", "p2")
-	log.Info(ctx, "%v %v %v", drainToMap(result), err, printKind(result))
-	MemCacheDelete(ctx, lCache, cacheKey, "p1", "p2")
-
-	result, err = MemCacheFunc(ctx, lCache, 60*time.Second, rawGetFunc8, cacheKey, "p1", "p2")
-	log.Info(ctx, "%v %v %v", result, err, printKind(result))
-
-	result, err = MemCacheFunc(ctx, lCache, 60*time.Second, rawGetFunc8, cacheKey, "p1", "p2")
-	log.Info(ctx, "%v %v %v", result, err, printKind(result))
-	MemCacheDelete(ctx, lCache, cacheKey, "p1", "p2")
-
-	result, err = MemCacheFunc(ctx, lCache, 60*time.Second, rawGetFunc9, cacheKey, "p1", "p2")
-	log.Info(ctx, "%v %v %v", result, err, printKind(result))
-
-	result, err = MemCacheFunc(ctx, lCache, 60*time.Second, rawGetFunc9, cacheKey, "p1", "p2")
-	log.Info(ctx, "%v %v %v", result, err, printKind(result))
-	MemCacheDelete(ctx, lCache, cacheKey, "p1", "p2")
+	_memCacheFuncTestMore(ctx, lCache, cacheKey)
 ```
 ### rds_cache_test.go Redis缓存
 #### TestRdscCacheFunc
 ```go
 
-	redis.InitRedises()
+	redisDao.InitRedises()
 	ctx := context.Background()
 
 	const cacheKey = "UT:%v:%v"
 	const RDSC_DB = "rdscdb"
 
-	rds := redis.Get(RDSC_DB)
+	rds := redisDao.Get(RDSC_DB)
 
 	result, err := RdsCacheFunc(ctx, rds, 60, rawGetFunc0, cacheKey, "p1", "p2")
 	log.Info(ctx, "%v %v %v", result, err, printKind(result))
 
-	result, err = RdsCacheFunc(ctx, rds, 60, rawGetFunc0, cacheKey, "p1", "p2")
-	log.Info(ctx, "%v %v %v", result, err, printKind(result))
-	RdsDeleteCache(ctx, rds, cacheKey, "p1", "p2")
-
-	result, err = RdsCacheFunc(ctx, rds, 60, rawGetFunc1, cacheKey, "p1", "p2")
-	log.Info(ctx, "%v %v %v", result, err, printKind(result))
-
-	result, err = RdsCacheFunc(ctx, rds, 60, rawGetFunc1, cacheKey, "p1", "p2")
-	log.Info(ctx, "%v %v %v", result, err, printKind(result))
-	RdsDeleteCache(ctx, rds, cacheKey, "p1", "p2")
-
-	result, err = RdsCacheFunc(ctx, rds, 60, rawGetFunc2, cacheKey, "p1", "p2")
-	log.Info(ctx, "%v %v %v", result, err, printKind(result))
-
-	result, err = RdsCacheFunc(ctx, rds, 60, rawGetFunc2, cacheKey, "p1", "p2")
-	log.Info(ctx, "%v %v %v", result, err, printKind(result))
-	RdsDeleteCache(ctx, rds, cacheKey, "p1", "p2")
-
-	result, err = RdsCacheFunc(ctx, rds, 60, rawGetFunc3, cacheKey, "p1", "p2")
-	log.Info(ctx, "%v %v %v", result, err, printKind(result))
-
-	result, err = RdsCacheFunc(ctx, rds, 60, rawGetFunc3, cacheKey, "p1", "p2")
-	log.Info(ctx, "%v %v %v", result, err, printKind(result))
-	RdsDeleteCache(ctx, rds, cacheKey, "p1", "p2")
-
-	result, err = RdsCacheFunc(ctx, rds, 60, rawGetFunc4, cacheKey, "p1", "p2")
-	log.Info(ctx, "%v %v %v", result, err, printKind(result))
-
-	result, err = RdsCacheFunc(ctx, rds, 60, rawGetFunc4, cacheKey, "p1", "p2")
-	log.Info(ctx, "%v %v %v", result, err, printKind(result))
-	RdsDeleteCache(ctx, rds, cacheKey, "p1", "p2")
-
-	result, err = RdsCacheFunc(ctx, rds, 60, rawGetFunc5, cacheKey, "p1", "p2")
-	log.Info(ctx, "%v %v %v", result, err, printKind(result))
-
-	result, err = RdsCacheFunc(ctx, rds, 60, rawGetFunc5, cacheKey, "p1", "p2")
-	log.Info(ctx, "%v %v %v", result, err, printKind(result))
-	RdsDeleteCache(ctx, rds, cacheKey, "p1", "p2")
-
-	result, err = RdsCacheFunc(ctx, rds, 60, rawGetFunc6, cacheKey, "p1", "p2")
-	log.Info(ctx, "%v %v %v", result, err, printKind(result))
-
-	result, err = RdsCacheFunc(ctx, rds, 60, rawGetFunc6, cacheKey, "p1", "p2")
-	log.Info(ctx, "%v %v %v", drainToArray(result), err, printKind(result))
-	RdsDeleteCache(ctx, rds, cacheKey, "p1", "p2")
-
-	result, err = RdsCacheFunc(ctx, rds, 60, rawGetFunc7, cacheKey, "p1", "p2")
-	log.Info(ctx, "%v %v %v", result, err, printKind(result))
-
-	result, err = RdsCacheFunc(ctx, rds, 60, rawGetFunc7, cacheKey, "p1", "p2")
-	log.Info(ctx, "%v %v %v", drainToMap(result), err, printKind(result))
-	RdsDeleteCache(ctx, rds, cacheKey, "p1", "p2")
-
-	result, err = RdsCacheFunc(ctx, rds, 60, rawGetFunc8, cacheKey, "p1", "p2")
-	log.Info(ctx, "%v %v %v", result, err, printKind(result))
-
-	result, err = RdsCacheFunc(ctx, rds, 60, rawGetFunc8, cacheKey, "p1", "p2")
-	log.Info(ctx, "%v %v %v", result, err, printKind(result))
-	RdsDeleteCache(ctx, rds, cacheKey, "p1", "p2")
-
-	result, err = RdsCacheFunc(ctx, rds, 60, rawGetFunc9, cacheKey, "p1", "p2")
-	log.Info(ctx, "%v %v %v", result, err, printKind(result))
-
-	result, err = RdsCacheFunc(ctx, rds, 60, rawGetFunc9, cacheKey, "p1", "p2")
-	log.Info(ctx, "%v %v %v", result, err, printKind(result))
-	RdsDeleteCache(ctx, rds, cacheKey, "p1", "p2")
-
-	//result, err = RdsCacheFunc(ctx, rds, 60, rawGetFunc10, cacheKey, "p1", "p2")
-	//log.Info(ctx, "%v %v %v", result, err, printKind(result))
-	//
-	//result, err = RdsCacheFunc(ctx, rds, 60, rawGetFunc10, cacheKey, "p1", "p2")
-	//log.Info(ctx, "%v %v %v", result, err, printKind(result))
-
-	RdsDeleteCache(ctx, rds, cacheKey, "p1", "p2")
+	_rdsDeleteCacheTestMore(ctx, rds, cacheKey)
 ```
 #### TestRdsCacheMultiFunc
 ```go
 
-	redis.InitRedises()
+	redisDao.InitRedises()
 	ctx := context.Background()
 	const RDSC_DB = "rdscdb"
 
-	rds := redis.Get(RDSC_DB)
+	rds := redisDao.Get(RDSC_DB)
 	result, err := RdsCacheMultiFunc(ctx, rds, 30, getThingsByIds, "multikey:%s", []string{"1", "2", "5", "3", "4", "10"})
 	if err == nil && result != nil {
 		mapValue, ok := result.(map[string]*Thing)
@@ -518,10 +380,12 @@ protoc --js_out=library=protobuf,binary:ws/js  ws/msg.proto
 				},
 			},
 		},
-		Settings: Settings{
-			IndexMappingIgnoreMalformed: true,
-			NumberOfReplicas:            1,
-			NumberOfShards:              3,
+		Settings: elasticsearch.MappingSettings{
+			SettingsIndex: elasticsearch.SettingsIndex{
+				IgnoreMalformed:  true,
+				NumberOfReplicas: 1,
+				NumberOfShards:   3,
+			},
 		},
 	})
 
@@ -775,10 +639,12 @@ protoc --js_out=library=protobuf,binary:ws/js  ws/msg.proto
 				},
 			},
 		},
-		Settings: Settings{
-			IndexMappingIgnoreMalformed: true,
-			NumberOfReplicas:            1,
-			NumberOfShards:              3,
+		Settings: elasticsearch.MappingSettings{
+			SettingsIndex: elasticsearch.SettingsIndex{
+				IgnoreMalformed:  true,
+				NumberOfReplicas: 2,
+				NumberOfShards:   3,
+			},
 		},
 	})
 
@@ -1066,6 +932,29 @@ protoc --js_out=library=protobuf,binary:ws/js  ws/msg.proto
 	})
 
 	log.Info(ctx, "result: %v", result)
+```
+##### TestFind
+```go
+
+	ctx := context.Background()
+	InitClients()
+	c, _ := MgoClient(dbKey)
+
+	op := NewCompCollectionOp(c, dbName, collectionName)
+
+	var result []bson.M
+	err := op.Find(ctx, FindModel{
+		Query:   bson.M{"user_id": "1"},
+		Results: &result,
+	})
+	if err != nil {
+		log.Error(ctx, "Mgo find err: %v", err)
+		return
+	}
+
+	for _, item := range result {
+		t.Log(item)
+	}
 ```
 ##### TestDelete
 ```go
@@ -1430,7 +1319,7 @@ protoc --js_out=library=protobuf,binary:ws/js  ws/msg.proto
 ```go
 
 	router := gin.New()
-	router.POST("/foo", ServiceHandler(serviceFoo, fooReq{}, &DefaultServiceResponse{}))
+	router.POST("/foo", ServiceHandler(serviceFoo, fooReq{}, nil))
 
 	router.Run(":8080")
 ```
