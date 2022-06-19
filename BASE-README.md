@@ -1,7 +1,5 @@
 # github.com/liumingmin/goutils
-gotuils目标是快速搭建应用的辅助代码库,扫码加讨论群。
-
-<img src="avatar.jpg" width="150" height="150" ></img>
+gotuils目标是快速搭建应用的辅助代码库
 
 <!-- toc -->
 
