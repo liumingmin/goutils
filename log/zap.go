@@ -90,7 +90,7 @@ func init() {
 	logger = zap.New(core, caller, development, zap.AddCallerSkip(1))
 	stackLogger = logger.WithOptions(zap.AddStacktrace(zap.ErrorLevel), zap.AddCallerSkip(1))
 
-	Info(context.Background(), "log 初始化成功")
+	Debug(context.Background(), "log 初始化成功")
 }
 
 func CnTimeEncoder(t time.Time, enc zapcore.PrimitiveArrayEncoder) {
