@@ -1,4 +1,5 @@
 log:
-  filename: "test.log"
+  #filename: "test.log"
   logLevel: debug
   stdout: true
+  fileOut: true

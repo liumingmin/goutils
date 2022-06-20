@@ -4,6 +4,9 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"os/exec"
+	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/liumingmin/goutils/conf"
@@ -23,7 +26,16 @@ func init() {
 	hook := conf.Conf.Log.Logger
 
 	if hook.Filename == "" {
-		hook.Filename = "./goutils.log" // 日志文件路径
+		file, _ := exec.LookPath(os.Args[0])
+		filename := filepath.Base(file)
+		extName := filepath.Ext(filename)
+		logFileName := ""
+		if extName != "" {
+			logFileName = strings.Replace(filename, extName, ".log", -1)
+		} else {
+			logFileName = filename + ".log"
+		}
+		hook.Filename = logFileName // 日志文件路径
 	}
 	if hook.MaxSize == 0 {
 		hook.MaxSize = 128 // 每个日志文件保存的最大尺寸 单位：M
@@ -57,10 +69,10 @@ func init() {
 		MessageKey:     "msg",
 		StacktraceKey:  "stacktrace",
 		LineEnding:     zapcore.DefaultLineEnding,
-		EncodeLevel:    zapcore.CapitalColorLevelEncoder, // 小写编码器
-		EncodeTime:     CnTimeEncoder,                    // 时间格式
-		EncodeDuration: zapcore.SecondsDurationEncoder,   //
-		EncodeCaller:   zapcore.FullCallerEncoder,        // 全路径编码器
+		EncodeLevel:    zapcore.CapitalLevelEncoder,    // 小写编码器
+		EncodeTime:     CnTimeEncoder,                  // 时间格式
+		EncodeDuration: zapcore.SecondsDurationEncoder, //
+		EncodeCaller:   zapcore.ShortCallerEncoder,     // 路径编码器
 		EncodeName:     zapcore.FullNameEncoder,
 	}
 
