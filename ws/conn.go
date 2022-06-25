@@ -19,10 +19,27 @@ var (
 	Handlers = make(map[int32]Handler)
 )
 
+type connKind int8
+
+func (t connKind) String() string {
+	if t == CONN_KIND_CLIENT {
+		return "client"
+	}
+	if t == CONN_KIND_SERVER {
+		return "server"
+	}
+	return ""
+}
+
+type msgSendWrapper struct {
+	pbMessage *P_MESSAGE   // 消息体
+	sc        SendCallback // 消息发送回调接口
+}
+
 //websocket连接封装
 type Connection struct {
 	id         string
-	typ        ConnType
+	typ        connKind
 	meta       ConnectionMeta   //连接信息
 	conn       *websocket.Conn  //websocket connection
 	sendBuffer chan interface{} //发送缓冲区  *msgSendWrapper or *P_MESSAGE
@@ -151,28 +168,35 @@ func (c *Connection) closeWrite(ctx context.Context) {
 		return fmt.Sprintf("Close writer panic, error is: %v", e)
 	})
 
-	c.commonDataLock.Lock()
-	defer c.commonDataLock.Unlock()
-
 	size := len(c.sendBuffer)
 	for i := 0; i < size; i++ {
 		msg, isok := <-c.sendBuffer
 		if isok {
-			PutPMessageIntfs(msg)
+			c.putPMessageIntfs(msg)
 		} else {
-			break
+			return //buffer has closed
 		}
 	}
 
 	select {
 	case msg, isok := <-c.sendBuffer:
 		if isok {
-			PutPMessageIntfs(msg)
+			c.putPMessageIntfs(msg)
 			close(c.sendBuffer)
 		}
-		break
+		return
 	default:
 		close(c.sendBuffer)
+	}
+}
+
+func (c *Connection) putPMessageIntfs(message interface{}) {
+	msg, ok := message.(*P_MESSAGE) //优先判断
+	if ok {
+		PutPMessage(msg)
+	} else {
+		w := message.(*msgSendWrapper)
+		PutPMessage(w.pbMessage)
 	}
 }
 
@@ -211,9 +235,9 @@ func (c *Connection) writeToConnection() {
 		log.Debug(context.Background(), "%v write finish. id: %v, ptr: %p", c.typ, c.id, c)
 		ticker.Stop()
 
-		if c.typ == CONN_TYPE_CLIENT {
+		if c.typ == CONN_KIND_CLIENT {
 			c.KickServer(false)
-		} else if c.typ == CONN_TYPE_SERVER {
+		} else if c.typ == CONN_KIND_SERVER {
 			c.KickClient(false)
 		}
 	}()
@@ -252,9 +276,9 @@ func (c *Connection) writeToConnection() {
 func (c *Connection) readFromConnection() {
 	defer func() {
 		log.Debug(context.Background(), "%v read finish. id: %v, ptr: %p", c.typ, c.id, c)
-		if c.typ == CONN_TYPE_CLIENT {
+		if c.typ == CONN_KIND_CLIENT {
 			c.KickServer(false)
-		} else if c.typ == CONN_TYPE_SERVER {
+		} else if c.typ == CONN_KIND_SERVER {
 			c.KickClient(false)
 		}
 	}()

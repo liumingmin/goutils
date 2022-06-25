@@ -11,20 +11,16 @@ var (
 )
 
 func GetPMessage() *P_MESSAGE {
-	return pbMessagePool.Get().(*P_MESSAGE)
+	pMsg := pbMessagePool.Get().(*P_MESSAGE)
+	pMsg.Type = P_MSG_POOL
+	return pMsg
 }
 
 func PutPMessage(msg *P_MESSAGE) {
+	if msg.Type != P_MSG_POOL {
+		return
+	}
+
 	msg.Reset()
 	pbMessagePool.Put(msg)
-}
-
-func PutPMessageIntfs(message interface{}) {
-	msg, ok := message.(*P_MESSAGE) //优先判断
-	if ok {
-		PutPMessage(msg)
-	} else {
-		w := message.(*msgSendWrapper)
-		PutPMessage(w.pbMessage)
-	}
 }

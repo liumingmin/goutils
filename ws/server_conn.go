@@ -35,7 +35,7 @@ func AcceptGin(ctx *gin.Context, meta ConnectionMeta, opts ...ConnOption) (*Conn
 func Accept(ctx context.Context, w http.ResponseWriter, r *http.Request, meta ConnectionMeta, opts ...ConnOption) (*Connection, error) {
 	connection := &Connection{
 		id:         meta.BuildConnId(),
-		typ:        CONN_TYPE_SERVER,
+		typ:        CONN_KIND_SERVER,
 		meta:       meta,
 		commonData: make(map[string]interface{}),
 		upgrader:   defaultUpgrader,

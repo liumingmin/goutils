@@ -8,6 +8,7 @@ message P_MESSAGE
 {
     int32                   protocol_id             = 1;    //消息协议ID
     bytes                   data                    = 2;    //内容-自定义消息
+    int32                   type                    = 3;    //消息类型 0-非对象池消息 1-对象池消息
 }
 
 //基础协议

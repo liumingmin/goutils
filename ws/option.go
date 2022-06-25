@@ -2,6 +2,9 @@ package ws
 
 import "github.com/gorilla/websocket"
 
+// 连接动态参数选项
+type ConnOption func(*Connection)
+
 //通用option
 func ConnectCbOption(connCallback IConnCallback) ConnOption {
 	return func(conn *Connection) {
