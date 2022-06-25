@@ -1,26 +1,31 @@
 package ws
 
-import "sync"
+import (
+	"sync"
+)
 
 var (
-	pbMessagePool = sync.Pool{
+	messagePool = sync.Pool{
 		New: func() interface{} {
-			return &P_MESSAGE{}
+			msg := NewMessage()
+			msg.isPool = true
+			return msg
 		},
 	}
 )
 
-func GetPMessage() *P_MESSAGE {
-	pMsg := pbMessagePool.Get().(*P_MESSAGE)
-	pMsg.Type = P_MSG_POOL
-	return pMsg
+func GetPoolMessage() *Message {
+	msg := messagePool.Get().(*Message)
+	msg.isPool = true
+	return msg
 }
 
-func PutPMessage(msg *P_MESSAGE) {
-	if msg.Type != P_MSG_POOL {
+func PutPoolMessage(msg *Message) {
+	if !msg.isPool {
 		return
 	}
 
-	msg.Reset()
-	pbMessagePool.Put(msg)
+	msg.pMsg.Reset()
+	msg.sc = nil
+	messagePool.Put(msg)
 }

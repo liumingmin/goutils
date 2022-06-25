@@ -20,7 +20,7 @@ func HeartbeatCbOption(heartbeatCallback IHeartbeatCallback) ConnOption {
 
 func SendBufferOption(bufferSize int) ConnOption {
 	return func(conn *Connection) {
-		conn.sendBuffer = make(chan interface{}, bufferSize)
+		conn.sendBuffer = make(chan *Message, bufferSize)
 	}
 }
 

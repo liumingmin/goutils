@@ -79,8 +79,8 @@ func (h *Hub) processRegister(conn *Connection) {
 		h.connections.Delete(old.id)
 		old.closeRead(ctx)
 
-		message := GetPMessage()
-		message.ProtocolId = int32(P_S2C_s2c_err_displace)
+		message := GetPoolMessage()
+		message.pMsg.ProtocolId = int32(P_S2C_s2c_err_displace)
 
 		old.SendMsg(ctx, message,
 			func(cbCtx context.Context, old *Connection, e error) {

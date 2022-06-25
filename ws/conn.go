@@ -40,9 +40,9 @@ type msgSendWrapper struct {
 type Connection struct {
 	id         string
 	typ        connKind
-	meta       ConnectionMeta   //连接信息
-	conn       *websocket.Conn  //websocket connection
-	sendBuffer chan interface{} //发送缓冲区  *msgSendWrapper or *P_MESSAGE
+	meta       ConnectionMeta  //连接信息
+	conn       *websocket.Conn //websocket connection
+	sendBuffer chan *Message   //发送缓冲区
 
 	connCallback      IConnCallback
 	heartbeatCallback IHeartbeatCallback
@@ -120,7 +120,7 @@ func (c *Connection) RefreshDeadline() {
 	c.conn.SetWriteDeadline(t.Add(WriteWait))
 }
 
-func (c *Connection) SendMsg(ctx context.Context, payload *P_MESSAGE, sc SendCallback) (err error) {
+func (c *Connection) SendMsg(ctx context.Context, payload *Message, sc SendCallback) (err error) {
 	defer log.Recover(ctx, func(e interface{}) string {
 		err = fmt.Errorf("%v", e)
 		return fmt.Sprintf("send msg failed, sendBuffer chan is closed. error: %v", err)
@@ -130,14 +130,8 @@ func (c *Connection) SendMsg(ctx context.Context, payload *P_MESSAGE, sc SendCal
 		return errors.New("connect is stopped")
 	}
 
-	if sc != nil {
-		c.sendBuffer <- &msgSendWrapper{
-			pbMessage: payload,
-			sc:        sc,
-		}
-	} else {
-		c.sendBuffer <- payload
-	}
+	payload.sc = sc
+	c.sendBuffer <- payload
 
 	return nil
 }
@@ -172,7 +166,7 @@ func (c *Connection) closeWrite(ctx context.Context) {
 	for i := 0; i < size; i++ {
 		msg, isok := <-c.sendBuffer
 		if isok {
-			c.putPMessageIntfs(msg)
+			PutPoolMessage(msg)
 		} else {
 			return //buffer has closed
 		}
@@ -181,22 +175,12 @@ func (c *Connection) closeWrite(ctx context.Context) {
 	select {
 	case msg, isok := <-c.sendBuffer:
 		if isok {
-			c.putPMessageIntfs(msg)
+			PutPoolMessage(msg)
 			close(c.sendBuffer)
 		}
 		return
 	default:
 		close(c.sendBuffer)
-	}
-}
-
-func (c *Connection) putPMessageIntfs(message interface{}) {
-	msg, ok := message.(*P_MESSAGE) //优先判断
-	if ok {
-		PutPMessage(msg)
-	} else {
-		w := message.(*msgSendWrapper)
-		PutPMessage(w.pbMessage)
 	}
 }
 
@@ -341,10 +325,10 @@ func (c *Connection) readMsgFromWs() {
 func (c *Connection) processMsg(ctx context.Context, msgData []byte) {
 	log.Debug(ctx, "%v receive raw message. data len: %v, cid: %s", c.typ, len(msgData), c.id)
 
-	message := GetPMessage()
-	defer PutPMessage(message)
+	message := GetPoolMessage()
+	defer PutPoolMessage(message)
 
-	err := proto.Unmarshal(msgData, message)
+	err := message.Unmarshal(msgData)
 	if err != nil {
 		log.Error(ctx, "%v Unmarshal pb failed. data: %v, err: %v, cid: %s", c.typ, msgData, err, c.id)
 		return
@@ -355,21 +339,10 @@ func (c *Connection) processMsg(ctx context.Context, msgData []byte) {
 	c.dispatch(ctx, message)
 }
 
-func (c *Connection) sendMsgToWs(ctx context.Context, message interface{}) error {
-	var err error
-	msg, ok := message.(*P_MESSAGE) //优先判断
-	if ok {
-		defer PutPMessage(msg)
-		err = c.doSendMsgToWs(ctx, msg)
-
-	} else {
-		w := message.(*msgSendWrapper)
-		defer PutPMessage(w.pbMessage)
-
-		err = c.doSendMsgToWs(ctx, w.pbMessage)
-		c.callback(ctx, w.sc, err)
-	}
-
+func (c *Connection) sendMsgToWs(ctx context.Context, message *Message) error {
+	defer PutPoolMessage(message)
+	err := c.doSendMsgToWs(ctx, message.pMsg)
+	c.callback(ctx, message.sc, err)
 	return err
 }
 
@@ -435,11 +408,11 @@ func (c *Connection) callback(ctx context.Context, sc SendCallback, e error) {
 }
 
 // 消息分发器，分发器会根据消息的协议ID查找对应的Handler。
-func (c *Connection) dispatch(ctx context.Context, msg *P_MESSAGE) error {
-	if h, exist := Handlers[msg.ProtocolId]; exist {
+func (c *Connection) dispatch(ctx context.Context, msg *Message) error {
+	if h, exist := Handlers[msg.pMsg.ProtocolId]; exist {
 		return h(ctx, c, msg)
 	} else {
-		log.Error(ctx, "%v No handler. CMD: %d, Body: %s", c.typ, msg.ProtocolId, msg.Data)
+		log.Error(ctx, "%v No handler. CMD: %d, Body len: %s", c.typ, msg.pMsg.ProtocolId, len(msg.pMsg.Data))
 		return errors.New("no handler")
 	}
 }
