@@ -229,6 +229,6 @@ proto.ws.P_MESSAGE.prototype.setData = function(value) {
  */
 proto.ws.P_S2C = {
   S2C_CONNECTED: 0,
-  S2C_ERR_DISPLACE: 1
+  S2C_ERR_DISPLACE: -1
 };
 
