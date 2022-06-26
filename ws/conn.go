@@ -31,11 +31,6 @@ func (t connKind) String() string {
 	return ""
 }
 
-type msgSendWrapper struct {
-	pbMessage *P_MESSAGE   // 消息体
-	sc        SendCallback // 消息发送回调接口
-}
-
 //websocket连接封装
 type Connection struct {
 	id         string
@@ -415,11 +410,6 @@ func (c *Connection) dispatch(ctx context.Context, msg *Message) error {
 		log.Error(ctx, "%v No handler. CMD: %d, Body len: %s", c.typ, msg.pMsg.ProtocolId, len(msg.pMsg.Data))
 		return errors.New("no handler")
 	}
-}
-
-// 注册消息处理器
-func RegisterHandler(cmd int32, h Handler) {
-	Handlers[cmd] = h
 }
 
 //连接数据存储结构

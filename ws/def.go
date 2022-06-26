@@ -2,6 +2,8 @@ package ws
 
 import (
 	"context"
+	"reflect"
+	"sync"
 
 	"google.golang.org/protobuf/proto"
 )
@@ -30,7 +32,7 @@ func NewMessage() *Message {
 type SendCallback func(ctx context.Context, c *Connection, err error)
 
 // 客户端消息处理函数对象
-// use RegisterHandler(constant...., func(context.Context,*Connection,*P_MESSAGE) error {})
+// use RegisterHandler(constant...., func(context.Context,*Connection,*Message) error {})
 type Handler func(context.Context, *Connection, *Message) error
 
 //连接回调
@@ -43,4 +45,29 @@ type IConnCallback interface {
 type IHeartbeatCallback interface {
 	RecvPing(clientId string)
 	RecvPong(clientId string) error
+}
+
+// 注册消息处理器
+func RegisterHandler(cmd int32, h Handler) {
+	Handlers[cmd] = h
+}
+
+// P_MESSAGE.Data类型的接口
+type IDataMessage interface {
+	proto.Message
+	Reset()
+}
+
+// 注册数据消息类型[P_MESSAGE.Data],功能可选，当需要使用框架提供的池功能时使用
+func RegisterDataMsgType(protocolId int32, pMsg IDataMessage) {
+	typ := reflect.TypeOf(pMsg)
+	if typ.Kind() == reflect.Ptr {
+		typ = typ.Elem()
+	}
+
+	dataMsgPools[protocolId] = &sync.Pool{
+		New: func() interface{} {
+			return reflect.New(typ).Interface()
+		},
+	}
 }
