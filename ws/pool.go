@@ -16,21 +16,28 @@ var (
 	dataMsgPools = make(map[int32]*sync.Pool)
 )
 
-func GetPoolMessage() *Message {
+func getPoolMessage() *Message {
 	msg := messagePool.Get().(*Message)
 	msg.isPool = true
 	return msg
 }
 
-func PutPoolMessage(msg *Message) {
+func putPoolMessage(msg *Message) {
 	if !msg.isPool {
 		return
+	}
+
+	if msg.dataMsg != nil {
+		putPoolDataMsg(msg.pMsg.ProtocolId, msg.dataMsg)
+		msg.dataMsg = nil
 	}
 
 	msg.pMsg.Reset()
 	msg.sc = nil
 	messagePool.Put(msg)
 }
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 func getPoolDataMsg(protocolId int32) IDataMessage {
 	pool, ok := dataMsgPools[protocolId]

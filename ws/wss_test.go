@@ -23,8 +23,7 @@ func TestWssRun(t *testing.T) {
 	//server reg handler
 	RegisterHandler(C2S_REQ, func(ctx context.Context, connection *Connection, message *Message) error {
 		log.Info(ctx, "server recv: %v, %v", message.PMsg().ProtocolId, string(message.PMsg().Data))
-		packet := GetPoolMessage()
-		packet.PMsg().ProtocolId = S2C_RESP
+		packet := GetPoolMessage(S2C_RESP)
 		packet.PMsg().Data = []byte("server response")
 		connection.SendMsg(ctx, packet, nil)
 		return nil
@@ -59,8 +58,7 @@ func TestWssRun(t *testing.T) {
 	log.Info(ctx, "%v", conn)
 	time.Sleep(time.Second * 5)
 
-	packet := GetPoolMessage()
-	packet.PMsg().ProtocolId = C2S_REQ
+	packet := GetPoolMessage(C2S_REQ)
 	packet.PMsg().Data = []byte("client request")
 	conn.SendMsg(context.Background(), packet, nil)
 

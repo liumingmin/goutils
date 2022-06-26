@@ -12,7 +12,6 @@ import (
 	"github.com/gorilla/websocket"
 	"github.com/liumingmin/goutils/log"
 	"github.com/liumingmin/goutils/utils"
-	"google.golang.org/protobuf/proto"
 )
 
 var (
@@ -161,7 +160,7 @@ func (c *Connection) closeWrite(ctx context.Context) {
 	for i := 0; i < size; i++ {
 		msg, isok := <-c.sendBuffer
 		if isok {
-			PutPoolMessage(msg)
+			putPoolMessage(msg)
 		} else {
 			return //buffer has closed
 		}
@@ -170,7 +169,7 @@ func (c *Connection) closeWrite(ctx context.Context) {
 	select {
 	case msg, isok := <-c.sendBuffer:
 		if isok {
-			PutPoolMessage(msg)
+			putPoolMessage(msg)
 			close(c.sendBuffer)
 		}
 		return
@@ -320,8 +319,8 @@ func (c *Connection) readMsgFromWs() {
 func (c *Connection) processMsg(ctx context.Context, msgData []byte) {
 	log.Debug(ctx, "%v receive raw message. data len: %v, cid: %s", c.typ, len(msgData), c.id)
 
-	message := GetPoolMessage()
-	defer PutPoolMessage(message)
+	message := getPoolMessage()
+	defer putPoolMessage(message)
 
 	err := message.Unmarshal(msgData)
 	if err != nil {
@@ -335,20 +334,22 @@ func (c *Connection) processMsg(ctx context.Context, msgData []byte) {
 }
 
 func (c *Connection) sendMsgToWs(ctx context.Context, message *Message) error {
-	defer PutPoolMessage(message)
-	err := c.doSendMsgToWs(ctx, message.pMsg)
+	defer putPoolMessage(message)
+
+	msgData, err := message.Marshal()
+	if err != nil {
+		log.Error(ctx, "%v Marshal message to pb failed. error: %v", c.typ, err)
+		c.callback(ctx, message.sc, err)
+		return err
+	}
+
+	err = c.doSendMsgToWs(ctx, msgData)
 	c.callback(ctx, message.sc, err)
 	return err
 }
 
-func (c *Connection) doSendMsgToWs(ctx context.Context, message *P_MESSAGE) error {
+func (c *Connection) doSendMsgToWs(ctx context.Context, data []byte) error {
 	c.conn.SetWriteDeadline(time.Now().Add(WriteWait))
-
-	data, err := proto.Marshal(message)
-	if err != nil {
-		log.Error(ctx, "%v Marshal msgSendWrapper to pb failed. error: %v", c.typ, err)
-		return err
-	}
 
 	w, err := c.conn.NextWriter(websocket.BinaryMessage)
 	if err != nil {
@@ -358,14 +359,14 @@ func (c *Connection) doSendMsgToWs(ctx context.Context, message *P_MESSAGE) erro
 
 	_, err = w.Write(data)
 	if err != nil {
-		log.Warn(ctx, "%v Write msgSendWrapper to writer failed. message: %v, error: %v", c.typ, message, err)
+		log.Warn(ctx, "%v Write msgSendWrapper to writer failed. message: %v, error: %v", c.typ, len(data), err)
 		return err
 	}
 
 	failedRetry := 0
 	for {
 		if err := w.Close(); err == nil {
-			log.Debug(ctx, "%v finish write message. cid: %v, message: %v", c.typ, c.id, message)
+			log.Debug(ctx, "%v finish write message. cid: %v, message: %v", c.typ, c.id, len(data))
 			return nil
 		}
 

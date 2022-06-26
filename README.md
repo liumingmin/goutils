@@ -1654,11 +1654,10 @@ const (
 )
 
 //server reg handler
-RegisterHandler(C2S_REQ, func(ctx context.Context, connection *Connection, message *P_MESSAGE) error {
-	log.Info(ctx, "server recv: %v, %v", message.ProtocolId, string(message.Data))
-	packet := GetPMessage()
-	packet.ProtocolId = S2C_RESP
-	packet.Data = []byte("server response")
+RegisterHandler(C2S_REQ, func(ctx context.Context, connection *Connection, message *Message) error {
+	log.Info(ctx, "server recv: %v, %v", message.PMsg().ProtocolId, string(message.PMsg().Data))
+	packet := GetPoolMessage(S2C_RESP)
+	packet.PMsg().Data = []byte("server response")
 	connection.SendMsg(ctx, packet, nil)
 	return nil
 })
@@ -1682,8 +1681,8 @@ e.GET("/join", func(ctx *gin.Context) {
 go e.Run(":8003")
 
 //client reg handler
-RegisterHandler(S2C_RESP, func(ctx context.Context, connection *Connection, message *P_MESSAGE) error {
-	log.Info(ctx, "client recv: %v, %v", message.ProtocolId, string(message.Data))
+RegisterHandler(S2C_RESP, func(ctx context.Context, connection *Connection, message *Message) error {
+	log.Info(ctx, "client recv: %v, %v", message.PMsg().ProtocolId, string(message.PMsg().Data))
 	return nil
 })
 //client connect
@@ -1692,9 +1691,8 @@ conn, _ := Connect(context.Background(), "server1", "ws://127.0.0.1:8003/join?ui
 log.Info(ctx, "%v", conn)
 time.Sleep(time.Second * 5)
 
-packet := GetPMessage()
-packet.ProtocolId = C2S_REQ
-packet.Data = []byte("client request")
+packet := GetPoolMessage(C2S_REQ)
+packet.PMsg().Data = []byte("client request")
 conn.SendMsg(context.Background(), packet, nil)
 
 time.Sleep(time.Minute * 1)

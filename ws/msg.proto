@@ -13,6 +13,6 @@ message P_MESSAGE
 //基础协议
 enum P_S2C
 {
-    s2c_connected           = 0;    //连接成功建立
-    s2c_err_displace        = 1;    //被顶号
+    s2c_connected           = 0;                            //连接成功建立
+    s2c_err_displace        = -1;                           //被顶号
 }
