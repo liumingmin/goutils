@@ -317,14 +317,14 @@ func (c *Connection) readMsgFromWs() {
 }
 
 func (c *Connection) processMsg(ctx context.Context, msgData []byte) {
-	log.Debug(ctx, "%v receive raw message. data len: %v, cid: %s", c.typ, len(msgData), c.id)
+	log.Debug(ctx, "%v receive raw message. data len: %v, cid: %v", c.typ, len(msgData), c.id)
 
 	message := getPoolMessage()
 	defer putPoolMessage(message)
 
 	err := message.Unmarshal(msgData)
 	if err != nil {
-		log.Error(ctx, "%v Unmarshal pb failed. data: %v, err: %v, cid: %s", c.typ, msgData, err, c.id)
+		log.Error(ctx, "%v Unmarshal pb failed. data: %v, err: %v, cid: %v", c.typ, msgData, err, c.id)
 		return
 	}
 
@@ -408,7 +408,7 @@ func (c *Connection) dispatch(ctx context.Context, msg *Message) error {
 	if h, exist := Handlers[msg.pMsg.ProtocolId]; exist {
 		return h(ctx, c, msg)
 	} else {
-		log.Error(ctx, "%v No handler. CMD: %d, Body len: %s", c.typ, msg.pMsg.ProtocolId, len(msg.pMsg.Data))
+		log.Error(ctx, "%v No handler. CMD: %d, Body len: %v", c.typ, msg.pMsg.ProtocolId, len(msg.pMsg.Data))
 		return errors.New("no handler")
 	}
 }
