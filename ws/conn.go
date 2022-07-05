@@ -49,6 +49,8 @@ type Connection struct {
 
 	pullChannelMap map[int]chan struct{} //新消息通知通道
 
+	compressionLevel int
+
 	//net params
 	maxFailureRetry int           //重试次数
 	readWait        time.Duration //读等待

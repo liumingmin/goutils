@@ -34,11 +34,12 @@ func AcceptGin(ctx *gin.Context, meta ConnectionMeta, opts ...ConnOption) (*Conn
 
 func Accept(ctx context.Context, w http.ResponseWriter, r *http.Request, meta ConnectionMeta, opts ...ConnOption) (*Connection, error) {
 	connection := &Connection{
-		id:         meta.BuildConnId(),
-		typ:        CONN_KIND_SERVER,
-		meta:       meta,
-		commonData: make(map[string]interface{}),
-		upgrader:   defaultUpgrader,
+		id:               meta.BuildConnId(),
+		typ:              CONN_KIND_SERVER,
+		meta:             meta,
+		commonData:       make(map[string]interface{}),
+		upgrader:         defaultUpgrader,
+		compressionLevel: 1,
 	}
 	defaultNetParamsOption()(connection)
 
@@ -63,6 +64,7 @@ func Accept(ctx context.Context, w http.ResponseWriter, r *http.Request, meta Co
 	log.Debug(ctx, "%v connected ok. meta: %#v", connection.typ, meta)
 
 	connection.conn = conn
+	connection.conn.SetCompressionLevel(connection.compressionLevel)
 
 	ClientConnHub.register <- connection
 

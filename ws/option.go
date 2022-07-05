@@ -33,6 +33,15 @@ func SendBufferOption(bufferSize int) ConnOption {
 	}
 }
 
+func CompressionLevelOption(compressionLevel int) ConnOption {
+	return func(conn *Connection) {
+		if compressionLevel <= 0 {
+			return
+		}
+		conn.compressionLevel = compressionLevel
+	}
+}
+
 func defaultNetParamsOption() ConnOption {
 	return func(conn *Connection) {
 		conn.maxFailureRetry = 10                   //重试次数
@@ -44,24 +53,40 @@ func defaultNetParamsOption() ConnOption {
 
 func NetMaxFailureRetryOption(maxFailureRetry int) ConnOption {
 	return func(conn *Connection) {
+		if maxFailureRetry < 0 {
+			return
+		}
+
 		conn.maxFailureRetry = maxFailureRetry
 	}
 }
 
 func NetReadWaitOption(readWait time.Duration) ConnOption {
 	return func(conn *Connection) {
+		if readWait <= 0 {
+			return
+		}
+
 		conn.readWait = readWait
 	}
 }
 
 func NetWriteWaitOption(writeWait time.Duration) ConnOption {
 	return func(conn *Connection) {
+		if writeWait <= 0 {
+			return
+		}
+
 		conn.writeWait = writeWait
 	}
 }
 
 func NetTemporaryWaitOption(temporaryWait time.Duration) ConnOption {
 	return func(conn *Connection) {
+		if temporaryWait <= 0 {
+			return
+		}
+
 		conn.temporaryWait = temporaryWait
 	}
 }

@@ -39,7 +39,9 @@ func TestWssRun(t *testing.T) {
 			Version:  0,
 			Charset:  0,
 		}
-		_, err := AcceptGin(ctx, connMeta, ConnectCbOption(&ConnectCb{connMeta.UserId}), SrvUpgraderCompressOption(true))
+		_, err := AcceptGin(ctx, connMeta, ConnectCbOption(&ConnectCb{connMeta.UserId}),
+			SrvUpgraderCompressOption(true),
+			CompressionLevelOption(1))
 		if err != nil {
 			log.Error(ctx, "Accept client connection failed. error: %v", err)
 			return
@@ -59,6 +61,7 @@ func TestWssRun(t *testing.T) {
 		ClientIdOption("server1"),
 		ClientDialWssOption(url, false),
 		ClientDialCompressOption(true),
+		CompressionLevelOption(2),
 	)
 	log.Info(ctx, "%v", conn)
 	time.Sleep(time.Second * 5)

@@ -1672,7 +1672,9 @@ e.GET("/join", func(ctx *gin.Context) {
 		Version:  0,
 		Charset:  0,
 	}
-	_, err := AcceptGin(ctx, connMeta, ConnectCbOption(&ConnectCb{connMeta.UserId}), SrvUpgraderCompressOption(true))
+	_, err := AcceptGin(ctx, connMeta, ConnectCbOption(&ConnectCb{connMeta.UserId}),
+		SrvUpgraderCompressOption(true),
+		CompressionLevelOption(1))
 	if err != nil {
 		log.Error(ctx, "Accept client connection failed. error: %v", err)
 		return
@@ -1688,10 +1690,12 @@ RegisterHandler(S2C_RESP, func(ctx context.Context, connection *Connection, mess
 //client connect
 uid := "100"
 url := "ws://127.0.0.1:8003/join?uid=" + uid
-conn, _ := DialConnect(context.Background(), "server1", url, http.Header{}, []DialerOption{
-	DialerWssOption(url, false),
-	DialerCompressOption(true),
-})
+conn, _ := DialConnect(context.Background(), url, http.Header{},
+	ClientIdOption("server1"),
+	ClientDialWssOption(url, false),
+	ClientDialCompressOption(true),
+	CompressionLevelOption(2),
+)
 log.Info(ctx, "%v", conn)
 time.Sleep(time.Second * 5)
 

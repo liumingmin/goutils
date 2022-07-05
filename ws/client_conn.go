@@ -35,6 +35,7 @@ func DialConnect(ctx context.Context, sUrl string, header http.Header, opts ...C
 		dialer:            websocket.DefaultDialer,
 		dialRetryNum:      3,
 		dialRetryInterval: time.Second,
+		compressionLevel:  1,
 	}
 	defaultNetParamsOption()(connection)
 
@@ -73,6 +74,7 @@ func DialConnect(ctx context.Context, sUrl string, header http.Header, opts ...C
 
 	connection.conn = conn
 	connection.commonData = make(map[string]interface{})
+	connection.conn.SetCompressionLevel(connection.compressionLevel)
 
 	if connection.pullChannelMap == nil {
 		connection.pullChannelMap = make(map[int]chan struct{})
