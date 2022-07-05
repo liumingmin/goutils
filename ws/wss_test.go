@@ -39,7 +39,7 @@ func TestWssRun(t *testing.T) {
 			Version:  0,
 			Charset:  0,
 		}
-		_, err := AcceptGin(ctx, connMeta, ConnectCbOption(&ConnectCb{connMeta.UserId}))
+		_, err := AcceptGin(ctx, connMeta, ConnectCbOption(&ConnectCb{connMeta.UserId}), SrvUpgraderCompressOption(true))
 		if err != nil {
 			log.Error(ctx, "Accept client connection failed. error: %v", err)
 			return
@@ -54,7 +54,11 @@ func TestWssRun(t *testing.T) {
 	})
 	//client connect
 	uid := "100"
-	conn, _ := Connect(context.Background(), "server1", "ws://127.0.0.1:8003/join?uid="+uid, false, http.Header{})
+	url := "ws://127.0.0.1:8003/join?uid=" + uid
+	conn, _ := DialConnect(context.Background(), "server1", url, http.Header{}, []DialerOption{
+		DialerWssOption(url, false),
+		DialerCompressOption(true),
+	})
 	log.Info(ctx, "%v", conn)
 	time.Sleep(time.Second * 5)
 

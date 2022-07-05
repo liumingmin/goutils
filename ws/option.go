@@ -1,6 +1,14 @@
 package ws
 
-import "github.com/gorilla/websocket"
+import (
+	"context"
+	"crypto/tls"
+	"net/url"
+	"time"
+
+	"github.com/gorilla/websocket"
+	"github.com/liumingmin/goutils/log"
+)
 
 // 连接动态参数选项
 type ConnOption func(*Connection)
@@ -41,5 +49,39 @@ func SrvPullChannelsOption(channels []int) ConnOption {
 		}
 
 		conn.pullChannelMap = pullChannelMap
+	}
+}
+
+func SrvUpgraderCompressOption(compress bool) ConnOption {
+	return func(conn *Connection) {
+		conn.upgrader.EnableCompression = compress
+	}
+}
+
+// 客户端专用，Dialer动态参数选项
+type DialerOption func(*websocket.Dialer)
+
+func DialerWssOption(sUrl string, secureWss bool) DialerOption {
+	u, err := url.Parse(sUrl)
+	if err != nil {
+		log.Error(context.Background(), "Parse url %s err:%v", sUrl, err)
+	}
+
+	return func(dialer *websocket.Dialer) {
+		if u != nil && u.Scheme == "wss" && !secureWss {
+			dialer.TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
+		}
+	}
+}
+
+func DialerCompressOption(compress bool) DialerOption { //, compressLevel int
+	return func(dialer *websocket.Dialer) {
+		dialer.EnableCompression = compress
+	}
+}
+
+func DialerHandshakeTimeoutOption(handshakeTimeout time.Duration) DialerOption {
+	return func(dialer *websocket.Dialer) {
+		dialer.HandshakeTimeout = handshakeTimeout
 	}
 }

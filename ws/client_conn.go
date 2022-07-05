@@ -2,10 +2,8 @@ package ws
 
 import (
 	"context"
-	"crypto/tls"
 	"io/ioutil"
 	"net/http"
-	"net/url"
 	"time"
 
 	"github.com/gorilla/websocket"
@@ -22,26 +20,28 @@ func (c *Connection) KickServer(displace bool) {
 }
 
 func Connect(ctx context.Context, sId, sUrl string, secureWss bool, header http.Header, opts ...ConnOption) (*Connection, error) {
-	u, err := url.Parse(sUrl)
-	if err != nil {
-		log.Error(ctx, "Parse url %s err:%v", sUrl, err)
-		return nil, err
+	dialerOpts := []DialerOption{
+		DialerWssOption(sUrl, secureWss),
 	}
 
-	var d *websocket.Dialer
-	if u.Scheme == "wss" && !secureWss {
-		d = &websocket.Dialer{TLSClientConfig: &tls.Config{InsecureSkipVerify: true}}
-	} else {
-		d = websocket.DefaultDialer
-	}
+	return DialConnect(ctx, sId, sUrl, header, dialerOpts, opts...)
+}
 
+func DialConnect(ctx context.Context, sId, sUrl string, header http.Header, dialerOpts []DialerOption, opts ...ConnOption) (*Connection, error) {
+	d := websocket.DefaultDialer
 	d.HandshakeTimeout = handshakeTimeout
+
+	if len(dialerOpts) > 0 {
+		for _, dialerOpt := range dialerOpts {
+			dialerOpt(d)
+		}
+	}
 
 	var conn *websocket.Conn
 	for retry := 1; retry <= connMaxRetry; retry++ {
 		var err error
 		var resp *http.Response
-		conn, resp, err = d.Dial(sUrl, header)
+		conn, resp, err = d.DialContext(ctx, sUrl, header)
 		if err != nil {
 			if retry < connMaxRetry {
 				log.Warn(ctx, "Failed to connect to server, sleep and try again. retry: %v, error: %v, url: %v", retry, err, sUrl)
