@@ -49,7 +49,19 @@ type Connection struct {
 
 	pullChannelMap map[int]chan struct{} //新消息通知通道
 
-	upgrader *websocket.Upgrader //可自定义upgrader
+	//net params
+	maxFailureRetry int           //重试次数
+	readWait        time.Duration //读等待
+	writeWait       time.Duration //写等待
+	temporaryWait   time.Duration //网络抖动重试等待
+
+	//server internal param
+	upgrader *websocket.Upgrader //custome upgrader
+
+	//client internal param
+	dialer            *websocket.Dialer
+	dialRetryNum      int
+	dialRetryInterval time.Duration
 }
 
 type ConnectionMeta struct {
@@ -110,8 +122,8 @@ func (c *Connection) IsDisplaced() bool {
 
 func (c *Connection) RefreshDeadline() {
 	t := time.Now()
-	c.conn.SetReadDeadline(t.Add(ReadWait))
-	c.conn.SetWriteDeadline(t.Add(WriteWait))
+	c.conn.SetReadDeadline(t.Add(c.readWait))
+	c.conn.SetWriteDeadline(t.Add(c.writeWait))
 }
 
 func (c *Connection) SendMsg(ctx context.Context, payload *Message, sc SendCallback) (err error) {
@@ -203,12 +215,12 @@ func (c *Connection) closeSocket(ctx context.Context) error {
 		return fmt.Sprintf("Close connection panic, error is: %v", e)
 	})
 
-	c.conn.WriteControl(websocket.CloseMessage, []byte{}, time.Now().Add(WriteWait))
+	c.conn.WriteControl(websocket.CloseMessage, []byte{}, time.Now().Add(c.writeWait))
 	return c.conn.Close()
 }
 
 func (c *Connection) writeToConnection() {
-	ticker := time.NewTicker(PingPeriod)
+	ticker := time.NewTicker(c.writeWait * 4 / 10) //PingPeriod
 	defer func() {
 		log.Debug(context.Background(), "%v write finish. id: %v, ptr: %p", c.typ, c.id, c)
 		ticker.Stop()
@@ -236,11 +248,11 @@ func (c *Connection) writeToConnection() {
 			}
 		case <-ticker.C:
 			log.Debug(ctx, "%v send Ping. id: %v, ptr: %p", c.typ, c.id, c)
-			if err := c.conn.WriteControl(websocket.PingMessage, []byte{}, time.Now().Add(WriteWait)); err != nil {
+			if err := c.conn.WriteControl(websocket.PingMessage, []byte{}, time.Now().Add(c.writeWait)); err != nil {
 				if errNet, ok := err.(net.Error); (ok && errNet.Timeout()) || (ok && errNet.Temporary()) {
 					log.Debug(ctx, "%v send Ping. timeout. id: %v, error: %v", c.typ, c.id, errNet)
 
-					time.Sleep(NetTemporaryWait)
+					time.Sleep(c.temporaryWait)
 					continue
 				}
 
@@ -261,11 +273,11 @@ func (c *Connection) readFromConnection() {
 		}
 	}()
 
-	c.conn.SetReadDeadline(time.Now().Add(ReadWait))
+	c.conn.SetReadDeadline(time.Now().Add(c.readWait))
 
 	pingHandler := c.conn.PingHandler()
 	c.conn.SetPingHandler(func(message string) error {
-		c.conn.SetReadDeadline(time.Now().Add(ReadWait))
+		c.conn.SetReadDeadline(time.Now().Add(c.readWait))
 		err := pingHandler(message)
 
 		if c.heartbeatCallback != nil {
@@ -274,7 +286,7 @@ func (c *Connection) readFromConnection() {
 		return err
 	})
 	c.conn.SetPongHandler(func(string) error {
-		c.conn.SetReadDeadline(time.Now().Add(ReadWait))
+		c.conn.SetReadDeadline(time.Now().Add(c.readWait))
 		if c.heartbeatCallback != nil {
 			c.heartbeatCallback.RecvPong(c.id)
 		}
@@ -289,7 +301,7 @@ func (c *Connection) readMsgFromWs() {
 	for {
 		ctx := utils.ContextWithTrace()
 
-		c.conn.SetReadDeadline(time.Now().Add(ReadWait))
+		c.conn.SetReadDeadline(time.Now().Add(c.readWait))
 		t, data, err := c.conn.ReadMessage()
 		if err != nil {
 			if errNet, ok := err.(net.Error); (ok && errNet.Timeout()) || (ok && errNet.Temporary()) {
@@ -297,8 +309,8 @@ func (c *Connection) readMsgFromWs() {
 					c.typ, failedRetry, c.id, c, t, errNet)
 
 				failedRetry++
-				if failedRetry < maxFailureRetry {
-					time.Sleep(NetTemporaryWait)
+				if failedRetry < c.maxFailureRetry {
+					time.Sleep(c.temporaryWait)
 					continue
 				}
 
@@ -349,7 +361,7 @@ func (c *Connection) sendMsgToWs(ctx context.Context, message *Message) error {
 }
 
 func (c *Connection) doSendMsgToWs(ctx context.Context, data []byte) error {
-	c.conn.SetWriteDeadline(time.Now().Add(WriteWait))
+	c.conn.SetWriteDeadline(time.Now().Add(c.writeWait))
 
 	w, err := c.conn.NextWriter(websocket.BinaryMessage)
 	if err != nil {
@@ -375,8 +387,8 @@ func (c *Connection) doSendMsgToWs(ctx context.Context, data []byte) error {
 				c.typ, failedRetry, c.id, c, errNet)
 
 			failedRetry++
-			if failedRetry < maxFailureRetry {
-				time.Sleep(NetTemporaryWait)
+			if failedRetry < c.maxFailureRetry {
+				time.Sleep(c.temporaryWait)
 				continue
 			}
 

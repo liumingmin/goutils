@@ -55,10 +55,11 @@ func TestWssRun(t *testing.T) {
 	//client connect
 	uid := "100"
 	url := "ws://127.0.0.1:8003/join?uid=" + uid
-	conn, _ := DialConnect(context.Background(), "server1", url, http.Header{}, []DialerOption{
-		DialerWssOption(url, false),
-		DialerCompressOption(true),
-	})
+	conn, _ := DialConnect(context.Background(), url, http.Header{},
+		ClientIdOption("server1"),
+		ClientDialWssOption(url, false),
+		ClientDialCompressOption(true),
+	)
 	log.Info(ctx, "%v", conn)
 	time.Sleep(time.Second * 5)
 

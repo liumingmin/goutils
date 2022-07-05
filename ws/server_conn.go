@@ -40,6 +40,7 @@ func Accept(ctx context.Context, w http.ResponseWriter, r *http.Request, meta Co
 		commonData: make(map[string]interface{}),
 		upgrader:   defaultUpgrader,
 	}
+	defaultNetParamsOption()(connection)
 
 	if len(opts) > 0 {
 		for _, opt := range opts {

@@ -3,6 +3,7 @@ package ws
 import (
 	"context"
 	"crypto/tls"
+	"net/http"
 	"net/url"
 	"time"
 
@@ -32,6 +33,39 @@ func SendBufferOption(bufferSize int) ConnOption {
 	}
 }
 
+func defaultNetParamsOption() ConnOption {
+	return func(conn *Connection) {
+		conn.maxFailureRetry = 10                   //重试次数
+		conn.readWait = 60 * time.Second            //读等待
+		conn.writeWait = 60 * time.Second           //写等待
+		conn.temporaryWait = 500 * time.Millisecond //网络抖动重试等待
+	}
+}
+
+func NetMaxFailureRetryOption(maxFailureRetry int) ConnOption {
+	return func(conn *Connection) {
+		conn.maxFailureRetry = maxFailureRetry
+	}
+}
+
+func NetReadWaitOption(readWait time.Duration) ConnOption {
+	return func(conn *Connection) {
+		conn.readWait = readWait
+	}
+}
+
+func NetWriteWaitOption(writeWait time.Duration) ConnOption {
+	return func(conn *Connection) {
+		conn.writeWait = writeWait
+	}
+}
+
+func NetTemporaryWaitOption(temporaryWait time.Duration) ConnOption {
+	return func(conn *Connection) {
+		conn.temporaryWait = temporaryWait
+	}
+}
+
 //服务端特有
 //upgrader定制
 func SrvUpgraderOption(upgrader *websocket.Upgrader) ConnOption {
@@ -58,30 +92,54 @@ func SrvUpgraderCompressOption(compress bool) ConnOption {
 	}
 }
 
-// 客户端专用，Dialer动态参数选项
-type DialerOption func(*websocket.Dialer)
+func SrvCheckOriginOption(checkOrigin func(r *http.Request) bool) ConnOption {
+	return func(conn *Connection) {
+		conn.upgrader.CheckOrigin = checkOrigin
+	}
+}
 
-func DialerWssOption(sUrl string, secureWss bool) DialerOption {
+// 客户端专用
+// 默认使用时间戳来记录客户端所连服务器的id
+func ClientIdOption(id string) ConnOption {
+	return func(conn *Connection) {
+		conn.id = id
+	}
+}
+
+func ClientDialOption(dialer *websocket.Dialer) ConnOption {
+	return func(conn *Connection) {
+		conn.dialer = dialer
+	}
+}
+
+func ClientDialWssOption(sUrl string, secureWss bool) ConnOption {
 	u, err := url.Parse(sUrl)
 	if err != nil {
 		log.Error(context.Background(), "Parse url %s err:%v", sUrl, err)
 	}
 
-	return func(dialer *websocket.Dialer) {
+	return func(conn *Connection) {
 		if u != nil && u.Scheme == "wss" && !secureWss {
-			dialer.TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
+			conn.dialer.TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
 		}
 	}
 }
 
-func DialerCompressOption(compress bool) DialerOption { //, compressLevel int
-	return func(dialer *websocket.Dialer) {
-		dialer.EnableCompression = compress
+func ClientDialCompressOption(compress bool) ConnOption { //, compressLevel int
+	return func(conn *Connection) {
+		conn.dialer.EnableCompression = compress
 	}
 }
 
-func DialerHandshakeTimeoutOption(handshakeTimeout time.Duration) DialerOption {
-	return func(dialer *websocket.Dialer) {
-		dialer.HandshakeTimeout = handshakeTimeout
+func ClientDialHandshakeTimeoutOption(handshakeTimeout time.Duration) ConnOption {
+	return func(conn *Connection) {
+		conn.dialer.HandshakeTimeout = handshakeTimeout
+	}
+}
+
+func ClientDialRetryOption(retryNum int, retryInterval time.Duration) ConnOption {
+	return func(conn *Connection) {
+		conn.dialRetryNum = retryNum
+		conn.dialRetryInterval = retryInterval
 	}
 }
