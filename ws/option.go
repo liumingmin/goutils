@@ -91,6 +91,12 @@ func NetTemporaryWaitOption(temporaryWait time.Duration) ConnOption {
 	}
 }
 
+func ConnClosedNotifyOption() ConnOption {
+	return func(conn *Connection) {
+		conn.connClosedChan = make(chan interface{}, 1)
+	}
+}
+
 //服务端特有
 //upgrader定制
 func SrvUpgraderOption(upgrader *websocket.Upgrader) ConnOption {

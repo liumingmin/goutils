@@ -44,8 +44,9 @@ type Connection struct {
 	commonDataLock sync.RWMutex
 	commonData     map[string]interface{}
 
-	stopped   int32 //连接断开
-	displaced int32 //连接被顶号
+	stopped        int32 //连接断开
+	displaced      int32 //连接被顶号
+	connClosedChan chan interface{}
 
 	pullChannelMap map[int]chan struct{} //新消息通知通道
 
@@ -216,6 +217,15 @@ func (c *Connection) closeSocket(ctx context.Context) error {
 	defer log.Recover(ctx, func(e interface{}) string {
 		return fmt.Sprintf("Close connection panic, error is: %v", e)
 	})
+
+	defer func() {
+		if c.connClosedChan != nil {
+			select {
+			case c.connClosedChan <- struct{}{}:
+			default:
+			}
+		}
+	}()
 
 	c.conn.WriteControl(websocket.CloseMessage, []byte{}, time.Now().Add(c.writeWait))
 	return c.conn.Close()

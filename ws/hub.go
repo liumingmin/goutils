@@ -127,6 +127,7 @@ func (h *Hub) processUnregister(conn *Connection) {
 
 		log.Debug(ctx, "%v unregister finish. id: %v", c.typ, c.id)
 	}
+	//not in hub conn is displaced connect,do not process it
 }
 
 func (h *Hub) Find(id string) (*Connection, error) {

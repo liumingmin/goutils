@@ -28,6 +28,21 @@ func Connect(ctx context.Context, sId, sUrl string, secureWss bool, header http.
 	return DialConnect(ctx, sUrl, header, append(baseOpts, opts...)...)
 }
 
+func AutoReDialConnect(ctx context.Context, sUrl string, header http.Header, cancelAutoConn chan interface{}, opts ...ConnOption) {
+	reConnOpts := append([]ConnOption{ConnClosedNotifyOption()}, opts...)
+	for {
+		conn, err := DialConnect(ctx, sUrl, header, reConnOpts...)
+		if err != nil || conn == nil {
+			continue
+		}
+		select {
+		case <-cancelAutoConn:
+			return
+		case <-conn.connClosedChan:
+		}
+	}
+}
+
 func DialConnect(ctx context.Context, sUrl string, header http.Header, opts ...ConnOption) (*Connection, error) {
 	connection := &Connection{
 		id:                strconv.FormatInt(time.Now().UnixNano(), 10),
