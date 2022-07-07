@@ -7,9 +7,12 @@ gotuils目标是快速搭建应用的辅助代码库
 ```shell script
 protoc --go_out=. ws/msg.proto
 
-//js  
-protoc --js_out=library=protobuf,binary:ws/js  ws/msg.proto
+//js
+cd ws
+protoc --js_out=import_style=commonjs,binary:js  msg.proto
 ```
+
+https://www.npmjs.com/package/google-protobuf
 
 ## 常用工具库
 
