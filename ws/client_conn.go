@@ -29,7 +29,11 @@ func Connect(ctx context.Context, sId, sUrl string, secureWss bool, header http.
 }
 
 func AutoReDialConnect(ctx context.Context, sUrl string, header http.Header, cancelAutoConn chan interface{}, opts ...ConnOption) {
-	reConnOpts := append([]ConnOption{ConnClosedNotifyOption()}, opts...)
+	reConnOpts := append([]ConnOption{ConnClosedNotifyOption(nil)}, opts...)
+	if cancelAutoConn == nil {
+		cancelAutoConn = make(chan interface{})
+	}
+
 	for {
 		conn, err := DialConnect(ctx, sUrl, header, reConnOpts...)
 		if err != nil || conn == nil {

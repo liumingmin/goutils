@@ -91,9 +91,13 @@ func NetTemporaryWaitOption(temporaryWait time.Duration) ConnOption {
 	}
 }
 
-func ConnClosedNotifyOption() ConnOption {
+func ConnClosedNotifyOption(closedNotify chan interface{}) ConnOption {
+	if closedNotify == nil {
+		closedNotify = make(chan interface{}, 1)
+	}
+
 	return func(conn *Connection) {
-		conn.connClosedChan = make(chan interface{}, 1)
+		conn.connClosedChan = closedNotify
 	}
 }
 
