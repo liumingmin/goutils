@@ -73,8 +73,8 @@ func DialConnect(ctx context.Context, sUrl string, header http.Header, opts ...C
 	}
 
 	connection.conn = conn
-	connection.commonData = make(map[string]interface{})
 	connection.conn.SetCompressionLevel(connection.compressionLevel)
+	connection.commonData = make(map[string]interface{})
 
 	if connection.pullChannelMap == nil {
 		connection.pullChannelMap = make(map[int]chan struct{})

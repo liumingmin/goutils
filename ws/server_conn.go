@@ -37,7 +37,6 @@ func Accept(ctx context.Context, w http.ResponseWriter, r *http.Request, meta Co
 		id:               meta.BuildConnId(),
 		typ:              CONN_KIND_SERVER,
 		meta:             meta,
-		commonData:       make(map[string]interface{}),
 		upgrader:         defaultUpgrader,
 		compressionLevel: 1,
 	}
@@ -49,13 +48,6 @@ func Accept(ctx context.Context, w http.ResponseWriter, r *http.Request, meta Co
 		}
 	}
 
-	if connection.pullChannelMap == nil {
-		connection.pullChannelMap = make(map[int]chan struct{})
-	}
-	if connection.sendBuffer == nil {
-		SendBufferOption(8)(connection)
-	}
-
 	conn, err := connection.upgrader.Upgrade(w, r, nil)
 	if err != nil {
 		log.Warn(ctx, "%v connect failed. Header: %v, error: %v", connection.typ, r.Header, err)
@@ -65,6 +57,14 @@ func Accept(ctx context.Context, w http.ResponseWriter, r *http.Request, meta Co
 
 	connection.conn = conn
 	connection.conn.SetCompressionLevel(connection.compressionLevel)
+	connection.commonData = make(map[string]interface{})
+
+	if connection.pullChannelMap == nil {
+		connection.pullChannelMap = make(map[int]chan struct{})
+	}
+	if connection.sendBuffer == nil {
+		SendBufferOption(8)(connection)
+	}
 
 	ClientConnHub.register <- connection
 
