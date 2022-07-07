@@ -31,7 +31,8 @@ func init() {
 		extName := filepath.Ext(filename)
 		logFileName := ""
 		if extName != "" {
-			logFileName = strings.Replace(filename, extName, ".log", -1)
+			extIndex := strings.LastIndex(filename, extName)
+			logFileName = filename[:extIndex] + ".log"
 		} else {
 			logFileName = filename + ".log"
 		}

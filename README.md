@@ -24,11 +24,9 @@ gotuils目标是快速搭建应用的辅助代码库
 - [log zap日志库](#log-zap%E6%97%A5%E5%BF%97%E5%BA%93)
   * [zap_test.go](#zap_testgo)
 - [middleware 中间件](#middleware-%E4%B8%AD%E9%97%B4%E4%BB%B6)
-  * [captcha_test.go 验证码模块](#captcha_testgo-%E9%AA%8C%E8%AF%81%E7%A0%81%E6%A8%A1%E5%9D%97)
   * [limit_conn_test.go 限连接模块](#limit_conn_testgo-%E9%99%90%E8%BF%9E%E6%8E%A5%E6%A8%A1%E5%9D%97)
   * [limit_req_test.go 限流模块](#limit_req_testgo-%E9%99%90%E6%B5%81%E6%A8%A1%E5%9D%97)
   * [service_handler_test.go service封装器](#service_handler_testgo-service%E5%B0%81%E8%A3%85%E5%99%A8)
-  * [thumb_image_test.go 缩略图](#thumb_image_testgo-%E7%BC%A9%E7%95%A5%E5%9B%BE)
 - [net 网络库](#net-%E7%BD%91%E7%BB%9C%E5%BA%93)
   * [httpx 兼容http1.x和2.0的httpclient](#httpx-%E5%85%BC%E5%AE%B9http1x%E5%92%8C20%E7%9A%84httpclient)
   * [ip](#ip)
@@ -1154,8 +1152,8 @@ ctx := &gin.Context{}
 ctx.Set("__traceId", "aaabbbbbcccc")
 Info(ctx, "我是日志 %v", "name", "管理员") //json
 
-Info(ctx, "我是日志3", "管理员") //json
-Error(ctx, "我是日志3")       //json
+Info(ctx, "我是日志3 %v", "管理员") //json
+Error(ctx, "我是日志3")          //json
 Log(ctx, zapcore.ErrorLevel, "日志啊")
 ```
 #### TestPanicLog
@@ -1193,39 +1191,6 @@ Info(ctx, LogMore())
 fmt.Println(LogMore(), "============")
 ```
 ## middleware 中间件
-### captcha_test.go 验证码模块
-#### TestVerifyCaptcha
-```go
-
-router := gin.New()
-router.GET("/cimage", GetCaptchaImage)
-
-g := router.Group("/", VerifyCaptcha(func(c *gin.Context) (string, string) {
-	return c.DefaultPostForm("cid", ""), c.DefaultPostForm("ccode", "")
-}))
-g.POST("/submit", func(c *gin.Context) {
-	c.String(http.StatusOK, "success")
-})
-
-var tplStr = `
-<!doctype html>
-<html>
- <body>
-  <form method="post" action="/submit">
-	<div><input type="hidden" name="cid" value="%s"></div>
-	<div><input type="image" src="/cimage?id=%s"></div>
-	<div><input type="text" name="ccode" value=""></div>
-	<div><input type="submit" value="submit"></div>
-  </form>
- </body>
-</html>
-`
-router.GET("/", func(c *gin.Context) {
-	cid := GetCaptchaId()
-	c.Data(http.StatusOK, "text/html", []byte(fmt.Sprintf(tplStr, cid, cid)))
-})
-router.Run(":8080")
-```
 ### limit_conn_test.go 限连接模块
 #### TestLimitConn
 ```go
@@ -1319,14 +1284,6 @@ time.Sleep(time.Minute * 20)
 router := gin.New()
 router.POST("/foo", ServiceHandler(serviceFoo, fooReq{}, nil))
 
-router.Run(":8080")
-```
-### thumb_image_test.go 缩略图
-#### TestThumbImageServe
-```go
-
-router := gin.New()
-router.Use(ThumbImageServe("/images", GinHttpFs("G:/images", false)))
 router.Run(":8080")
 ```
 ## net 网络库
@@ -1742,7 +1699,9 @@ e.GET("/join", func(ctx *gin.Context) {
 		Version:  0,
 		Charset:  0,
 	}
-	_, err := AcceptGin(ctx, connMeta, ConnectCbOption(&ConnectCb{connMeta.UserId}))
+	_, err := AcceptGin(ctx, connMeta, ConnectCbOption(&ConnectCb{connMeta.UserId}),
+		SrvUpgraderCompressOption(true),
+		CompressionLevelOption(2))
 	if err != nil {
 		log.Error(ctx, "Accept client connection failed. error: %v", err)
 		return
@@ -1756,8 +1715,14 @@ RegisterHandler(S2C_RESP, func(ctx context.Context, connection *Connection, mess
 	return nil
 })
 //client connect
-uid := "100"
-conn, _ := Connect(context.Background(), "server1", "ws://127.0.0.1:8003/join?uid="+uid, false, http.Header{})
+url := "ws://127.0.0.1:8003/join?uid=" + "100"
+conn, _ := DialConnect(context.Background(), url, http.Header{},
+	ClientIdOption("server1"),
+	ClientDialWssOption(url, false),
+	ClientDialCompressOption(true),
+	CompressionLevelOption(2),
+)
+
 log.Info(ctx, "%v", conn)
 time.Sleep(time.Second * 5)
 

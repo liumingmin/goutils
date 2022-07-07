@@ -30,8 +30,8 @@ func TestZapJson(t *testing.T) {
 	ctx.Set("__traceId", "aaabbbbbcccc")
 	Info(ctx, "我是日志 %v", "name", "管理员") //json
 
-	Info(ctx, "我是日志3", "管理员") //json
-	Error(ctx, "我是日志3")       //json
+	Info(ctx, "我是日志3 %v", "管理员") //json
+	Error(ctx, "我是日志3")          //json
 	Log(ctx, zapcore.ErrorLevel, "日志啊")
 }
 
