@@ -350,13 +350,18 @@ func (c *Connection) readMsgFromWs() {
 					continue
 				}
 
-				log.Warn(ctx, "%v Read failure and reach max times. id: %v, ptr: %p messageType: %v, error: %v",
+				log.Debug(ctx, "%v Read failure and reach max times. id: %v, ptr: %p messageType: %v, error: %v",
 					c.typ, c.id, c, t, errNet)
 				break
 			}
 
-			log.Warn(ctx, "%v Conn closed or Read failed. id: %v, ptr: %p, msgType: %v, err: %v",
-				c.typ, c.id, c, t, err)
+			if _, ok := err.(*websocket.CloseError); ok || c.IsStopped() {
+				log.Debug(ctx, "%v Conn closed or Read failed. id: %v, ptr: %p, msgType: %v, err: %v",
+					c.typ, c.id, c, t, err)
+			} else {
+				log.Warn(ctx, "%v Conn closed or Read failed. id: %v, ptr: %p, msgType: %v, err: %v",
+					c.typ, c.id, c, t, err)
+			}
 			break
 		}
 
@@ -435,9 +440,9 @@ func (c *Connection) doSendMsgToWs(ctx context.Context, data []byte) error {
 			return errors.New("writer close failed")
 		}
 
-		if e, ok := err.(*websocket.CloseError); ok {
+		if _, ok := err.(*websocket.CloseError); ok || c.IsStopped() {
 			log.Debug(ctx, "%v Websocket close error. client id: %v, ptr: %p, error: %v",
-				c.typ, c.id, c, e.Code)
+				c.typ, c.id, c, err)
 		} else {
 			log.Warn(ctx, "%v Writer close failed. id: %v, ptr: %p, error: %v", c.typ, c.id, c, err)
 		}
