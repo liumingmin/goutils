@@ -39,7 +39,7 @@ func TestWssRun(t *testing.T) {
 			Version:  0,
 			Charset:  0,
 		}
-		_, err := AcceptGin(ctx, connMeta, ConnectCbOption(&ConnectCb{connMeta.UserId}),
+		_, err := AcceptGin(ctx, connMeta, DebugOption(true), ConnectCbOption(&ConnectCb{connMeta.UserId}),
 			SrvUpgraderCompressOption(true),
 			CompressionLevelOption(1))
 		if err != nil {
@@ -62,6 +62,7 @@ func TestWssRun(t *testing.T) {
 		ClientDialWssOption(url, false),
 		ClientDialCompressOption(true),
 		CompressionLevelOption(2),
+		DebugOption(true),
 	)
 	log.Info(ctx, "%v", conn)
 	time.Sleep(time.Second * 5)

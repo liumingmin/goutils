@@ -82,17 +82,13 @@ type SendCallback func(ctx context.Context, c *Connection, err error)
 // use RegisterHandler(constant...., func(context.Context,*Connection,*Message) error {})
 type Handler func(context.Context, *Connection, *Message) error
 
-//连接回调
-type IConnCallback interface {
-	ConnFinished(clientId string)
-	DisconnFinished(clientId string)
-}
-
-//保活回调
-type IHeartbeatCallback interface {
-	RecvPing(clientId string)
-	RecvPong(clientId string) error
-}
+// 客户端事件处理函数
+// ConnEstablishHandlerOption
+// ConnClosingHandlerOption
+// ConnClosedHandlerOption
+// RecvPingHandlerOption
+// RecvPongHandlerOption
+type EventHandler func(*Connection)
 
 // 注册消息处理器
 func RegisterHandler(cmd int32, h Handler) {

@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"net"
+	"strconv"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -38,19 +39,24 @@ type Connection struct {
 	conn       *websocket.Conn //websocket connection
 	sendBuffer chan *Message   //发送缓冲区
 
-	connCallback      IConnCallback
-	heartbeatCallback IHeartbeatCallback
+	connEstablishHandler EventHandler
+	connClosingHandler   EventHandler
+	connClosedHandler    EventHandler
+	recvPingHandler      EventHandler
+	recvPongHandler      EventHandler
 
 	commonDataLock sync.RWMutex
 	commonData     map[string]interface{}
 
-	stopped        int32 //连接断开
-	displaced      int32 //连接被顶号
-	connClosedChan chan interface{}
+	stopped             int32 //连接断开
+	displaced           int32 //连接被顶号
+	closedAutoReconChan chan interface{}
 
 	pullChannelMap map[int]chan struct{} //新消息通知通道
 
 	compressionLevel int
+
+	debug bool
 
 	//net params
 	maxFailureRetry int           //重试次数
@@ -219,9 +225,13 @@ func (c *Connection) closeSocket(ctx context.Context) error {
 	})
 
 	defer func() {
-		if c.connClosedChan != nil {
+		if c.connClosedHandler != nil {
+			c.connClosedHandler(c)
+		}
+
+		if c.closedAutoReconChan != nil {
 			select {
-			case c.connClosedChan <- struct{}{}:
+			case c.closedAutoReconChan <- struct{}{}:
 			default:
 			}
 		}
@@ -244,6 +254,8 @@ func (c *Connection) writeToConnection() {
 		}
 	}()
 
+	pingPayload := []byte{}
+
 	for {
 		ctx := utils.ContextWithTrace()
 
@@ -259,16 +271,20 @@ func (c *Connection) writeToConnection() {
 				return
 			}
 		case <-ticker.C:
-			log.Debug(ctx, "%v send Ping. id: %v, ptr: %p", c.typ, c.id, c)
-			if err := c.conn.WriteControl(websocket.PingMessage, []byte{}, time.Now().Add(c.writeWait)); err != nil {
+			if c.debug {
+				pingPayload = strconv.AppendInt([]byte(c.typ.String()), time.Now().UnixNano(), 10)
+				log.Debug(ctx, "%v send ping. pingId: %v, ptr: %p", c.typ, string(pingPayload), c)
+			}
+
+			if err := c.conn.WriteControl(websocket.PingMessage, pingPayload, time.Now().Add(c.writeWait)); err != nil {
 				if errNet, ok := err.(net.Error); (ok && errNet.Timeout()) || (ok && errNet.Temporary()) {
-					log.Debug(ctx, "%v send Ping. timeout. id: %v, error: %v", c.typ, c.id, errNet)
+					log.Debug(ctx, "%v send ping. timeout. id: %v, error: %v", c.typ, c.id, errNet)
 
 					time.Sleep(c.temporaryWait)
 					continue
 				}
 
-				log.Debug(ctx, "%v send Ping failed. id: %v, error: %v", c.typ, c.id, c, err)
+				log.Error(ctx, "%v send Ping failed. id: %v, error: %v", c.typ, c.id, c, err)
 				return
 			}
 		}
@@ -292,15 +308,23 @@ func (c *Connection) readFromConnection() {
 		c.conn.SetReadDeadline(time.Now().Add(c.readWait))
 		err := pingHandler(message)
 
-		if c.heartbeatCallback != nil {
-			c.heartbeatCallback.RecvPing(c.id)
+		if c.recvPingHandler != nil {
+			c.recvPingHandler(c)
+		}
+
+		if c.debug {
+			log.Debug(context.Background(), "%v recv ping. pingId: %v, ptr: %p", c.typ, message, c)
 		}
 		return err
 	})
-	c.conn.SetPongHandler(func(string) error {
+	c.conn.SetPongHandler(func(message string) error {
 		c.conn.SetReadDeadline(time.Now().Add(c.readWait))
-		if c.heartbeatCallback != nil {
-			c.heartbeatCallback.RecvPong(c.id)
+		if c.recvPongHandler != nil {
+			c.recvPongHandler(c)
+		}
+
+		if c.debug {
+			log.Debug(context.Background(), "%v recv pong. pingId: %v, ptr: %p", c.typ, message, c)
 		}
 		return nil
 	})

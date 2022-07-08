@@ -79,6 +79,17 @@ func (h *Hub) processRegister(conn *Connection) {
 		h.connections.Delete(old.id)
 		old.closeRead(ctx)
 
+		func() {
+			defer log.Recover(ctx, func(e interface{}) string {
+				return fmt.Sprintf("connClosingHandler panic, error is: %v", e)
+			})
+
+			if old.connClosingHandler != nil {
+				log.Debug(ctx, "%v connClosingHandler. id: %v", old.typ, old.id)
+				old.connClosingHandler(old)
+			}
+		}()
+
 		message := GetPoolMessage(int32(P_S2C_s2c_err_displace))
 		old.SendMsg(ctx, message,
 			func(cbCtx context.Context, old *Connection, e error) {
@@ -94,9 +105,9 @@ func (h *Hub) processRegister(conn *Connection) {
 
 	h.connections.Store(conn.id, conn)
 
-	if conn.connCallback != nil {
-		log.Debug(ctx, "%v Callback ConnFinished. id: %v", conn.typ, conn.id)
-		conn.connCallback.ConnFinished(conn.id)
+	if conn.connEstablishHandler != nil {
+		log.Debug(ctx, "%v connEstablishHandler. id: %v", conn.typ, conn.id)
+		conn.connEstablishHandler(conn)
 	}
 	log.Debug(ctx, "%v Register ok. id: %v", conn.typ, conn.id)
 
@@ -116,13 +127,9 @@ func (h *Hub) processUnregister(conn *Connection) {
 			c.closeSocket(ctx)
 		}()
 
-		if conn.connCallback != nil {
-			if !conn.IsDisplaced() { //正常断开
-				log.Debug(ctx, "%v disconnect callback. id: %v", conn.typ, conn.id)
-				conn.connCallback.DisconnFinished(conn.id)
-			} else {
-				log.Debug(ctx, "%v displaced, skipped disconnect callback. id: %v", conn.typ, conn.id)
-			}
+		if conn.connClosingHandler != nil {
+			log.Debug(ctx, "%v connClosingHandler. id: %v", conn.typ, conn.id)
+			conn.connClosingHandler(conn) // process IsDisplaced
 		}
 
 		log.Debug(ctx, "%v unregister finish. id: %v", c.typ, c.id)

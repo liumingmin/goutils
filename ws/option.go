@@ -14,16 +14,40 @@ import (
 // 连接动态参数选项
 type ConnOption func(*Connection)
 
-//通用option
-func ConnectCbOption(connCallback IConnCallback) ConnOption {
+func DebugOption(debug bool) ConnOption {
 	return func(conn *Connection) {
-		conn.connCallback = connCallback
+		conn.debug = debug
 	}
 }
 
-func HeartbeatCbOption(heartbeatCallback IHeartbeatCallback) ConnOption {
+// callback
+func ConnEstablishHandlerOption(handler EventHandler) ConnOption {
 	return func(conn *Connection) {
-		conn.heartbeatCallback = heartbeatCallback
+		conn.connEstablishHandler = handler
+	}
+}
+
+func ConnClosingHandlerOption(handler EventHandler) ConnOption {
+	return func(conn *Connection) {
+		conn.connClosingHandler = handler
+	}
+}
+
+func ConnClosedHandlerOption(handler EventHandler) ConnOption {
+	return func(conn *Connection) {
+		conn.connClosedHandler = handler
+	}
+}
+
+func RecvPingHandlerOption(handler EventHandler) ConnOption {
+	return func(conn *Connection) {
+		conn.recvPingHandler = handler
+	}
+}
+
+func RecvPongHandlerOption(handler EventHandler) ConnOption {
+	return func(conn *Connection) {
+		conn.recvPongHandler = handler
 	}
 }
 
@@ -92,9 +116,9 @@ func NetTemporaryWaitOption(temporaryWait time.Duration) ConnOption {
 }
 
 //channel cannot reuse
-func connClosedNotifyOption() ConnOption {
+func closedAutoReconOption() ConnOption {
 	return func(conn *Connection) {
-		conn.connClosedChan = make(chan interface{}, 1)
+		conn.closedAutoReconChan = make(chan interface{}, 1)
 	}
 }
 
