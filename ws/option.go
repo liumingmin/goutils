@@ -91,13 +91,10 @@ func NetTemporaryWaitOption(temporaryWait time.Duration) ConnOption {
 	}
 }
 
-func ConnClosedNotifyOption(closedNotify chan interface{}) ConnOption {
-	if closedNotify == nil {
-		closedNotify = make(chan interface{}, 1)
-	}
-
+//channel cannot reuse
+func connClosedNotifyOption() ConnOption {
 	return func(conn *Connection) {
-		conn.connClosedChan = closedNotify
+		conn.connClosedChan = make(chan interface{}, 1)
 	}
 }
 
