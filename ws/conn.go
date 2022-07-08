@@ -376,7 +376,9 @@ func (c *Connection) processMsg(ctx context.Context, msgData []byte) {
 		return
 	}
 
-	log.Debug(ctx, "%v receive ws message. data: %#v, cid: %s", c.typ, message, c.id)
+	if c.debug {
+		log.Debug(ctx, "%v receive ws message. data: %#v, cid: %s", c.typ, message, c.id)
+	}
 
 	c.dispatch(ctx, message)
 }
