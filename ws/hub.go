@@ -160,6 +160,8 @@ func (h *Hub) RangeConnsByFunc(f func(string, *Connection) bool) {
 }
 
 func InitServer() {
+	RegisterDataMsgType(int32(P_S2C_s2c_err_displace), &P_DISPLACE{})
+
 	safego.Go(ClientConnHub.run)
 }
 
