@@ -4,6 +4,7 @@ import (
 	"context"
 	"reflect"
 	"sync"
+	"time"
 
 	"google.golang.org/protobuf/proto"
 )
@@ -107,4 +108,10 @@ func RegisterDataMsgType(protocolId int32, pMsg IDataMessage) {
 			return reflect.New(typ).Interface()
 		},
 	}
+}
+
+type ConnDisplaceInfo struct {
+	OldIP string    `json:"oldIp"`
+	NewIP string    `json:"newIp"`
+	Tm    time.Time `json:"tm"`
 }

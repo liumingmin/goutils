@@ -79,6 +79,9 @@ type ConnectionMeta struct {
 	DeviceId string //设备ID
 	Version  int    //版本
 	Charset  int    //客户端使用的字符集
+
+	//inner set
+	ip string
 }
 
 func (m *ConnectionMeta) BuildConnId() string {
@@ -103,6 +106,10 @@ func (c *Connection) Version() int {
 
 func (c *Connection) Charset() int {
 	return c.meta.Charset
+}
+
+func (c *Connection) ClientIp() string {
+	return c.meta.ip
 }
 
 func (c *Connection) GetPullChannel(notifyType int) (chan struct{}, bool) {

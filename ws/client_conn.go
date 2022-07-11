@@ -28,10 +28,16 @@ func Connect(ctx context.Context, sId, sUrl string, secureWss bool, header http.
 	return DialConnect(ctx, sUrl, header, append(baseOpts, opts...)...)
 }
 
-func AutoReDialConnect(ctx context.Context, sUrl string, header http.Header, cancelAutoConn chan interface{}, opts ...ConnOption) {
+func AutoReDialConnect(ctx context.Context, sUrl string, header http.Header, cancelAutoConn chan interface{}, connInterval time.Duration,
+	opts ...ConnOption) {
 	reConnOpts := append([]ConnOption{closedAutoReconOption()}, opts...)
+
 	if cancelAutoConn == nil {
 		cancelAutoConn = make(chan interface{})
+	}
+
+	if connInterval == 0 {
+		connInterval = time.Second * 5
 	}
 
 	for {
@@ -44,6 +50,8 @@ func AutoReDialConnect(ctx context.Context, sUrl string, header http.Header, can
 			return
 		case <-conn.closedAutoReconChan:
 		}
+
+		time.Sleep(connInterval)
 	}
 }
 

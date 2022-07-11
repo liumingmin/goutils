@@ -2,8 +2,10 @@ package ws
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"sync"
+	"time"
 
 	"github.com/liumingmin/goutils/log"
 	"github.com/liumingmin/goutils/utils"
@@ -91,6 +93,8 @@ func (h *Hub) processRegister(conn *Connection) {
 		}()
 
 		message := GetPoolMessage(int32(P_S2C_s2c_err_displace))
+		displaceInfo := ConnDisplaceInfo{OldIP: old.ClientIp(), NewIP: conn.ClientIp(), Tm: time.Now()}
+		message.PMsg().Data, _ = json.Marshal(displaceInfo)
 		old.SendMsg(ctx, message,
 			func(cbCtx context.Context, old *Connection, e error) {
 				old.setStop(cbCtx)
@@ -155,5 +159,15 @@ func InitServer() {
 }
 
 func InitClient() {
+	RegisterHandler(int32(P_S2C_s2c_err_displace), func(ctx context.Context, conn *Connection, message *Message) error {
+		var displaceInfo ConnDisplaceInfo
+		if len(message.PMsg().Data) > 0 {
+			json.Unmarshal(message.PMsg().Data, &displaceInfo)
+		}
+
+		log.Info(ctx, "client displaced: %#v", displaceInfo)
+		return nil
+	})
+
 	safego.Go(ServerConnHub.run)
 }

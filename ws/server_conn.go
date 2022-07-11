@@ -4,6 +4,8 @@ import (
 	"context"
 	"net/http"
 
+	"github.com/liumingmin/goutils/net/ip"
+
 	"github.com/gin-gonic/gin"
 	"github.com/gorilla/websocket"
 	"github.com/liumingmin/goutils/log"
@@ -29,10 +31,15 @@ func (c *Connection) KickClient(displace bool) {
 }
 
 func AcceptGin(ctx *gin.Context, meta ConnectionMeta, opts ...ConnOption) (*Connection, error) {
+	meta.ip = ctx.ClientIP()
 	return Accept(ctx, ctx.Writer, ctx.Request, meta, opts...)
 }
 
 func Accept(ctx context.Context, w http.ResponseWriter, r *http.Request, meta ConnectionMeta, opts ...ConnOption) (*Connection, error) {
+	if meta.ip == "" {
+		meta.ip = ip.RemoteAddress(r)
+	}
+
 	connection := &Connection{
 		id:               meta.BuildConnId(),
 		typ:              CONN_KIND_SERVER,
