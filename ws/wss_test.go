@@ -43,13 +43,13 @@ func TestWssRun(t *testing.T) {
 			SrvUpgraderCompressOption(true),
 			CompressionLevelOption(2),
 			ConnEstablishHandlerOption(func(conn *Connection) {
-				log.Info(context.Background(), "conn establish: %v", conn.Id())
+				log.Info(context.Background(), "server conn establish: %v", conn.Id())
 			}),
 			ConnClosingHandlerOption(func(conn *Connection) {
-				log.Info(context.Background(), "conn closing: %v", conn.Id())
+				log.Info(context.Background(), "server conn closing: %v", conn.Id())
 			}),
 			ConnClosedHandlerOption(func(conn *Connection) {
-				log.Info(context.Background(), "conn closed: %v", conn.Id())
+				log.Info(context.Background(), "server conn closed: %v", conn.Id())
 			}))
 		if err != nil {
 			log.Error(ctx, "Accept client connection failed. error: %v", err)
@@ -73,13 +73,13 @@ func TestWssRun(t *testing.T) {
 		ClientDialCompressOption(true),
 		CompressionLevelOption(2),
 		ConnEstablishHandlerOption(func(conn *Connection) {
-			log.Info(context.Background(), "conn establish: %v", conn.Id())
+			log.Info(context.Background(), "client conn establish: %v", conn.Id())
 		}),
 		ConnClosingHandlerOption(func(conn *Connection) {
-			log.Info(context.Background(), "conn closing: %v", conn.Id())
+			log.Info(context.Background(), "client conn closing: %v", conn.Id())
 		}),
 		ConnClosedHandlerOption(func(conn *Connection) {
-			log.Info(context.Background(), "conn closed: %v", conn.Id())
+			log.Info(context.Background(), "client conn closed: %v", conn.Id())
 		}),
 	)
 	log.Info(ctx, "%v", conn)
@@ -96,6 +96,9 @@ func TestWssRun(t *testing.T) {
 		DebugOption(true),
 		ClientIdOption("server2"),
 		ClientDialWssOption(url, false),
+		ConnEstablishHandlerOption(func(conn *Connection) {
+			log.Info(context.Background(), "client conn establish: %v", conn.Id())
+		}),
 	)
 	time.Sleep(time.Second)
 	packet = GetPoolMessage(C2S_REQ)
