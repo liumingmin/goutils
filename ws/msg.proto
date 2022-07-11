@@ -10,9 +10,17 @@ message P_MESSAGE
     bytes                   data                    = 2;    //内容-自定义消息
 }
 
+message P_DISPLACE
+{
+    bytes                   old_ip                  = 1;
+    bytes                   new_ip                  = 2;
+    int64                   ts                      = 3;
+}
+
 //基础协议
 enum P_S2C
 {
     s2c_connected           = 0;                            //连接成功建立
     s2c_err_displace        = -1;                           //被顶号
 }
+

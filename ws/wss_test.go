@@ -89,8 +89,18 @@ func TestWssRun(t *testing.T) {
 	packet.PMsg().Data = []byte("client request")
 	conn.SendMsg(context.Background(), packet, nil)
 
-	//time.Sleep(time.Second * 20)
-	//conn.KickServer(false)
+	time.Sleep(time.Second * 10)
+
+	//client connect displace
+	conn2, _ := DialConnect(context.Background(), url, http.Header{},
+		DebugOption(true),
+		ClientIdOption("server2"),
+		ClientDialWssOption(url, false),
+	)
+	time.Sleep(time.Second)
+	packet = GetPoolMessage(C2S_REQ)
+	packet.PMsg().Data = []byte("client request2")
+	conn2.SendMsg(context.Background(), packet, nil)
 
 	time.Sleep(time.Minute * 1)
 }
