@@ -199,3 +199,9 @@ func ClientDialRetryOption(retryNum int, retryInterval time.Duration) ConnOption
 		conn.dialRetryInterval = retryInterval
 	}
 }
+
+func ClientDialConnFailedHandlerOption(handler EventHandler) ConnOption {
+	return func(conn *Connection) {
+		conn.dialConnFailedHandler = handler
+	}
+}

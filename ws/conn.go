@@ -45,6 +45,8 @@ type Connection struct {
 	recvPingHandler      EventHandler
 	recvPongHandler      EventHandler
 
+	dialConnFailedHandler EventHandler
+
 	commonDataLock sync.RWMutex
 	commonData     map[string]interface{}
 

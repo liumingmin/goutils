@@ -84,6 +84,9 @@ func DialConnect(ctx context.Context, sUrl string, header http.Header, opts ...C
 				continue
 			} else {
 				log.Error(ctx, "Failed to connect to server, leave it. retry: %v, error: %v", retry, err)
+				if connection.dialConnFailedHandler != nil {
+					connection.dialConnFailedHandler(connection)
+				}
 				return nil, err
 			}
 		}
