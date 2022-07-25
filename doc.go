@@ -6,6 +6,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"regexp"
+	"sort"
 	"strings"
 
 	"github.com/liumingmin/goutils/utils"
@@ -17,15 +18,28 @@ func main() {
 	prefix, _ := ioutil.ReadFile(filepath.Join(utils.GetCurrPath(), "BASE-README.MD"))
 	sb.WriteString(string(prefix))
 
-	genDocByTestFile(utils.GetCurrPath(), 1, &sb)
-	ioutil.WriteFile("README.md", []byte(sb.String()), 0666)
-
-	if err := exec.Command("cmd", "/c", "markdown-toc --maxdepth 3 -i README.md").Run(); err != nil {
-		fmt.Println(err)
+	outlines := genDocByTestFile(utils.GetCurrPath(), 1, &strings.Builder{})
+	outlineEns := make([]string, 0)
+	for outlineEn := range outlines {
+		outlineEns = append(outlineEns, outlineEn)
 	}
+	sort.Strings(outlineEns)
+
+	for _, outlineEn := range outlineEns {
+		outlineCn := moduleCnName[outlineEn]
+		url := outlines[outlineEn]
+
+		sb.WriteString(fmt.Sprintf("- [%v](%v)\n", outlineCn, url))
+	}
+	ioutil.WriteFile("README.md", []byte(sb.String()), 0666)
+	//
+	//if err := exec.Command("cmd", "/c", "markdown-toc --maxdepth 3 -i README.md").Run(); err != nil {
+	//	fmt.Println(err)
+	//}
 }
 
 var moduleCnName = map[string]string{
+	"algorithm":               "算法模块",
 	"cache":                   "缓存模块",
 	"mem_cache_test.go":       "内存缓存",
 	"rds_cache_test.go":       "Redis缓存",
@@ -75,10 +89,12 @@ var moduleCnName = map[string]string{
 }
 
 //dir := filepath.Dir(filePath)
-func genDocByTestFile(dir string, level int, sb *strings.Builder) {
+func genDocByTestFile(dir string, level int, sb *strings.Builder) map[string]string {
 	files, _ := ioutil.ReadDir(dir)
 
 	nextLevel := level + 1
+
+	outlines := make(map[string]string)
 
 	for _, file := range files {
 		if file.IsDir() {
@@ -87,6 +103,27 @@ func genDocByTestFile(dir string, level int, sb *strings.Builder) {
 			}
 			genDirLevel(file.Name(), nextLevel, sb)
 			genDocByTestFile(filepath.Join(dir, file.Name()), nextLevel, sb)
+
+			if level == 1 {
+				readmePath := filepath.Join(file.Name(), "README.md")
+				outlines[file.Name()] = readmePath
+
+				if file.Name() == "ws" {
+					sb.Reset()
+					continue
+				}
+				content := sb.String()
+				if strings.TrimSpace(content) == "" {
+					sb.Reset()
+					continue
+				}
+				ioutil.WriteFile(readmePath, []byte(content), 0666)
+				sb.Reset()
+
+				if err := exec.Command("cmd", "/c", "markdown-toc --maxdepth 3 -i "+readmePath).Run(); err != nil {
+					fmt.Println(err)
+				}
+			}
 			continue
 		}
 
@@ -102,11 +139,13 @@ func genDocByTestFile(dir string, level int, sb *strings.Builder) {
 			parseTestCode(nextLevel, content, sb)
 		}
 	}
+
+	return outlines
 }
 
 func genDirLevel(dirName string, level int, sb *strings.Builder) {
 	prefixSymbol := ""
-	for i := 0; i < level; i++ {
+	for i := 0; i < level-1; i++ {
 		prefixSymbol += "#"
 	}
 
