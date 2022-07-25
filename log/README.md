@@ -1,3 +1,16 @@
+
+
+<!-- toc -->
+
+- [log zap日志库](#log-zap%E6%97%A5%E5%BF%97%E5%BA%93)
+  * [zap_test.go](#zap_testgo)
+    + [TestZap](#testzap)
+    + [TestZapJson](#testzapjson)
+    + [TestPanicLog](#testpaniclog)
+    + [TestLevelChange](#testlevelchange)
+
+<!-- tocstop -->
+
 # log zap日志库
 ## zap_test.go
 ### TestZap

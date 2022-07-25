@@ -117,7 +117,7 @@ func genDocByTestFile(dir string, level int, sb *strings.Builder) map[string]str
 					sb.Reset()
 					continue
 				}
-				ioutil.WriteFile(readmePath, []byte(content), 0666)
+				ioutil.WriteFile(readmePath, []byte("<!-- toc -->\n"+content), 0666)
 				sb.Reset()
 
 				if err := exec.Command("cmd", "/c", "markdown-toc --maxdepth 3 -i "+readmePath).Run(); err != nil {

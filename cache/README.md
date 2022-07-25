@@ -1,3 +1,16 @@
+
+
+<!-- toc -->
+
+- [cache 缓存模块](#cache-%E7%BC%93%E5%AD%98%E6%A8%A1%E5%9D%97)
+  * [mem_cache_test.go 内存缓存](#mem_cache_testgo-%E5%86%85%E5%AD%98%E7%BC%93%E5%AD%98)
+    + [TestMemCacheFunc](#testmemcachefunc)
+  * [rds_cache_test.go Redis缓存](#rds_cache_testgo-redis%E7%BC%93%E5%AD%98)
+    + [TestRdscCacheFunc](#testrdsccachefunc)
+    + [TestRdsCacheMultiFunc](#testrdscachemultifunc)
+
+<!-- tocstop -->
+
 # cache 缓存模块
 ## mem_cache_test.go 内存缓存
 ### TestMemCacheFunc
