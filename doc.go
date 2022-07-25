@@ -105,7 +105,7 @@ func genDocByTestFile(dir string, level int, sb *strings.Builder) map[string]str
 			genDocByTestFile(filepath.Join(dir, file.Name()), nextLevel, sb)
 
 			if level == 1 {
-				readmePath := filepath.Join(file.Name(), "README.md")
+				readmePath := strings.TrimRight(file.Name(), "/\\") + "/" + "README.md"
 				outlines[file.Name()] = readmePath
 
 				if file.Name() == "ws" {
