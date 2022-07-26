@@ -78,18 +78,9 @@ func (h *Hub) processRegister(conn *Connection) {
 
 		old.setDisplaced()
 		h.connections.Delete(old.id)
-		old.closeRead(ctx)
+		old.setStop(ctx)
 
-		func() {
-			defer log.Recover(ctx, func(e interface{}) string {
-				return fmt.Sprintf("connClosingHandler panic, error is: %v", e)
-			})
-
-			if old.connClosingHandler != nil {
-				log.Debug(ctx, "%v connClosingHandler. id: %v", old.typ, old.id)
-				old.connClosingHandler(old)
-			}
-		}()
+		old.handleClosing(ctx)
 
 		message := GetPoolMessage(int32(P_S2C_s2c_err_displace))
 		dataMsg := message.DataMsg()
@@ -99,13 +90,10 @@ func (h *Hub) processRegister(conn *Connection) {
 			displaceMsg.NewIp = []byte(conn.ClientIp())
 			displaceMsg.Ts = time.Now().UnixNano()
 		}
-
-		old.SendMsg(ctx, message,
-			func(cbCtx context.Context, old *Connection, e error) {
-				old.setStop(cbCtx)
-				old.closeSocket(cbCtx)
-			})
-
+		message.sc = func(cbCtx context.Context, old *Connection, e error) {
+			old.closeSocket(cbCtx)
+		}
+		old.sendMsgToWs(ctx, message)
 	} else if err == nil && old == conn {
 		return
 	} else { // 新连接，并且是首次注册
@@ -130,18 +118,13 @@ func (h *Hub) processUnregister(conn *Connection) {
 	if c, err := h.findById(conn.id); err == nil && c == conn {
 		log.Debug(ctx, "%v unregister start. id: %v", c.typ, c.id)
 
-		h.connections.Delete(c.id)
-		defer func() {
-			c.setStop(ctx)
-			c.closeSocket(ctx)
-		}()
+		h.connections.Delete(conn.id)
+		conn.setStop(ctx)
 
-		if conn.connClosingHandler != nil {
-			log.Debug(ctx, "%v connClosingHandler. id: %v", conn.typ, conn.id)
-			conn.connClosingHandler(conn) // process IsDisplaced
-		}
+		conn.handleClosing(ctx)
+		conn.closeSocket(ctx)
 
-		log.Debug(ctx, "%v unregister finish. id: %v", c.typ, c.id)
+		log.Debug(ctx, "%v unregister finish. id: %v", conn.typ, conn.id)
 	}
 	//not in hub conn is displaced connect,do not process it
 }

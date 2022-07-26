@@ -30,6 +30,7 @@ const (
     C2S_REQ  = 1
     S2C_RESP = 2
 )
+const pullMsgFromDB = 1
 
 //server reg handler
 RegisterHandler(C2S_REQ, func(ctx context.Context, connection *Connection, message *Message) error {
@@ -37,23 +38,26 @@ RegisterHandler(C2S_REQ, func(ctx context.Context, connection *Connection, messa
     packet := GetPoolMessage(S2C_RESP)
     packet.PMsg().Data = []byte("server response")
     connection.SendMsg(ctx, packet, nil)
+
+    connection.SendPullNotify(ctx, pullMsgFromDB)
     return nil
 })
 
 //server start
-const pullMsgFromDB = 1
-srvComet := NewDefaultSrvComet(pullMsgFromDB, func(ctx context.Context, pullConn *Connection) {
-    packet := GetPoolMessage(S2C_RESP)
-    packet.PMsg().Data = []byte("first msg from db")
-    pullConn.SendMsg(ctx, packet, nil)
-}, func(ctx context.Context, pullConn *Connection) {
-    //msg from db...
-    time.Sleep(time.Second * 1)
+var createSrvPullerFunc = func(conn *Connection, pullChannelId int) SrvPuller {
+    return NewDefaultSrvPuller(conn, pullChannelId, func(ctx context.Context, pullConn *Connection) {
+        packet := GetPoolMessage(S2C_RESP)
+        packet.PMsg().Data = []byte("first msg from db")
+        pullConn.SendMsg(ctx, packet, nil)
+    }, func(ctx context.Context, pullConn *Connection) {
+        //msg from db...
+        time.Sleep(time.Second * 1)
 
-    packet := GetPoolMessage(S2C_RESP)
-    packet.PMsg().Data = []byte("pull msg from db")
-    pullConn.SendMsg(ctx, packet, nil)
-})
+        packet := GetPoolMessage(S2C_RESP)
+        packet.PMsg().Data = []byte("pull msg from db")
+        pullConn.SendMsg(ctx, packet, nil)
+    })
+}
 
 e := gin.New()
 e.GET("/join", func(ctx *gin.Context) {
@@ -69,8 +73,10 @@ e.GET("/join", func(ctx *gin.Context) {
         CompressionLevelOption(2),
         ConnEstablishHandlerOption(func(conn *Connection) {
             log.Info(context.Background(), "server conn establish: %v", conn.Id())
+
+            puller := createSrvPullerFunc(conn, pullMsgFromDB)
             safego.Go(func() {
-                srvComet.PullSend(conn)
+                puller.PullSend()
             })
         }),
         ConnClosingHandlerOption(func(conn *Connection) {

@@ -109,12 +109,13 @@ func RegisterDataMsgType(protocolId int32, pMsg IDataMessage) {
 	}
 }
 
-type SrvComet interface {
-	PullSend(*Connection)
+type SrvPuller interface {
+	PullSend()
 }
 
-func NewDefaultSrvComet(pullChannelId int, firstPullFunc, pullFunc func(context.Context, *Connection)) SrvComet {
-	return &defaultSrvComet{
+func NewDefaultSrvPuller(conn *Connection, pullChannelId int, firstPullFunc, pullFunc func(context.Context, *Connection)) SrvPuller {
+	return &defaultSrvPuller{
+		conn:          conn,
 		pullChannelId: pullChannelId,
 		firstPullFunc: firstPullFunc,
 		pullFunc:      pullFunc,

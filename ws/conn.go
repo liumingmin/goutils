@@ -262,6 +262,19 @@ func (c *Connection) closeRead(ctx context.Context) {
 	}
 }
 
+func (c *Connection) handleClosing(ctx context.Context) {
+	if c.connClosingHandler == nil {
+		return
+	}
+
+	defer log.Recover(ctx, func(e interface{}) string {
+		return fmt.Sprintf("connClosingHandler panic, error is: %v", e)
+	})
+
+	log.Debug(ctx, "%v connClosingHandler. id: %v", c.typ, c.id)
+	c.connClosingHandler(c)
+}
+
 func (c *Connection) closeSocket(ctx context.Context) error {
 	defer log.Recover(ctx, func(e interface{}) string {
 		return fmt.Sprintf("Close connection panic, error is: %v", e)
@@ -432,6 +445,10 @@ func (c *Connection) processMsg(ctx context.Context, msgData []byte) {
 }
 
 func (c *Connection) sendMsgToWs(ctx context.Context, message *Message) error {
+	defer log.Recover(ctx, func(e interface{}) string {
+		return fmt.Sprintf("sendMsgToWs failed, error: %v", e)
+	})
+
 	defer putPoolMessage(message)
 
 	msgData, err := message.Marshal()
@@ -491,8 +508,6 @@ func (c *Connection) doSendMsgToWs(ctx context.Context, data []byte) error {
 		}
 		return errors.New("writer close failed")
 	}
-
-	return nil
 }
 
 func (c *Connection) callback(ctx context.Context, sc SendCallback, e error) {
