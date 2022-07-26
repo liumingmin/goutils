@@ -42,21 +42,18 @@ RegisterHandler(C2S_REQ, func(ctx context.Context, connection *Connection, messa
 
 //server start
 const pullMsgFromDB = 1
-var createCometFunc = func(conn *Connection) Comet {
-    comet := NewDefaultComet(conn, pullMsgFromDB, func(ctx context.Context, pullConn *Connection) {
-        packet := GetPoolMessage(S2C_RESP)
-        packet.PMsg().Data = []byte("first msg from db")
-        pullConn.SendMsg(ctx, packet, nil)
-    }, func(ctx context.Context, pullConn *Connection) {
-        //msg from db...
-        time.Sleep(time.Second * 1)
+srvComet := NewDefaultSrvComet(pullMsgFromDB, func(ctx context.Context, pullConn *Connection) {
+    packet := GetPoolMessage(S2C_RESP)
+    packet.PMsg().Data = []byte("first msg from db")
+    pullConn.SendMsg(ctx, packet, nil)
+}, func(ctx context.Context, pullConn *Connection) {
+    //msg from db...
+    time.Sleep(time.Second * 1)
 
-        packet := GetPoolMessage(S2C_RESP)
-        packet.PMsg().Data = []byte("pull msg from db")
-        pullConn.SendMsg(ctx, packet, nil)
-    })
-    return comet
-}
+    packet := GetPoolMessage(S2C_RESP)
+    packet.PMsg().Data = []byte("pull msg from db")
+    pullConn.SendMsg(ctx, packet, nil)
+})
 
 e := gin.New()
 e.GET("/join", func(ctx *gin.Context) {
@@ -72,8 +69,9 @@ e.GET("/join", func(ctx *gin.Context) {
         CompressionLevelOption(2),
         ConnEstablishHandlerOption(func(conn *Connection) {
             log.Info(context.Background(), "server conn establish: %v", conn.Id())
-            comet := createCometFunc(conn)
-            safego.Go(comet.Pull)
+            safego.Go(func() {
+                srvComet.PullSend(conn)
+            })
         }),
         ConnClosingHandlerOption(func(conn *Connection) {
             log.Info(context.Background(), "server conn closing: %v", conn.Id())

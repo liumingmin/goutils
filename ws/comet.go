@@ -7,15 +7,14 @@ import (
 	"github.com/liumingmin/goutils/log"
 )
 
-type defaultComet struct {
-	conn          *Connection
+type defaultSrvComet struct {
 	pullChannelId int
 	firstPullFunc func(context.Context, *Connection) // first connected exec
 	pullFunc      func(context.Context, *Connection) // every times exec
 	isRunning     int32
 }
 
-func (c *defaultComet) Pull() {
+func (c *defaultSrvComet) PullSend(conn *Connection) {
 	ok := atomic.CompareAndSwapInt32(&c.isRunning, 0, 1)
 	if !ok {
 		log.Debug(context.Background(), "comet is running, pullChannelId: %v", c.pullChannelId)
@@ -23,27 +22,27 @@ func (c *defaultComet) Pull() {
 	}
 	defer atomic.StoreInt32(&c.isRunning, 0)
 
-	pullChannel, ok := c.conn.GetPullChannel(c.pullChannelId)
+	pullChannel, ok := conn.GetPullChannel(c.pullChannelId)
 	if !ok {
 		return
 	}
 
 	if c.firstPullFunc != nil {
-		c.firstPullFunc(context.Background(), c.conn)
+		c.firstPullFunc(context.Background(), conn)
 	}
 
 	for {
 		ctx := context.Background()
 
-		if c.conn.IsStopped() {
-			log.Debug(ctx, "agent is stopped: %v", c.conn.Id())
+		if conn.IsStopped() {
+			log.Debug(ctx, "agent is stopped: %v", conn.Id())
 			return
 		}
 
-		c.pullFunc(ctx, c.conn)
+		c.pullFunc(ctx, conn)
 
 		if _, ok := <-pullChannel; !ok {
-			log.Debug(ctx, "Connect stop pull channel. connId: %v, channelId: %v", c.conn.Id(), c.pullChannelId)
+			log.Debug(ctx, "Connect stop pull channel. connId: %v, channelId: %v", conn.Id(), c.pullChannelId)
 			return
 		}
 	}
