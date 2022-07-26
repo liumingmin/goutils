@@ -39,12 +39,11 @@ type Connection struct {
 	conn       *websocket.Conn //websocket connection
 	sendBuffer chan *Message   //发送缓冲区
 
-	connEstablishHandler EventHandler
-	connClosingHandler   EventHandler
-	connClosedHandler    EventHandler
-	recvPingHandler      EventHandler
-	recvPongHandler      EventHandler
-
+	connEstablishHandler  EventHandler
+	connClosingHandler    EventHandler
+	connClosedHandler     EventHandler
+	recvPingHandler       EventHandler
+	recvPongHandler       EventHandler
 	dialConnFailedHandler EventHandler
 
 	commonDataLock sync.RWMutex
@@ -102,6 +101,10 @@ func (c *Connection) Type() int {
 	return c.meta.Typed
 }
 
+func (c *Connection) DeviceId() string {
+	return c.meta.DeviceId
+}
+
 func (c *Connection) Version() int {
 	return c.meta.Version
 }
@@ -114,8 +117,39 @@ func (c *Connection) ClientIp() string {
 	return c.meta.ip
 }
 
-func (c *Connection) GetPullChannel(notifyType int) (chan struct{}, bool) {
-	v, ok := c.pullChannelMap[notifyType]
+func (c *Connection) Reset() {
+	c.id = ""
+	c.meta = ConnectionMeta{}
+	c.conn = nil
+	c.sendBuffer = nil
+	c.connEstablishHandler = nil
+	c.connClosingHandler = nil
+	c.connClosedHandler = nil
+	c.recvPingHandler = nil
+	c.recvPongHandler = nil
+	c.dialConnFailedHandler = nil
+	c.commonData = nil
+	c.stopped = 0
+	c.displaced = 0
+	c.closedAutoReconChan = nil
+	c.pullChannelMap = nil
+	c.compressionLevel = 0
+	c.debug = false
+
+	c.maxFailureRetry = 0
+	c.readWait = 0
+	c.writeWait = 0
+	c.temporaryWait = 0
+
+	c.upgrader = nil
+
+	c.dialer = nil
+	c.dialRetryNum = 0
+	c.dialRetryInterval = 0
+}
+
+func (c *Connection) GetPullChannel(pullChannelId int) (chan struct{}, bool) {
+	v, ok := c.pullChannelMap[pullChannelId]
 	return v, ok
 }
 
@@ -161,14 +195,14 @@ func (c *Connection) SendMsg(ctx context.Context, payload *Message, sc SendCallb
 }
 
 //通知指定消息通道转发消息
-func (c *Connection) SendPullNotify(ctx context.Context, pullChannel int) (err error) {
+func (c *Connection) SendPullNotify(ctx context.Context, pullChannelId int) (err error) {
 	defer log.Recover(ctx, func(e interface{}) string {
 		err, _ = e.(error)
 		return fmt.Sprintf("SendPullNotify err: %v", e)
 	})
 
 	if !c.IsStopped() {
-		pullChannel, ok := c.pullChannelMap[pullChannel]
+		pullChannel, ok := c.pullChannelMap[pullChannelId]
 		if !ok {
 			return
 		}

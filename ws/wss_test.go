@@ -6,6 +6,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/liumingmin/goutils/utils/safego"
+
 	"github.com/gin-gonic/gin"
 	"github.com/liumingmin/goutils/log"
 )
@@ -30,6 +32,23 @@ func TestWssRun(t *testing.T) {
 	})
 
 	//server start
+	const pullMsgFromDB = 1
+	var createCometFunc = func(conn *Connection) Comet {
+		comet := NewDefaultComet(conn, pullMsgFromDB, func(ctx context.Context, pullConn *Connection) {
+			packet := GetPoolMessage(S2C_RESP)
+			packet.PMsg().Data = []byte("first msg from db")
+			pullConn.SendMsg(ctx, packet, nil)
+		}, func(ctx context.Context, pullConn *Connection) {
+			//msg from db...
+			time.Sleep(time.Second * 1)
+
+			packet := GetPoolMessage(S2C_RESP)
+			packet.PMsg().Data = []byte("pull msg from db")
+			pullConn.SendMsg(ctx, packet, nil)
+		})
+		return comet
+	}
+
 	e := gin.New()
 	e.GET("/join", func(ctx *gin.Context) {
 		connMeta := ConnectionMeta{
@@ -44,13 +63,16 @@ func TestWssRun(t *testing.T) {
 			CompressionLevelOption(2),
 			ConnEstablishHandlerOption(func(conn *Connection) {
 				log.Info(context.Background(), "server conn establish: %v", conn.Id())
+				comet := createCometFunc(conn)
+				safego.Go(comet.Pull)
 			}),
 			ConnClosingHandlerOption(func(conn *Connection) {
 				log.Info(context.Background(), "server conn closing: %v", conn.Id())
 			}),
 			ConnClosedHandlerOption(func(conn *Connection) {
 				log.Info(context.Background(), "server conn closed: %v", conn.Id())
-			}))
+			}),
+			SrvPullChannelsOption([]int{pullMsgFromDB}))
 		if err != nil {
 			log.Error(ctx, "Accept client connection failed. error: %v", err)
 			return

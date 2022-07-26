@@ -108,3 +108,16 @@ func RegisterDataMsgType(protocolId int32, pMsg IDataMessage) {
 		},
 	}
 }
+
+type Comet interface {
+	Pull()
+}
+
+func NewDefaultComet(conn *Connection, pullChannelId int, firstPullFunc, pullFunc func(context.Context, *Connection)) Comet {
+	return &defaultComet{
+		conn:          conn,
+		pullChannelId: pullChannelId,
+		firstPullFunc: firstPullFunc,
+		pullFunc:      pullFunc,
+	}
+}

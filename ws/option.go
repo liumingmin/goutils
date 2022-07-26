@@ -135,7 +135,7 @@ func SrvPullChannelsOption(channels []int) ConnOption {
 	return func(conn *Connection) {
 		pullChannelMap := make(map[int]chan struct{})
 		for _, channel := range channels {
-			pullChannelMap[channel] = make(chan struct{}, 2)
+			pullChannelMap[channel] = make(chan struct{}, 1)
 		}
 
 		conn.pullChannelMap = pullChannelMap
