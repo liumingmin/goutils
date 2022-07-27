@@ -262,6 +262,19 @@ func (c *Connection) closeRead(ctx context.Context) {
 	}
 }
 
+func (c *Connection) handleEstablish(ctx context.Context) {
+	if c.connEstablishHandler == nil {
+		return
+	}
+
+	defer log.Recover(ctx, func(e interface{}) string {
+		return fmt.Sprintf("connEstablishHandler panic, error is: %v", e)
+	})
+
+	log.Debug(ctx, "%v connEstablishHandler. id: %v", c.typ, c.id)
+	c.connEstablishHandler(c)
+}
+
 func (c *Connection) handleClosing(ctx context.Context) {
 	if c.connClosingHandler == nil {
 		return
@@ -275,15 +288,26 @@ func (c *Connection) handleClosing(ctx context.Context) {
 	c.connClosingHandler(c)
 }
 
+func (c *Connection) handleClosed(ctx context.Context) {
+	if c.connClosedHandler == nil {
+		return
+	}
+
+	defer log.Recover(ctx, func(e interface{}) string {
+		return fmt.Sprintf("connClosedHandler panic, error is: %v", e)
+	})
+
+	log.Debug(ctx, "%v connClosedHandler. id: %v", c.typ, c.id)
+	c.connClosedHandler(c)
+}
+
 func (c *Connection) closeSocket(ctx context.Context) error {
 	defer log.Recover(ctx, func(e interface{}) string {
 		return fmt.Sprintf("Close connection panic, error is: %v", e)
 	})
 
 	defer func() {
-		if c.connClosedHandler != nil {
-			c.connClosedHandler(c)
-		}
+		c.handleClosed(ctx)
 
 		if c.closedAutoReconChan != nil {
 			select {
