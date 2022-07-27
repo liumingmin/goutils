@@ -62,19 +62,19 @@ func TestWssRun(t *testing.T) {
 		_, err := AcceptGin(ctx, connMeta, DebugOption(true),
 			SrvUpgraderCompressOption(true),
 			CompressionLevelOption(2),
-			ConnEstablishHandlerOption(func(conn *Connection) {
-				log.Info(context.Background(), "server conn establish: %v", conn.Id())
+			ConnEstablishHandlerOption(func(ctx context.Context, conn *Connection) {
+				log.Info(ctx, "server conn establish: %v", conn.Id())
 
 				puller := createSrvPullerFunc(conn, pullMsgFromDB)
 				safego.Go(func() {
 					puller.PullSend()
 				})
 			}),
-			ConnClosingHandlerOption(func(conn *Connection) {
-				log.Info(context.Background(), "server conn closing: %v", conn.Id())
+			ConnClosingHandlerOption(func(ctx context.Context, conn *Connection) {
+				log.Info(ctx, "server conn closing: %v", conn.Id())
 			}),
-			ConnClosedHandlerOption(func(conn *Connection) {
-				log.Info(context.Background(), "server conn closed: %v", conn.Id())
+			ConnClosedHandlerOption(func(ctx context.Context, conn *Connection) {
+				log.Info(ctx, "server conn closed: %v", conn.Id())
 			}),
 			SrvPullChannelsOption([]int{pullMsgFromDB}))
 		if err != nil {
@@ -98,14 +98,14 @@ func TestWssRun(t *testing.T) {
 		ClientDialWssOption(url, false),
 		ClientDialCompressOption(true),
 		CompressionLevelOption(2),
-		ConnEstablishHandlerOption(func(conn *Connection) {
-			log.Info(context.Background(), "client conn establish: %v", conn.Id())
+		ConnEstablishHandlerOption(func(ctx context.Context, conn *Connection) {
+			log.Info(ctx, "client conn establish: %v", conn.Id())
 		}),
-		ConnClosingHandlerOption(func(conn *Connection) {
-			log.Info(context.Background(), "client conn closing: %v", conn.Id())
+		ConnClosingHandlerOption(func(ctx context.Context, conn *Connection) {
+			log.Info(ctx, "client conn closing: %v", conn.Id())
 		}),
-		ConnClosedHandlerOption(func(conn *Connection) {
-			log.Info(context.Background(), "client conn closed: %v", conn.Id())
+		ConnClosedHandlerOption(func(ctx context.Context, conn *Connection) {
+			log.Info(ctx, "client conn closed: %v", conn.Id())
 		}),
 	)
 	log.Info(ctx, "%v", conn)
@@ -122,8 +122,8 @@ func TestWssRun(t *testing.T) {
 		DebugOption(true),
 		ClientIdOption("server2"),
 		ClientDialWssOption(url, false),
-		ConnEstablishHandlerOption(func(conn *Connection) {
-			log.Info(context.Background(), "client conn establish: %v", conn.Id())
+		ConnEstablishHandlerOption(func(ctx context.Context, conn *Connection) {
+			log.Info(ctx, "client conn establish: %v", conn.Id())
 		}),
 	)
 	time.Sleep(time.Second)

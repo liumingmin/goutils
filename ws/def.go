@@ -88,7 +88,7 @@ type Handler func(context.Context, *Connection, *Message) error
 // ConnClosedHandlerOption
 // RecvPingHandlerOption
 // RecvPongHandlerOption
-type EventHandler func(*Connection)
+type EventHandler func(context.Context, *Connection)
 
 // 注册消息处理器
 func RegisterHandler(cmd int32, h Handler) {

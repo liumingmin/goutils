@@ -272,7 +272,7 @@ func (c *Connection) handleEstablish(ctx context.Context) {
 	})
 
 	log.Debug(ctx, "%v connEstablishHandler. id: %v", c.typ, c.id)
-	c.connEstablishHandler(c)
+	c.connEstablishHandler(ctx, c)
 }
 
 func (c *Connection) handleClosing(ctx context.Context) {
@@ -285,7 +285,7 @@ func (c *Connection) handleClosing(ctx context.Context) {
 	})
 
 	log.Debug(ctx, "%v connClosingHandler. id: %v", c.typ, c.id)
-	c.connClosingHandler(c)
+	c.connClosingHandler(ctx, c)
 }
 
 func (c *Connection) handleClosed(ctx context.Context) {
@@ -298,7 +298,20 @@ func (c *Connection) handleClosed(ctx context.Context) {
 	})
 
 	log.Debug(ctx, "%v connClosedHandler. id: %v", c.typ, c.id)
-	c.connClosedHandler(c)
+	c.connClosedHandler(ctx, c)
+}
+
+func (c *Connection) handleDialConnFailed(ctx context.Context) {
+	if c.dialConnFailedHandler == nil {
+		return
+	}
+
+	defer log.Recover(ctx, func(e interface{}) string {
+		return fmt.Sprintf("dialConnFailedHandler panic, error is: %v", e)
+	})
+
+	log.Debug(ctx, "%v dialConnFailedHandler. id: %v", c.typ, c.id)
+	c.dialConnFailedHandler(ctx, c)
 }
 
 func (c *Connection) closeSocket(ctx context.Context) error {
@@ -389,7 +402,7 @@ func (c *Connection) readFromConnection() {
 		err := pingHandler(message)
 
 		if c.recvPingHandler != nil {
-			c.recvPingHandler(c)
+			c.recvPingHandler(context.Background(), c)
 		}
 
 		if c.debug {
@@ -400,7 +413,7 @@ func (c *Connection) readFromConnection() {
 	c.conn.SetPongHandler(func(message string) error {
 		c.conn.SetReadDeadline(time.Now().Add(c.readWait))
 		if c.recvPongHandler != nil {
-			c.recvPongHandler(c)
+			c.recvPongHandler(context.Background(), c)
 		}
 
 		if c.debug {
