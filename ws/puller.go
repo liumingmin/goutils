@@ -18,7 +18,7 @@ type defaultSrvPuller struct {
 }
 
 func (c *defaultSrvPuller) PullSend() {
-	ctx := utils.ContextWithTrace()
+	ctx := utils.ContextWithTsTrace()
 
 	ok := atomic.CompareAndSwapInt32(&c.isRunning, 0, 1)
 	if !ok {
@@ -49,6 +49,6 @@ func (c *defaultSrvPuller) PullSend() {
 			return
 		}
 
-		ctx = utils.ContextWithTrace()
+		ctx = utils.ContextWithTsTrace()
 	}
 }

@@ -70,7 +70,7 @@ func (h *Hub) run() {
 }
 
 func (h *Hub) processRegister(conn *Connection) {
-	ctx := utils.ContextWithTrace()
+	ctx := utils.ContextWithTsTrace()
 
 	if old, err := h.findById(conn.id); err == nil && old != conn {
 		// 本进程中已经存在此用户的另外一条连接，踢出老的连接
@@ -100,7 +100,7 @@ func (h *Hub) processRegister(conn *Connection) {
 }
 
 func (h *Hub) processUnregister(conn *Connection) {
-	ctx := utils.ContextWithTrace()
+	ctx := utils.ContextWithTsTrace()
 
 	if c, err := h.findById(conn.id); err == nil && c == conn {
 		log.Debug(ctx, "%v unregister start. id: %v", c.typ, c.id)

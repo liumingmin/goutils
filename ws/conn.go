@@ -351,7 +351,7 @@ func (c *Connection) writeToConnection() {
 	pingPayload := []byte{}
 
 	for {
-		ctx := utils.ContextWithTrace()
+		ctx := utils.ContextWithTsTrace()
 
 		select {
 		case message, ok := <-c.sendBuffer:
@@ -429,7 +429,7 @@ func (c *Connection) readMsgFromWs() {
 	failedRetry := 0
 
 	for {
-		ctx := utils.ContextWithTrace()
+		ctx := utils.ContextWithTsTrace()
 
 		c.conn.SetReadDeadline(time.Now().Add(c.readWait))
 		t, data, err := c.conn.ReadMessage()
