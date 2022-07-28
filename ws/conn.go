@@ -329,9 +329,7 @@ func (c *Connection) closeSocket(ctx context.Context) error {
 		return fmt.Sprintf("Close connection panic, error is: %v", e)
 	})
 
-	defer func() {
-		c.handleClosed(ctx)
-	}()
+	defer c.handleClosed(ctx)
 
 	c.conn.WriteControl(websocket.CloseMessage, []byte{}, time.Now().Add(c.writeWait))
 	return c.conn.Close()

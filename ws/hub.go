@@ -109,7 +109,9 @@ func (h *Hub) processUnregister(conn *Connection) {
 		conn.setStop(ctx)
 
 		conn.handleClosing(ctx)
-		conn.closeSocket(ctx)
+		safego.Go(func() {
+			conn.closeSocket(ctx)
+		})
 
 		log.Debug(ctx, "%v unregister finish. id: %v", conn.typ, conn.id)
 	}

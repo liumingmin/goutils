@@ -83,11 +83,9 @@ type SendCallback func(ctx context.Context, c *Connection, err error)
 type Handler func(context.Context, *Connection, *Message) error
 
 // 客户端事件处理函数
-// ConnEstablishHandlerOption
-// ConnClosingHandlerOption
-// ConnClosedHandlerOption
-// RecvPingHandlerOption
-// RecvPongHandlerOption
+// ConnEstablishHandlerOption  sync(阻塞主流程)
+// ConnClosingHandlerOption   sync(阻塞主流程)
+// ConnClosedHandlerOption  async
 type EventHandler func(context.Context, *Connection)
 
 // 注册消息处理器
