@@ -33,11 +33,15 @@ func (t connKind) String() string {
 
 //websocket连接封装
 type Connection struct {
-	id         string
-	typ        connKind
-	meta       ConnectionMeta  //连接信息
-	conn       *websocket.Conn //websocket connection
-	sendBuffer chan *Message   //发送缓冲区
+	id             string
+	typ            connKind
+	meta           ConnectionMeta        //连接信息
+	conn           *websocket.Conn       //websocket connection
+	stopped        int32                 //连接断开
+	displaced      int32                 //连接被顶号
+	sendBuffer     chan *Message         //发送缓冲区
+	pullChannelMap map[int]chan struct{} //pullSend消息通道
+	debug          bool                  //debug日志输出
 
 	connEstablishHandler  EventHandler
 	connClosingHandler    EventHandler
@@ -49,21 +53,14 @@ type Connection struct {
 	commonDataLock sync.RWMutex
 	commonData     map[string]interface{}
 
-	stopped             int32 //连接断开
-	displaced           int32 //连接被顶号
 	closedAutoReconChan chan interface{}
 
-	pullChannelMap map[int]chan struct{} //新消息通知通道
-
-	compressionLevel int
-
-	debug bool
-
 	//net params
-	maxFailureRetry int           //重试次数
-	readWait        time.Duration //读等待
-	writeWait       time.Duration //写等待
-	temporaryWait   time.Duration //网络抖动重试等待
+	maxFailureRetry  int           //重试次数
+	readWait         time.Duration //读等待
+	writeWait        time.Duration //写等待
+	temporaryWait    time.Duration //网络抖动重试等待
+	compressionLevel int
 
 	//server internal param
 	upgrader *websocket.Upgrader //custome upgrader
@@ -118,6 +115,8 @@ func (c *Connection) ClientIp() string {
 }
 
 func (c *Connection) Reset() {
+	c.setStop(context.Background())
+
 	c.id = ""
 	c.meta = ConnectionMeta{}
 	c.conn = nil
@@ -289,19 +288,29 @@ func (c *Connection) handleClosing(ctx context.Context) {
 }
 
 func (c *Connection) handleClosed(ctx context.Context) {
-	if c.connClosedHandler == nil {
-		return
-	}
-
 	defer log.Recover(ctx, func(e interface{}) string {
-		return fmt.Sprintf("connClosedHandler panic, error is: %v", e)
+		return fmt.Sprintf("handleClosed panic, error is: %v", e)
 	})
 
-	log.Debug(ctx, "%v connClosedHandler. id: %v", c.typ, c.id)
-	c.connClosedHandler(ctx, c)
+	defer func() {
+		if c.closedAutoReconChan != nil {
+			select {
+			case <-c.closedAutoReconChan:
+			default:
+				close(c.closedAutoReconChan)
+			}
+		}
+	}()
+
+	if c.connClosedHandler != nil {
+		log.Debug(ctx, "%v connClosedHandler. id: %v", c.typ, c.id)
+		c.connClosedHandler(ctx, c)
+	}
 }
 
 func (c *Connection) handleDialConnFailed(ctx context.Context) {
+	c.setStop(ctx)
+
 	if c.dialConnFailedHandler == nil {
 		return
 	}
@@ -321,13 +330,6 @@ func (c *Connection) closeSocket(ctx context.Context) error {
 
 	defer func() {
 		c.handleClosed(ctx)
-
-		if c.closedAutoReconChan != nil {
-			select {
-			case c.closedAutoReconChan <- struct{}{}:
-			default:
-			}
-		}
 	}()
 
 	c.conn.WriteControl(websocket.CloseMessage, []byte{}, time.Now().Add(c.writeWait))

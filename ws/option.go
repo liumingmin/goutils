@@ -118,7 +118,7 @@ func NetTemporaryWaitOption(temporaryWait time.Duration) ConnOption {
 //channel cannot reuse
 func closedAutoReconOption() ConnOption {
 	return func(conn *Connection) {
-		conn.closedAutoReconChan = make(chan interface{}, 1)
+		conn.closedAutoReconChan = make(chan interface{})
 	}
 }
 
