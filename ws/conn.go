@@ -309,18 +309,19 @@ func (c *Connection) handleClosed(ctx context.Context) {
 }
 
 func (c *Connection) handleDialConnFailed(ctx context.Context) {
-	c.setStop(ctx)
-
-	if c.dialConnFailedHandler == nil {
-		return
-	}
-
 	defer log.Recover(ctx, func(e interface{}) string {
-		return fmt.Sprintf("dialConnFailedHandler panic, error is: %v", e)
+		return fmt.Sprintf("handleDialConnFailed panic, error is: %v", e)
 	})
 
-	log.Debug(ctx, "%v dialConnFailedHandler. id: %v", c.typ, c.id)
-	c.dialConnFailedHandler(ctx, c)
+	c.setStop(ctx)
+	if c.closedAutoReconChan != nil {
+		close(c.closedAutoReconChan)
+	}
+
+	if c.dialConnFailedHandler != nil {
+		log.Debug(ctx, "%v dialConnFailedHandler. id: %v", c.typ, c.id)
+		c.dialConnFailedHandler(ctx, c)
+	}
 }
 
 func (c *Connection) closeSocket(ctx context.Context) error {
