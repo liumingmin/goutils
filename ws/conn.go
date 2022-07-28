@@ -13,6 +13,7 @@ import (
 	"github.com/gorilla/websocket"
 	"github.com/liumingmin/goutils/log"
 	"github.com/liumingmin/goutils/utils"
+	"github.com/liumingmin/goutils/utils/safego"
 )
 
 var (
@@ -459,12 +460,16 @@ func (c *Connection) readMsgFromWs() {
 			break
 		}
 
-		c.processMsg(ctx, data)
+		safego.Go(func() {
+			c.processMsg(ctx, data)
+		})
 	}
 }
 
 func (c *Connection) processMsg(ctx context.Context, msgData []byte) {
-	log.Debug(ctx, "%v receive raw message. data len: %v, cid: %v", c.typ, len(msgData), c.id)
+	if c.debug {
+		log.Debug(ctx, "%v receive raw message. data len: %v, cid: %v", c.typ, msgData, c.id)
+	}
 
 	message := getPoolMessage()
 	defer putPoolMessage(message)
