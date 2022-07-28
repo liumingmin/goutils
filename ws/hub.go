@@ -127,9 +127,9 @@ func (h *Hub) sendDisplaceAndClose(ctx context.Context, old *Connection, newIp s
 		displaceMsg.NewIp = []byte(newIp)
 		displaceMsg.Ts = time.Now().UnixNano()
 	}
-	message.sc = func(cbCtx context.Context, old *Connection, e error) {
-		old.closeSocket(cbCtx)
-	}
+
+	defer old.closeSocket(ctx)
+
 	old.sendMsgToWs(ctx, message)
 }
 
