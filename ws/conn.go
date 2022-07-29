@@ -216,6 +216,10 @@ func (c *Connection) SendPullNotify(ctx context.Context, pullChannelId int) (err
 }
 
 func (c *Connection) closeWrite(ctx context.Context) {
+	if c.sendBuffer == nil {
+		return
+	}
+
 	defer log.Recover(ctx, func(e interface{}) string {
 		return fmt.Sprintf("Close writer panic, error is: %v", e)
 	})
