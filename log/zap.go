@@ -181,24 +181,14 @@ func LogLess() zapcore.Level {
 	return level + 1
 }
 
-func Recover(c context.Context, arg0 interface{}) {
-	recoverArgs := []interface{}{"%v %v"}
+func Recover(c context.Context, errHandler func(interface{}) string) {
 	if err := recover(); err != nil {
-		switch first := arg0.(type) {
-		case func(interface{}) string:
-			recoverArgs = append(recoverArgs, []interface{}{"error", first(err)}...)
-
-		default:
-			recoverArgs = append(recoverArgs, []interface{}{"error", err}...)
-		}
-
-		msg := parseArgs(c, recoverArgs...)
-		stackLogger.Error(msg)
+		stackLogger.Error("panic: " + errHandler(err))
 	}
 }
 
 func parseArgs(c context.Context, args ...interface{}) (msg string) {
-	parmArgs := make([]interface{}, 0)
+	var paramArgs []interface{}
 	if len(args) == 0 {
 		msg = ""
 	} else {
@@ -208,17 +198,16 @@ func parseArgs(c context.Context, args ...interface{}) (msg string) {
 			msg = fmt.Sprint(args[0])
 		}
 
-		parmArgs = args[1:]
+		if len(args) > 1 {
+			paramArgs = args[1:]
+		}
 	}
 
-	lenParmArgs := len(parmArgs)
-
-	if lenParmArgs > 0 {
-		msg = fmt.Sprintf(msg, parmArgs...)
+	if len(paramArgs) > 0 {
+		msg = fmt.Sprintf(msg, paramArgs...)
 	}
 
 	msg = ctxParams(c) + " " + msg
-
 	return
 }
 

@@ -7,8 +7,6 @@ import (
 	"strings"
 	"testing"
 
-	"go.uber.org/zap/zapcore"
-
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 )
@@ -16,23 +14,9 @@ import (
 func TestZap(t *testing.T) {
 	ctx := &gin.Context{}
 	ctx.Set("__traceId", "aaabbbbbcccc")
-	//Info(ctx, "我是日志", "name", "管理员")  //json
 
 	Info(ctx, "我是日志2")
-
-	//Info(ctx, "我是日志3", "name")  //json
-
 	Error(ctx, "我是日志4: %v,%v", "管理员", "eee")
-}
-
-func TestZapJson(t *testing.T) {
-	ctx := &gin.Context{}
-	ctx.Set("__traceId", "aaabbbbbcccc")
-	Info(ctx, "我是日志 %v", "name", "管理员") //json
-
-	Info(ctx, "我是日志3 %v", "管理员") //json
-	Error(ctx, "我是日志3")          //json
-	Log(ctx, zapcore.ErrorLevel, "日志啊")
 }
 
 func TestPanicLog(t *testing.T) {

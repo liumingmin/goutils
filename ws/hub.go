@@ -53,24 +53,20 @@ func (h *Hub) ConnectionIds() []string {
 
 func (h *Hub) run() {
 	for {
-		//内部panic保证for循环不挂掉
-		func() {
-			defer log.Recover(context.Background(), func(e interface{}) string {
-				return fmt.Sprintf("Hub run panic. error: %v", e)
-			})
-
-			select {
-			case conn := <-h.register:
-				h.processRegister(conn)
-			case conn := <-h.unregister:
-				h.processUnregister(conn)
-			}
-		}()
+		select {
+		case conn := <-h.register:
+			h.processRegister(conn)
+		case conn := <-h.unregister:
+			h.processUnregister(conn)
+		}
 	}
 }
 
 func (h *Hub) processRegister(conn *Connection) {
 	ctx := utils.ContextWithTsTrace()
+	defer log.Recover(ctx, func(e interface{}) string {
+		return fmt.Sprintf("processRegister. error: %v", e)
+	})
 
 	if old, err := h.findById(conn.id); err == nil && old != conn {
 		// 本进程中已经存在此用户的另外一条连接，踢出老的连接
@@ -101,6 +97,9 @@ func (h *Hub) processRegister(conn *Connection) {
 
 func (h *Hub) processUnregister(conn *Connection) {
 	ctx := utils.ContextWithTsTrace()
+	defer log.Recover(ctx, func(e interface{}) string {
+		return fmt.Sprintf("processUnregister. error: %v", e)
+	})
 
 	if c, err := h.findById(conn.id); err == nil && c == conn {
 		log.Debug(ctx, "%v unregister start. id: %v", c.typ, c.id)
