@@ -183,7 +183,7 @@ func LogLess() zapcore.Level {
 
 func Recover(c context.Context, errHandler func(interface{}) string) {
 	if err := recover(); err != nil {
-		stackLogger.Error("panic: " + errHandler(err))
+		stackLogger.Error(ctxParams(c) + " " + "panic: " + errHandler(err))
 	}
 }
 

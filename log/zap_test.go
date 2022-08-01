@@ -13,7 +13,7 @@ import (
 
 func TestZap(t *testing.T) {
 	ctx := &gin.Context{}
-	ctx.Set("__traceId", "aaabbbbbcccc")
+	ctx.Set(LOG_TRADE_ID, "aaabbbbbcccc")
 
 	Info(ctx, "我是日志2")
 	Error(ctx, "我是日志4: %v,%v", "管理员", "eee")
@@ -27,7 +27,7 @@ func TestPanicLog(t *testing.T) {
 
 func testPanicLog() {
 	ctx := &gin.Context{}
-	ctx.Set("__traceId", "aaabbbbbcccc")
+	ctx.Set(LOG_TRADE_ID, "aaabbbbbcccc")
 
 	defer Recover(ctx, func(e interface{}) string {
 		return fmt.Sprintf("recover from err: %v", e)
