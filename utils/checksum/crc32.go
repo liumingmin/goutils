@@ -215,7 +215,8 @@ func PopulateFilePathsRecursively(ctx context.Context, folder string, ignores []
 			log.Debug(ctx, "dir: %v", info.Name())
 			return nil
 		}
-		if utils.Contains(ignores, info.Name()) {
+		isContain, _ := utils.StringsInArray(ignores, info.Name())
+		if isContain {
 			return nil
 		}
 		relPath, _ := filepath.Rel(folder, path)

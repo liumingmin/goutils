@@ -30,7 +30,7 @@ func TestGenerateChecksumMd5File(t *testing.T) {
 
 func TestGenerateChecksumFileWithIgnore(t *testing.T) {
 	dirMap := make(map[string][]string)
-	dirMap["fullClient"] = []string{"E:\\game\\dev_test_01\\fullClient"}
+	dirMap["fullClient"] = []string{"E:\\game\\dev_test_01", "E:\\game\\dev_test_01\\fullClient"}
 	for code, dirs := range dirMap {
 		t.Log("game: ", code)
 		for _, dir := range dirs {
