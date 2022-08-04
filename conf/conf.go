@@ -80,14 +80,18 @@ type Elasticsearch struct {
 }
 
 type Redis struct {
-	Key          string   `yaml:"key"`
-	Addrs        []string `yaml:"addrs,flow"`
-	Db           int      `yaml:"db"`
-	PoolSize     int      `yaml:"poolSize"`
-	Password     string   `yaml:"password"`
-	ReadTimeout  string   `yaml:"readTimeout"`
-	WriteTimeout string   `yaml:"writeTimeout"`
-	IdleTimeout  string   `yaml:"idleTimeout"`
+	Key           string   `yaml:"key"`
+	MasterName    string   `yaml:"masterName"`
+	Addrs         []string `yaml:"addrs,flow"`
+	Db            int      `yaml:"db"`
+	PoolSize      int      `yaml:"poolSize"`
+	Password      string   `yaml:"password"`
+	DialTimeout   string   `yaml:"dialTimeout"`
+	ReadTimeout   string   `yaml:"readTimeout"`
+	WriteTimeout  string   `yaml:"writeTimeout"`
+	IdleTimeout   string   `yaml:"idleTimeout"`
+	ReadOnly      bool     `yaml:"readOnly"`
+	RouteRandomly bool     `yaml:"routeRandomly"`
 }
 
 type KafkaProducer struct {
