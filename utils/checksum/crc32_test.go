@@ -2,7 +2,9 @@ package checksum
 
 import (
 	"context"
+	"fmt"
 	"testing"
+	"time"
 )
 
 func TestGenerateCheckSumFile(t *testing.T) {
@@ -24,6 +26,27 @@ func TestGenerateChecksumMd5File(t *testing.T) {
 		return
 	}
 	t.Log(checksumMd5Path)
+}
+
+func TestGenerateChecksumFileWithIgnore(t *testing.T) {
+	dirMap := make(map[string][]string)
+	dirMap["fullClient"] = []string{"E:\\game\\dev_test_01", "E:\\game\\dev_test_01\\fullClient"}
+	for code, dirs := range dirMap {
+		t.Log("game: ", code)
+		for _, dir := range dirs {
+			t.Log("dir: ", dir)
+			start := time.Now() // 获取当前时间
+			checksumName := fmt.Sprintf("%v-62e204c376d4be7b1458d077", code)
+			checksumMd5Path, err := GenerateChecksumFileWithIgnore(context.Background(), dir, checksumName, []string{fmt.Sprintf("%v-62e204c376d4be7b1458d077.checksum", code)})
+			if err != nil {
+				t.Error(err)
+				return
+			}
+			t.Log(checksumMd5Path)
+			elapsed := time.Since(start)
+			t.Log("time：", elapsed)
+		}
+	}
 }
 
 func TestIsChecksumFileValid(t *testing.T) {
