@@ -136,13 +136,18 @@ func GetFileInfo(root, fileName string) (*ChecksumInfo, error) {
 
 // GenerateChecksumFile 生成checksum文件
 func GenerateChecksumFile(ctx context.Context, folder string, checksumName string) (checkSumPath string, err error) {
+	return GenerateChecksumFileWithIgnore(ctx, folder, checksumName, []string{})
+}
+
+// GenerateChecksumFileWithIgnore 在排除某些文件的基础上，生成checksum
+func GenerateChecksumFileWithIgnore(ctx context.Context, folder string, checksumName string, ignores []string) (checkSumPath string, err error) {
 	if folder == "" || checksumName == "" {
 		err = errors.New("folder or checksum can`t be empty")
 		return
 	}
 
 	folder = AddFolderSuffix(folder)
-	paths, err := PopulateFilePathsRecursively(ctx, folder)
+	paths, err := PopulateFilePathsRecursively(ctx, folder, ignores)
 	if err != nil {
 		log.Error(ctx, "open folder failed. err:%v", err)
 		return
@@ -185,7 +190,7 @@ func GenerateChecksumMd5File(ctx context.Context, checksumPath string) (checksum
 	md5Handle := md5.New()
 	_, err = io.Copy(md5Handle, file)
 	if err != nil {
-		log.Error(ctx, "文件内容拷贝到md5句柄中发生错误：%v", err)
+		log.Error(ctx, "copy file failed, err：%v", err)
 		return
 	}
 	md5Val := md5Handle.Sum(nil)
@@ -199,20 +204,23 @@ func GenerateChecksumMd5File(ctx context.Context, checksumPath string) (checksum
 }
 
 // PopulateFilePathsRecursively 递归获取文件夹内所有文件的路径
-func PopulateFilePathsRecursively(ctx context.Context, folder string) ([]string, error) {
+func PopulateFilePathsRecursively(ctx context.Context, folder string, ignores []string) ([]string, error) {
 	paths := make([]string, 0)
 	filepath.Walk(folder, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
-			log.Error(ctx, "递归文件失败，错误: %v", err)
+			log.Error(ctx, "walk folder [%v] failed, err: %v", folder, err)
 			return err
 		}
 		if info.IsDir() {
-			log.Debug(ctx, "文件夹: %v", info.Name())
+			log.Debug(ctx, "dir: %v", info.Name())
+			return nil
+		}
+		if utils.Contains(ignores, info.Name()) {
 			return nil
 		}
 		relPath, _ := filepath.Rel(folder, path)
 		paths = append(paths, relPath)
-		log.Debug(ctx, "文件: %v", info.Name())
+		log.Debug(ctx, "folder: %v", info.Name())
 		return nil
 	})
 	return paths, nil
