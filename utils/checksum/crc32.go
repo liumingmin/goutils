@@ -208,18 +208,18 @@ func PopulateFilePathsRecursively(ctx context.Context, folder string, ignores []
 	paths := make([]string, 0)
 	filepath.Walk(folder, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
-			log.Error(ctx, "walk folder [%v] failed, err: %v", folder, err)
+			log.Error(ctx, "folder [%v] scan meet some err: %v, should skip", folder, err)
 			return err
 		}
-		if info.IsDir() {
-			log.Debug(ctx, "dir: %v", info.Name())
-			return nil
-		}
-		isContain, _ := utils.StringsInArray(ignores, info.Name())
-		if isContain {
-			return nil
-		}
 		relPath, _ := filepath.Rel(folder, path)
+		isContain, _ := utils.StringsInArray(ignores, relPath)
+		if info.IsDir() && isContain {
+			return filepath.SkipDir
+		}
+		if info.IsDir() || isContain {
+			return nil
+		}
+
 		paths = append(paths, relPath)
 		log.Debug(ctx, "folder: %v", info.Name())
 		return nil
@@ -284,7 +284,7 @@ func WalkInfo(ctx context.Context, root string, ignores ...string) ([]string, er
 	var err error
 	var fds []os.FileInfo
 	var files []string
-	if _, err = os.Stat(root); err != nil {
+	if _, err = os.Lstat(root); err != nil {
 		return nil, err
 	}
 	if fds, err = ioutil.ReadDir(root); err != nil {
