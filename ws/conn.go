@@ -17,7 +17,7 @@ import (
 )
 
 var (
-	Handlers = make(map[int32]Handler)
+	Handlers = make(map[int32]MsgHandler)
 )
 
 type connKind int8

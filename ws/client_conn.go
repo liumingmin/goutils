@@ -17,7 +17,7 @@ func (c *Connection) KickServer(displace bool) {
 		c.setDisplaced()
 	}
 
-	ServerConnHub.unregister <- c
+	ServerConnHub.unregisterConn(c)
 }
 
 func Connect(ctx context.Context, sId, sUrl string, secureWss bool, header http.Header, opts ...ConnOption) (*Connection, error) {
@@ -111,7 +111,7 @@ func DialConnect(ctx context.Context, sUrl string, header http.Header, opts ...C
 		SendBufferOption(8)(connection)
 	}
 
-	ServerConnHub.register <- connection
+	ServerConnHub.registerConn(connection)
 
 	conn.SetCloseHandler(func(code int, text string) error {
 		connection.KickServer(false)

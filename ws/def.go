@@ -8,10 +8,50 @@ import (
 	"google.golang.org/protobuf/proto"
 )
 
+type IMessage interface {
+	PMsg() *P_MESSAGE
+	DataMsg() IDataMessage
+}
+
 // P_MESSAGE.Data类型的接口
 type IDataMessage interface {
 	proto.Message
 	Reset()
+}
+
+type IConnection interface {
+	Id() string
+	UserId() string
+	Type() int
+	DeviceId() string
+	Version() int
+	Charset() int
+	ClientIp() string
+	Reset()
+	IsStopped() bool
+	IsDisplaced() bool
+	RefreshDeadline()
+	SendMsg(ctx context.Context, payload IMessage, sc SendCallback) error
+
+	KickClient(displace bool) //server side invoke
+	KickServer(displace bool) //client side invoke
+
+	GetPullChannel(pullChannelId int) (chan struct{}, bool)
+	SendPullNotify(ctx context.Context, pullChannelId int) error
+
+	GetCommDataValue(key string) (interface{}, bool)
+	SetCommDataValue(key string, value interface{})
+	RemoveCommDataValue(key string)
+	IncrCommDataValueBy(key string, delta int)
+}
+
+type IHub interface {
+	Find(string) (*Connection, error)
+	RangeConnsByFunc(func(string, *Connection) bool)
+
+	registerConn(*Connection)
+	unregisterConn(*Connection)
+	run()
 }
 
 //不能手动创建，必须使用 NewMessage() 或 GetPoolMessage()
@@ -80,7 +120,7 @@ type SendCallback func(ctx context.Context, c *Connection, err error)
 
 // 客户端消息处理函数对象
 // use RegisterHandler(constant...., func(context.Context,*Connection,*Message) error {})
-type Handler func(context.Context, *Connection, *Message) error
+type MsgHandler func(context.Context, *Connection, *Message) error
 
 // 客户端事件处理函数
 // ConnEstablishHandlerOption  sync(阻塞主流程)
@@ -89,7 +129,7 @@ type Handler func(context.Context, *Connection, *Message) error
 type EventHandler func(context.Context, *Connection)
 
 // 注册消息处理器
-func RegisterHandler(cmd int32, h Handler) {
+func RegisterHandler(cmd int32, h MsgHandler) {
 	Handlers[cmd] = h
 }
 

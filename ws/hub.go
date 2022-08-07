@@ -11,6 +11,9 @@ import (
 	"github.com/liumingmin/goutils/utils/safego"
 )
 
+var ClientConnHub IHub //服务端管理的来自客户端的连接
+var ServerConnHub IHub //客户端管理的连向服务端的连接
+
 //连接管理器
 type Hub struct {
 	connections *sync.Map        // 连接容器
@@ -18,16 +21,21 @@ type Hub struct {
 	unregister  chan *Connection // 注销队列
 }
 
-var ClientConnHub = newHub()
-var ServerConnHub = newHub()
-
-func newHub() *Hub {
+func newHub() IHub {
 	h := Hub{
 		register:    make(chan *Connection),
 		unregister:  make(chan *Connection),
 		connections: &sync.Map{},
 	}
 	return &h
+}
+
+func (h *Hub) registerConn(conn *Connection) {
+	h.register <- conn
+}
+
+func (h *Hub) unregisterConn(conn *Connection) {
+	h.unregister <- conn
 }
 
 func (h *Hub) findById(id string) (*Connection, error) {
@@ -148,6 +156,7 @@ func (h *Hub) RangeConnsByFunc(f func(string, *Connection) bool) {
 func InitServer() {
 	RegisterDataMsgType(int32(P_S2C_s2c_err_displace), &P_DISPLACE{})
 
+	ClientConnHub = newHub()
 	safego.Go(ClientConnHub.run)
 }
 
@@ -167,5 +176,6 @@ func InitClient() {
 		return nil
 	})
 
+	ServerConnHub = newHub()
 	safego.Go(ServerConnHub.run)
 }

@@ -42,3 +42,12 @@ func Crc16(bs []byte) (crc uint16) {
 
 	return
 }
+
+func Crc16s(str string) (crc uint16) {
+	l := len(str)
+	for i := 0; i < l; i++ {
+		crc = ((crc << 8) & 0xff00) ^ crc16tab[((crc>>8)&0xff)^uint16(str[i])]
+	}
+
+	return
+}
