@@ -147,14 +147,31 @@ func (h *Hub) sendDisplaceAndClose(ctx context.Context, old *Connection, newIp s
 	old.sendMsgToWs(ctx, message)
 }
 
-//init hub
-func initServer(opts ...HubOption) {
+//init server
+func initServer(serverOpt *ServerOption) {
 	RegisterDataMsgType(int32(P_S2C_s2c_err_displace), &P_DISPLACE{})
 
-	ClientConnHub = newServerHub(opts...)
+	ClientConnHub = newShardHub(serverOpt.HubOpts)
 	safego.Go(ClientConnHub.run)
 }
 
+func newShardHub(opts []HubOption) IHub {
+	sHub := &shardHub{}
+
+	if len(opts) > 0 {
+		for _, opt := range opts {
+			opt(sHub)
+		}
+	}
+
+	if len(sHub.hubs) == 0 {
+		return newHub()
+	}
+
+	return sHub
+}
+
+//init client
 func initClient() {
 	RegisterDataMsgType(int32(P_S2C_s2c_err_displace), &P_DISPLACE{})
 
@@ -191,6 +208,14 @@ func (h *shardHub) RangeConnsByFunc(rangFunc func(string, *Connection) bool) {
 	}
 }
 
+func (h *shardHub) ConnectionIds() []string {
+	connIds := make([]string, 0)
+	for _, hub := range h.hubs {
+		connIds = append(connIds, hub.ConnectionIds()...)
+	}
+	return connIds
+}
+
 func (h *shardHub) registerConn(conn *Connection) {
 	idx := algorithm.Crc16s(conn.Id()) % uint16(len(h.hubs))
 	h.hubs[idx].registerConn(conn)
@@ -205,20 +230,4 @@ func (h *shardHub) run() {
 	for _, hub := range h.hubs {
 		safego.Go(hub.run)
 	}
-}
-
-func newServerHub(opts ...HubOption) IHub {
-	sHub := &shardHub{}
-
-	if len(opts) > 0 {
-		for _, opt := range opts {
-			opt(sHub)
-		}
-	}
-
-	if len(sHub.hubs) == 0 {
-		return newHub()
-	}
-
-	return sHub
 }

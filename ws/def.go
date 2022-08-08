@@ -12,13 +12,21 @@ var ClientConnHub IHub //服务端管理的来自客户端的连接
 var ServerConnHub IHub //客户端管理的连向服务端的连接
 
 //server invoke 服务端调用
-func InitServer(opts ...HubOption) {
-	initServer(opts...)
+func InitServer() {
+	InitServerWithOpt(&ServerOption{})
+}
+
+func InitServerWithOpt(serverOpt *ServerOption) {
+	initServer(serverOpt)
 }
 
 //client invoke 客户端调用
 func InitClient() {
 	initClient()
+}
+
+type ServerOption struct {
+	HubOpts []HubOption
 }
 
 type IMessage interface {
@@ -61,6 +69,7 @@ type IConnection interface {
 type IHub interface {
 	Find(string) (*Connection, error)
 	RangeConnsByFunc(func(string, *Connection) bool)
+	ConnectionIds() []string
 
 	registerConn(*Connection)
 	unregisterConn(*Connection)

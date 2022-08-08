@@ -13,7 +13,7 @@ import (
 
 // 连接动态参数选项
 type ConnOption func(*Connection)
-type HubOption func(*shardHub)
+type HubOption func(IHub)
 
 func DebugOption(debug bool) ConnOption {
 	return func(conn *Connection) {
@@ -208,7 +208,12 @@ func ClientDialConnFailedHandlerOption(handler EventHandler) ConnOption {
 }
 
 func HubShardOption(cnt uint16) HubOption {
-	return func(sHub *shardHub) {
+	return func(hub IHub) {
+		sHub, ok := hub.(*shardHub)
+		if !ok {
+			return
+		}
+
 		for i := uint16(0); i < cnt; i++ {
 			sHub.hubs = append(sHub.hubs, newHub())
 		}
