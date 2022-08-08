@@ -13,6 +13,7 @@ import (
 
 // 连接动态参数选项
 type ConnOption func(*Connection)
+type HubOption func(*shardHub)
 
 func DebugOption(debug bool) ConnOption {
 	return func(conn *Connection) {
@@ -203,5 +204,13 @@ func ClientDialRetryOption(retryNum int, retryInterval time.Duration) ConnOption
 func ClientDialConnFailedHandlerOption(handler EventHandler) ConnOption {
 	return func(conn *Connection) {
 		conn.dialConnFailedHandler = handler
+	}
+}
+
+func HubShardOption(cnt uint16) HubOption {
+	return func(sHub *shardHub) {
+		for i := uint16(0); i < cnt; i++ {
+			sHub.hubs = append(sHub.hubs, newHub())
+		}
 	}
 }

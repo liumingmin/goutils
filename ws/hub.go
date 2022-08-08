@@ -6,13 +6,11 @@ import (
 	"sync"
 	"time"
 
+	"github.com/liumingmin/goutils/algorithm"
 	"github.com/liumingmin/goutils/log"
 	"github.com/liumingmin/goutils/utils"
 	"github.com/liumingmin/goutils/utils/safego"
 )
-
-var ClientConnHub IHub //服务端管理的来自客户端的连接
-var ServerConnHub IHub //客户端管理的连向服务端的连接
 
 //连接管理器
 type Hub struct {
@@ -21,24 +19,16 @@ type Hub struct {
 	unregister  chan *Connection // 注销队列
 }
 
-func newHub() IHub {
-	h := Hub{
+func newHub() *Hub {
+	h := &Hub{
 		register:    make(chan *Connection),
 		unregister:  make(chan *Connection),
 		connections: &sync.Map{},
 	}
-	return &h
+	return h
 }
 
-func (h *Hub) registerConn(conn *Connection) {
-	h.register <- conn
-}
-
-func (h *Hub) unregisterConn(conn *Connection) {
-	h.unregister <- conn
-}
-
-func (h *Hub) findById(id string) (*Connection, error) {
+func (h *Hub) Find(id string) (*Connection, error) {
 	if v, exists := h.connections.Load(id); exists {
 		if conn, ok := v.(*Connection); ok {
 			return conn, nil
@@ -50,6 +40,15 @@ func (h *Hub) findById(id string) (*Connection, error) {
 	}
 }
 
+func (h *Hub) RangeConnsByFunc(f func(string, *Connection) bool) {
+	h.connections.Range(func(k, v interface{}) bool {
+		if a, ok := v.(*Connection); ok {
+			return f(k.(string), a)
+		}
+		return true
+	})
+}
+
 func (h *Hub) ConnectionIds() []string {
 	r := make([]string, 0)
 	h.connections.Range(func(k, _ interface{}) bool {
@@ -57,6 +56,14 @@ func (h *Hub) ConnectionIds() []string {
 		return true
 	})
 	return r
+}
+
+func (h *Hub) registerConn(conn *Connection) {
+	h.register <- conn
+}
+
+func (h *Hub) unregisterConn(conn *Connection) {
+	h.unregister <- conn
 }
 
 func (h *Hub) run() {
@@ -76,7 +83,7 @@ func (h *Hub) processRegister(conn *Connection) {
 		return fmt.Sprintf("processRegister. error: %v", e)
 	})
 
-	if old, err := h.findById(conn.id); err == nil && old != conn {
+	if old, err := h.Find(conn.id); err == nil && old != conn {
 		// 本进程中已经存在此用户的另外一条连接，踢出老的连接
 		log.Debug(ctx, "%v Repeat register, kick out. id: %v, ptr: %p", conn.typ, conn.id, old)
 
@@ -109,7 +116,7 @@ func (h *Hub) processUnregister(conn *Connection) {
 		return fmt.Sprintf("processUnregister. error: %v", e)
 	})
 
-	if c, err := h.findById(conn.id); err == nil && c == conn {
+	if c, err := h.Find(conn.id); err == nil && c == conn {
 		log.Debug(ctx, "%v unregister start. id: %v", c.typ, c.id)
 
 		h.connections.Delete(conn.id)
@@ -140,27 +147,15 @@ func (h *Hub) sendDisplaceAndClose(ctx context.Context, old *Connection, newIp s
 	old.sendMsgToWs(ctx, message)
 }
 
-func (h *Hub) Find(id string) (*Connection, error) {
-	return h.findById(id)
-}
-
-func (h *Hub) RangeConnsByFunc(f func(string, *Connection) bool) {
-	h.connections.Range(func(k, v interface{}) bool {
-		if a, ok := v.(*Connection); ok {
-			return f(k.(string), a)
-		}
-		return true
-	})
-}
-
-func InitServer() {
+//init hub
+func initServer(opts ...HubOption) {
 	RegisterDataMsgType(int32(P_S2C_s2c_err_displace), &P_DISPLACE{})
 
-	ClientConnHub = newHub()
+	ClientConnHub = newServerHub(opts...)
 	safego.Go(ClientConnHub.run)
 }
 
-func InitClient() {
+func initClient() {
 	RegisterDataMsgType(int32(P_S2C_s2c_err_displace), &P_DISPLACE{})
 
 	RegisterHandler(int32(P_S2C_s2c_err_displace), func(ctx context.Context, conn *Connection, message *Message) error {
@@ -178,4 +173,52 @@ func InitClient() {
 
 	ServerConnHub = newHub()
 	safego.Go(ServerConnHub.run)
+}
+
+//shard hub
+type shardHub struct {
+	hubs []*Hub
+}
+
+func (h *shardHub) Find(id string) (*Connection, error) {
+	idx := algorithm.Crc16s(id) % uint16(len(h.hubs))
+	return h.hubs[idx].Find(id)
+}
+
+func (h *shardHub) RangeConnsByFunc(rangFunc func(string, *Connection) bool) {
+	for _, hub := range h.hubs {
+		hub.RangeConnsByFunc(rangFunc)
+	}
+}
+
+func (h *shardHub) registerConn(conn *Connection) {
+	idx := algorithm.Crc16s(conn.Id()) % uint16(len(h.hubs))
+	h.hubs[idx].registerConn(conn)
+}
+
+func (h *shardHub) unregisterConn(conn *Connection) {
+	idx := algorithm.Crc16s(conn.Id()) % uint16(len(h.hubs))
+	h.hubs[idx].unregisterConn(conn)
+}
+
+func (h *shardHub) run() {
+	for _, hub := range h.hubs {
+		safego.Go(hub.run)
+	}
+}
+
+func newServerHub(opts ...HubOption) IHub {
+	sHub := &shardHub{}
+
+	if len(opts) > 0 {
+		for _, opt := range opts {
+			opt(sHub)
+		}
+	}
+
+	if len(sHub.hubs) == 0 {
+		return newHub()
+	}
+
+	return sHub
 }

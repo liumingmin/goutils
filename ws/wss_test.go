@@ -13,8 +13,8 @@ import (
 )
 
 func TestWssRun(t *testing.T) {
-	InitServer() //server invoke 服务端调用
-	InitClient() //client invoke 客户端调用
+	InitServer(HubShardOption(4)) //server invoke 服务端调用
+	InitClient()                  //client invoke 客户端调用
 	ctx := context.Background()
 
 	const (

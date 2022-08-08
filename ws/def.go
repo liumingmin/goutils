@@ -8,6 +8,19 @@ import (
 	"google.golang.org/protobuf/proto"
 )
 
+var ClientConnHub IHub //服务端管理的来自客户端的连接
+var ServerConnHub IHub //客户端管理的连向服务端的连接
+
+//server invoke 服务端调用
+func InitServer(opts ...HubOption) {
+	initServer(opts...)
+}
+
+//client invoke 客户端调用
+func InitClient() {
+	initClient()
+}
+
 type IMessage interface {
 	PMsg() *P_MESSAGE
 	DataMsg() IDataMessage
