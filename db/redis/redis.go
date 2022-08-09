@@ -17,19 +17,20 @@ var (
 func InitRedises() {
 	for _, redisItem := range conf.Conf.Redises {
 		redisOpt := &redis.UniversalOptions{
-			MasterName:    redisItem.MasterName,
-			Addrs:         redisItem.Addrs,
-			PoolSize:      redisItem.PoolSize,
-			Password:      redisItem.Password,
-			DB:            redisItem.Db,
-			ReadOnly:      redisItem.ReadOnly,
-			RouteRandomly: redisItem.RouteRandomly, //http://vearne.cc/archives/1113
-			DialTimeout:   defDurationValue(redisItem.DialTimeout, 10*time.Second),
-			ReadTimeout:   defDurationValue(redisItem.ReadTimeout, 10*time.Minute),
-			WriteTimeout:  defDurationValue(redisItem.WriteTimeout, 10*time.Minute),
-			IdleTimeout:   defDurationValue(redisItem.IdleTimeout, -1), // Default is 5 minutes. -1 disables idle timeout check.
-			MaxRetries:    0,
-			MaxRedirects:  -1,
+			MasterName:       redisItem.MasterName,
+			Addrs:            redisItem.Addrs,
+			PoolSize:         redisItem.PoolSize,
+			Password:         redisItem.Password,
+			SentinelPassword: redisItem.SentinelPassword,
+			DB:               redisItem.Db,
+			ReadOnly:         redisItem.ReadOnly,
+			RouteRandomly:    redisItem.RouteRandomly, //http://vearne.cc/archives/1113
+			DialTimeout:      defDurationValue(redisItem.DialTimeout, 10*time.Second),
+			ReadTimeout:      defDurationValue(redisItem.ReadTimeout, 10*time.Minute),
+			WriteTimeout:     defDurationValue(redisItem.WriteTimeout, 10*time.Minute),
+			IdleTimeout:      defDurationValue(redisItem.IdleTimeout, -1), // Default is 5 minutes. -1 disables idle timeout check.
+			MaxRetries:       0,
+			MaxRedirects:     -1,
 		}
 		client := redis.NewUniversalClient(redisOpt)
 
