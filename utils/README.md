@@ -5,6 +5,9 @@
 - [utils 通用工具库](#utils-%E9%80%9A%E7%94%A8%E5%B7%A5%E5%85%B7%E5%BA%93)
   * [cbk 熔断器](#cbk-%E7%86%94%E6%96%AD%E5%99%A8)
     + [cbk_test.go](#cbk_testgo)
+  * [checksum](#checksum)
+    + [crc32_test.go](#crc32_testgo)
+    + [testdir](#testdir)
   * [csv CSV文件解析为MDB内存表](#csv-csv%E6%96%87%E4%BB%B6%E8%A7%A3%E6%9E%90%E4%B8%BAmdb%E5%86%85%E5%AD%98%E8%A1%A8)
     + [csv_parse_test.go](#csv_parse_testgo)
   * [distlock 分布式锁](#distlock-%E5%88%86%E5%B8%83%E5%BC%8F%E9%94%81)
@@ -61,6 +64,77 @@ for j := 0; j < 200; j++ {
 	//})
 }
 ```
+## checksum
+### crc32_test.go
+#### TestGenerateCheckSumFile
+```go
+
+src := "D:\\gitea_ws\\repair_dir\\dev_test_01\\1.0.0.1\\product"
+checksumName := "nwjs"
+checkSumPath, err := GenerateChecksumFile(context.Background(), src, checksumName)
+if err != nil {
+	t.Error(err)
+	return
+}
+t.Log(checkSumPath)
+```
+#### TestGenerateChecksumMd5File
+```go
+
+src := "D:\\gitea_ws\\repair_dir\\dev_test_01\\1.0.0.1\\product\\nwjs.checksum"
+checksumMd5Path, err := GenerateChecksumMd5File(context.Background(), src)
+if err != nil {
+	t.Error(err)
+	return
+}
+t.Log(checksumMd5Path)
+```
+#### TestGenerateChecksumFileWithIgnore
+```go
+
+dirMap := make(map[string][]string)
+dirMap["fullClient"] = []string{"E:\\game\\dev_test_01", "E:\\game\\dev_test_01\\fullClient"}
+for code, dirs := range dirMap {
+	t.Log("game: ", code)
+	for _, dir := range dirs {
+		t.Log("dir: ", dir)
+		start := time.Now() // 获取当前时间
+		checksumName := fmt.Sprintf("%v-62e204c376d4be7b1458d077", code)
+		checksumMd5Path, err := GenerateChecksumFileWithIgnore(context.Background(), dir, checksumName, []string{fmt.Sprintf("%v-62e204c376d4be7b1458d077.checksum", code)})
+		if err != nil {
+			t.Error(err)
+			return
+		}
+		t.Log(checksumMd5Path)
+		elapsed := time.Since(start)
+		t.Log("time：", elapsed)
+	}
+}
+```
+#### TestIsChecksumFileValid
+```go
+
+src := "D:\\gitea_ws\\repair_dir\\dev_test_01\\1.0.0.1\\product\\nwjs.checksum"
+md5Path := "D:\\gitea_ws\\repair_dir\\dev_test_01\\1.0.0.1\\product\\nwjs.checksum.md5"
+valid := IsChecksumFileValid(context.Background(), src, md5Path)
+if !valid {
+	t.Error(valid)
+	return
+}
+t.Log(valid)
+```
+#### TestCompareChecksumFiles
+```go
+
+src := "D:\\gitea_ws\\repair_dir\\dev_test_01\\1.0.0.1\\product\\nwjs.checksum"
+root := "D:\\gitea_ws\\repair_dir\\dev_test_01\\1.0.0.1\\product"
+err := CompareChecksumFiles(context.Background(), root, src)
+if err != nil {
+	t.Error(err)
+	return
+}
+```
+### testdir
 ## csv CSV文件解析为MDB内存表
 ### csv_parse_test.go
 #### TestReadCsvToDataTable

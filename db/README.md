@@ -14,6 +14,7 @@
     + [list_test.go Redis List工具库](#list_testgo-redis-list%E5%B7%A5%E5%85%B7%E5%BA%93)
     + [lock_test.go Redis 锁工具库](#lock_testgo-redis-%E9%94%81%E5%B7%A5%E5%85%B7%E5%BA%93)
     + [mq_test.go Redis PubSub工具库](#mq_testgo-redis-pubsub%E5%B7%A5%E5%85%B7%E5%BA%93)
+    + [redis_test.go](#redis_testgo)
     + [zset_test.go Redis ZSet工具库](#zset_testgo-redis-zset%E5%B7%A5%E5%85%B7%E5%BA%93)
 
 <!-- tocstop -->
@@ -786,6 +787,31 @@ err = MqPublish(ctx, rds, "testkey:3", "id:3")
 t.Log(err)
 
 time.Sleep(time.Second * 3)
+```
+### redis_test.go
+#### TestSentinel
+```go
+
+InitRedises()
+rds := Get("rds-sentinel")
+ctx := context.Background()
+
+rds.Set(ctx, "test_senti", "test_value", time.Minute)
+
+value, err := rds.Get(ctx, "test_senti").Result()
+t.Log(value, err)
+```
+#### TestCluster
+```go
+
+InitRedises()
+rds := Get("rds-cluster")
+ctx := context.Background()
+
+rds.Set(ctx, "test_cluster", "test_value", time.Minute)
+
+value, err := rds.Get(ctx, "test_cluster").Result()
+t.Log(value, err)
 ```
 ### zset_test.go Redis ZSet工具库
 #### TestZDescartes

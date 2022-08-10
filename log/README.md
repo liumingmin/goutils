@@ -5,7 +5,6 @@
 - [log zap日志库](#log-zap%E6%97%A5%E5%BF%97%E5%BA%93)
   * [zap_test.go](#zap_testgo)
     + [TestZap](#testzap)
-    + [TestZapJson](#testzapjson)
     + [TestPanicLog](#testpaniclog)
     + [TestLevelChange](#testlevelchange)
 
@@ -17,25 +16,10 @@
 ```go
 
 ctx := &gin.Context{}
-ctx.Set("__traceId", "aaabbbbbcccc")
-//Info(ctx, "我是日志", "name", "管理员")  //json
+ctx.Set(LOG_TRADE_ID, "aaabbbbbcccc")
 
 Info(ctx, "我是日志2")
-
-//Info(ctx, "我是日志3", "name")  //json
-
 Error(ctx, "我是日志4: %v,%v", "管理员", "eee")
-```
-### TestZapJson
-```go
-
-ctx := &gin.Context{}
-ctx.Set("__traceId", "aaabbbbbcccc")
-Info(ctx, "我是日志 %v", "name", "管理员") //json
-
-Info(ctx, "我是日志3 %v", "管理员") //json
-Error(ctx, "我是日志3")          //json
-Log(ctx, zapcore.ErrorLevel, "日志啊")
 ```
 ### TestPanicLog
 ```go
