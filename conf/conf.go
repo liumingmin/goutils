@@ -92,6 +92,7 @@ type Redis struct {
 	WriteTimeout     string   `yaml:"writeTimeout"`
 	IdleTimeout      string   `yaml:"idleTimeout"`
 	ReadOnly         bool     `yaml:"readOnly"`
+	RouteByLatency   bool     `yaml:"routeByLatency"`
 	RouteRandomly    bool     `yaml:"routeRandomly"`
 }
 
