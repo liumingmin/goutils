@@ -148,7 +148,7 @@ func (h *Hub) sendDisplaceAndClose(ctx context.Context, old *Connection, newIp s
 }
 
 //init server
-func initServer(serverOpt *ServerOption) {
+func initServer(serverOpt ServerOption) {
 	RegisterDataMsgType(int32(P_S2C_s2c_err_displace), &P_DISPLACE{})
 
 	ClientConnHub = newShardHub(serverOpt.HubOpts)

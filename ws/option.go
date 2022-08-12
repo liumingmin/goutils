@@ -15,6 +15,10 @@ import (
 type ConnOption func(*Connection)
 type HubOption func(IHub)
 
+type ServerOption struct {
+	HubOpts []HubOption
+}
+
 func DebugOption(debug bool) ConnOption {
 	return func(conn *Connection) {
 		conn.debug = debug
