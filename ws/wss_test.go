@@ -2,7 +2,9 @@ package ws
 
 import (
 	"context"
+	"fmt"
 	"net/http"
+	"strconv"
 	"testing"
 	"time"
 
@@ -131,6 +133,22 @@ func TestWssRun(t *testing.T) {
 	packet = GetPoolMessage(C2S_REQ)
 	packet.PMsg().Data = []byte("client request2")
 	conn2.SendMsg(context.Background(), packet, nil)
+
+	for i := 0; i < 100; i++ {
+		url := "ws://127.0.0.1:8003/join?uid=a" + strconv.Itoa(i)
+		DialConnect(context.Background(), url, http.Header{},
+			DebugOption(true),
+			ClientIdOption(strconv.Itoa(i)),
+			ClientDialWssOption(url, false),
+			ConnEstablishHandlerOption(func(ctx context.Context, conn *Connection) {
+				log.Info(ctx, "client conn establish: %v", conn.Id())
+			}),
+		)
+	}
+
+	time.Sleep(time.Second * 10)
+
+	fmt.Println(len(ClientConnHub.ConnectionIds()))
 
 	time.Sleep(time.Minute * 1)
 }
