@@ -141,12 +141,29 @@ func TestWssRun(t *testing.T) {
 			ClientIdOption(strconv.Itoa(i)),
 			ClientDialWssOption(url, false),
 			ConnEstablishHandlerOption(func(ctx context.Context, conn *Connection) {
+				safego.Go(func() {
+					time.Sleep(time.Second * 3)
+					conn.KickServer(false)
+				})
+				log.Info(ctx, "client conn establish: %v", conn.Id())
+			}),
+		)
+	}
+	fmt.Println(len(ClientConnHub.ConnectionIds()))
+	time.Sleep(time.Second * 5)
+	for i := 0; i < 100; i++ {
+		url := "ws://127.0.0.1:8003/join?uid=b" + strconv.Itoa(i)
+		DialConnect(context.Background(), url, http.Header{},
+			DebugOption(true),
+			ClientIdOption("b"+strconv.Itoa(i)),
+			ClientDialWssOption(url, false),
+			ConnEstablishHandlerOption(func(ctx context.Context, conn *Connection) {
 				log.Info(ctx, "client conn establish: %v", conn.Id())
 			}),
 		)
 	}
 
-	time.Sleep(time.Second * 10)
+	time.Sleep(time.Second * 5)
 
 	fmt.Println(len(ClientConnHub.ConnectionIds()))
 
