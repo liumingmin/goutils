@@ -47,14 +47,13 @@ type Connection struct {
 	connEstablishHandler  EventHandler
 	connClosingHandler    EventHandler
 	connClosedHandler     EventHandler
+	connAutoReconHandler  EventHandler
 	recvPingHandler       EventHandler
 	recvPongHandler       EventHandler
 	dialConnFailedHandler EventHandler
 
 	commonDataLock sync.RWMutex
 	commonData     map[string]interface{}
-
-	closedAutoReconChan chan interface{}
 
 	//net params
 	maxFailureRetry  int           //重试次数
@@ -125,13 +124,14 @@ func (c *Connection) Reset() {
 	c.connEstablishHandler = nil
 	c.connClosingHandler = nil
 	c.connClosedHandler = nil
+	c.connAutoReconHandler = nil
 	c.recvPingHandler = nil
 	c.recvPongHandler = nil
 	c.dialConnFailedHandler = nil
 	c.commonData = nil
 	c.stopped = 0
 	c.displaced = 0
-	c.closedAutoReconChan = nil
+
 	c.pullChannelMap = nil
 	c.compressionLevel = 0
 	c.debug = false
@@ -298,12 +298,8 @@ func (c *Connection) handleClosed(ctx context.Context) {
 	})
 
 	defer func() {
-		if c.closedAutoReconChan != nil {
-			select {
-			case <-c.closedAutoReconChan:
-			default:
-				close(c.closedAutoReconChan)
-			}
+		if c.connAutoReconHandler != nil {
+			c.connAutoReconHandler(ctx, c)
 		}
 	}()
 
@@ -319,9 +315,6 @@ func (c *Connection) handleDialConnFailed(ctx context.Context) {
 	})
 
 	c.setStop(ctx)
-	if c.closedAutoReconChan != nil {
-		close(c.closedAutoReconChan)
-	}
 
 	if c.dialConnFailedHandler != nil {
 		log.Debug(ctx, "%v dialConnFailedHandler. id: %v", c.typ, c.id)

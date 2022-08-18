@@ -20,35 +20,41 @@ func (c *Connection) KickServer(displace bool) {
 	ServerConnHub.unregisterConn(c)
 }
 
-func Connect(ctx context.Context, sId, sUrl string, secureWss bool, header http.Header, opts ...ConnOption) (*Connection, error) {
-	baseOpts := []ConnOption{
-		ClientIdOption(sId),
-		ClientDialWssOption(sUrl, secureWss),
-	}
-	return DialConnect(ctx, sUrl, header, append(baseOpts, opts...)...)
-}
-
 func AutoReDialConnect(ctx context.Context, sUrl string, header http.Header, cancelAutoConn chan interface{}, connInterval time.Duration,
 	opts ...ConnOption) {
-	reConnOpts := append([]ConnOption{closedAutoReconOption()}, opts...)
+
+	closedAutoReconChan := make(chan interface{}, 1)
 
 	if cancelAutoConn == nil {
 		cancelAutoConn = make(chan interface{})
 	}
-
 	if connInterval == 0 {
 		connInterval = time.Second * 5
 	}
 
+	reConnOpts := append(opts, ClientAutoReconHandlerOption(func(context.Context, *Connection) {
+		select {
+		case closedAutoReconChan <- struct{}{}:
+		default:
+		}
+	}))
+
 	for {
 		conn, err := DialConnect(ctx, sUrl, header, reConnOpts...)
 		if err != nil || conn == nil {
+			select {
+			case <-cancelAutoConn:
+				return
+			default:
+			}
+
 			continue
 		}
+
 		select {
 		case <-cancelAutoConn:
 			return
-		case <-conn.closedAutoReconChan:
+		case <-closedAutoReconChan:
 		}
 
 		time.Sleep(connInterval)

@@ -120,13 +120,6 @@ func NetTemporaryWaitOption(temporaryWait time.Duration) ConnOption {
 	}
 }
 
-//channel cannot reuse
-func closedAutoReconOption() ConnOption {
-	return func(conn *Connection) {
-		conn.closedAutoReconChan = make(chan interface{})
-	}
-}
-
 //服务端特有
 //upgrader定制
 func SrvUpgraderOption(upgrader *websocket.Upgrader) ConnOption {
@@ -208,6 +201,12 @@ func ClientDialRetryOption(retryNum int, retryInterval time.Duration) ConnOption
 func ClientDialConnFailedHandlerOption(handler EventHandler) ConnOption {
 	return func(conn *Connection) {
 		conn.dialConnFailedHandler = handler
+	}
+}
+
+func ClientAutoReconHandlerOption(handler EventHandler) ConnOption {
+	return func(conn *Connection) {
+		conn.connAutoReconHandler = handler
 	}
 }
 
