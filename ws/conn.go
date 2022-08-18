@@ -120,7 +120,6 @@ func (c *Connection) Reset() {
 	c.id = ""
 	c.meta = ConnectionMeta{}
 	c.conn = nil
-	c.sendBuffer = nil
 	c.connEstablishHandler = nil
 	c.connClosingHandler = nil
 	c.connClosedHandler = nil
@@ -244,9 +243,15 @@ func (c *Connection) closeWrite(ctx context.Context) {
 	default:
 		close(c.sendBuffer)
 	}
+
+	c.sendBuffer = nil
 }
 
 func (c *Connection) closeRead(ctx context.Context) {
+	if c.pullChannelMap == nil {
+		return
+	}
+
 	for _, pullChannel := range c.pullChannelMap {
 		func() {
 			defer log.Recover(ctx, func(e interface{}) string {
@@ -264,6 +269,7 @@ func (c *Connection) closeRead(ctx context.Context) {
 			}
 		}()
 	}
+	c.pullChannelMap = nil
 }
 
 func (c *Connection) handleEstablish(ctx context.Context) {
