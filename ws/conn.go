@@ -297,6 +297,8 @@ func (c *Connection) handleClosed(ctx context.Context) {
 		return fmt.Sprintf("handleClosed panic, error is: %v", e)
 	})
 
+	defer putPoolSrvConnection(c)
+
 	defer func() {
 		if c.connAutoReconHandler != nil {
 			c.connAutoReconHandler(ctx, c)

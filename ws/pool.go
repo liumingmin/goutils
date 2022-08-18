@@ -14,6 +14,12 @@ var (
 	}
 
 	dataMsgPools = make(map[int32]*sync.Pool)
+
+	srvConnectionPool = sync.Pool{
+		New: func() interface{} {
+			return &Connection{}
+		},
+	}
 )
 
 func getPoolMessage() *Message {
@@ -55,4 +61,19 @@ func putPoolDataMsg(protocolId int32, dataMsg IDataMessage) {
 
 	dataMsg.Reset()
 	pool.Put(dataMsg)
+}
+
+func getPoolSrvConnection() *Connection {
+	conn := srvConnectionPool.Get().(*Connection)
+	conn.typ = CONN_KIND_SERVER
+	return conn
+}
+
+func putPoolSrvConnection(conn *Connection) {
+	if conn.typ != CONN_KIND_SERVER {
+		return
+	}
+
+	conn.Reset()
+	srvConnectionPool.Put(conn)
 }
