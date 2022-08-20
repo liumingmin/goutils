@@ -182,7 +182,7 @@ func (c *Connection) RefreshDeadline() {
 func (c *Connection) SendMsg(ctx context.Context, payload *Message, sc SendCallback) (err error) {
 	defer log.Recover(ctx, func(e interface{}) string {
 		err = fmt.Errorf("%v", e)
-		return fmt.Sprintf("send msg failed, sendBuffer chan is closed. error: %v", err)
+		return fmt.Sprintf("%v send msg failed, sendBuffer chan is closed. error: %v", c.typ, err)
 	})
 
 	if c.IsStopped() {
@@ -199,7 +199,7 @@ func (c *Connection) SendMsg(ctx context.Context, payload *Message, sc SendCallb
 func (c *Connection) SendPullNotify(ctx context.Context, pullChannelId int) (err error) {
 	defer log.Recover(ctx, func(e interface{}) string {
 		err, _ = e.(error)
-		return fmt.Sprintf("SendPullNotify err: %v", e)
+		return fmt.Sprintf("%v SendPullNotify err: %v", c.typ, e)
 	})
 
 	if !c.IsStopped() {
@@ -277,7 +277,7 @@ func (c *Connection) handleEstablish(ctx context.Context) {
 	}
 
 	defer log.Recover(ctx, func(e interface{}) string {
-		return fmt.Sprintf("connEstablishHandler panic, error is: %v", e)
+		return fmt.Sprintf("%v connEstablishHandler panic, error is: %v", c.typ, e)
 	})
 
 	log.Debug(ctx, "%v connEstablishHandler. id: %v", c.typ, c.id)
@@ -290,7 +290,7 @@ func (c *Connection) handleClosing(ctx context.Context) {
 	}
 
 	defer log.Recover(ctx, func(e interface{}) string {
-		return fmt.Sprintf("connClosingHandler panic, error is: %v", e)
+		return fmt.Sprintf("%v connClosingHandler panic, error is: %v", c.typ, e)
 	})
 
 	log.Debug(ctx, "%v connClosingHandler. id: %v", c.typ, c.id)
@@ -299,7 +299,7 @@ func (c *Connection) handleClosing(ctx context.Context) {
 
 func (c *Connection) handleClosed(ctx context.Context) {
 	defer log.Recover(ctx, func(e interface{}) string {
-		return fmt.Sprintf("handleClosed panic, error is: %v", e)
+		return fmt.Sprintf("%v handleClosed panic, error is: %v", c.typ, e)
 	})
 
 	defer putPoolSrvConnection(c)
@@ -318,7 +318,7 @@ func (c *Connection) handleClosed(ctx context.Context) {
 
 func (c *Connection) handleDialConnFailed(ctx context.Context) {
 	defer log.Recover(ctx, func(e interface{}) string {
-		return fmt.Sprintf("handleDialConnFailed panic, error is: %v", e)
+		return fmt.Sprintf("%v handleDialConnFailed panic, error is: %v", c.typ, e)
 	})
 
 	c.setStop(ctx)
@@ -331,7 +331,7 @@ func (c *Connection) handleDialConnFailed(ctx context.Context) {
 
 func (c *Connection) closeSocket(ctx context.Context) error {
 	defer log.Recover(ctx, func(e interface{}) string {
-		return fmt.Sprintf("Close connection panic, error is: %v", e)
+		return fmt.Sprintf("%v Close connection panic, error is: %v", c.typ, e)
 	})
 
 	defer c.handleClosed(ctx)
@@ -493,7 +493,7 @@ func (c *Connection) processMsg(ctx context.Context, msgData []byte) {
 
 func (c *Connection) sendMsgToWs(ctx context.Context, message *Message) error {
 	defer log.Recover(ctx, func(e interface{}) string {
-		return fmt.Sprintf("sendMsgToWs failed, error: %v", e)
+		return fmt.Sprintf("%v sendMsgToWs failed, error: %v", c.typ, e)
 	})
 
 	defer putPoolMessage(message)
