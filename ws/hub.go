@@ -134,6 +134,10 @@ func (h *Hub) processUnregister(conn *Connection) {
 }
 
 func (h *Hub) sendDisplace(ctx context.Context, old *Connection, newIp string) {
+	if old.typ != CONN_KIND_SERVER {
+		return
+	}
+
 	message := GetPoolMessage(int32(P_S2C_s2c_err_displace))
 	dataMsg := message.DataMsg()
 	if dataMsg != nil {
