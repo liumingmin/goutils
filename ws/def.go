@@ -70,7 +70,6 @@ type IHub interface {
 	registerConn(*Connection)
 	unregisterConn(*Connection)
 	run()
-	sendDisplace(context.Context, *Connection, string)
 }
 
 //normal message 普通消息

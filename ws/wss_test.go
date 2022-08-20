@@ -2,9 +2,7 @@ package ws
 
 import (
 	"context"
-	"fmt"
 	"net/http"
-	"strconv"
 	"testing"
 	"time"
 
@@ -66,7 +64,7 @@ func TestWssRun(t *testing.T) {
 			SrvUpgraderCompressOption(true),
 			CompressionLevelOption(2),
 			ConnEstablishHandlerOption(func(ctx context.Context, conn *Connection) {
-				log.Info(ctx, "server conn establish: %v", conn.Id())
+				log.Info(ctx, "server conn establish: %v, %p", conn.Id(), conn)
 				//在集群环境下，需要检查connId是否已经连接集群，如有需踢掉在集群其他节点建立的连接，可通过redis pub sub，其他节点收到通知调用KickClient
 				//lastConnNodeId, lastConnMTs := GetClientTs(ctx, conn.Id())
 				//if lastConnNodeId != "" && lastConnNodeId != config.NodeId && lastConnMTs < util.UtcMTs() {
@@ -79,10 +77,10 @@ func TestWssRun(t *testing.T) {
 				})
 			}),
 			ConnClosingHandlerOption(func(ctx context.Context, conn *Connection) {
-				log.Info(ctx, "server conn closing: %v", conn.Id())
+				log.Info(ctx, "server conn closing: %v, %p", conn.Id(), conn)
 			}),
 			ConnClosedHandlerOption(func(ctx context.Context, conn *Connection) {
-				log.Info(ctx, "server conn closed: %v", conn.Id())
+				log.Info(ctx, "server conn closed: %v, %p", conn.Id(), conn)
 			}),
 			SrvPullChannelsOption([]int{pullMsgFromDB}))
 		if err != nil {
@@ -107,13 +105,13 @@ func TestWssRun(t *testing.T) {
 		ClientDialCompressOption(true),
 		CompressionLevelOption(2),
 		ConnEstablishHandlerOption(func(ctx context.Context, conn *Connection) {
-			log.Info(ctx, "client conn establish: %v", conn.Id())
+			log.Info(ctx, "client conn establish: %v, %p", conn.Id(), conn)
 		}),
 		ConnClosingHandlerOption(func(ctx context.Context, conn *Connection) {
-			log.Info(ctx, "client conn closing: %v", conn.Id())
+			log.Info(ctx, "client conn closing: %v, %p", conn.Id(), conn)
 		}),
 		ConnClosedHandlerOption(func(ctx context.Context, conn *Connection) {
-			log.Info(ctx, "client conn closed: %v", conn.Id())
+			log.Info(ctx, "client conn closed: %v, %p", conn.Id(), conn)
 		}),
 	)
 	log.Info(ctx, "%v", conn)
@@ -130,8 +128,10 @@ func TestWssRun(t *testing.T) {
 		DebugOption(true),
 		ClientIdOption("server2"),
 		ClientDialWssOption(url, false),
+		ClientDialCompressOption(true),
+		CompressionLevelOption(2),
 		ConnEstablishHandlerOption(func(ctx context.Context, conn *Connection) {
-			log.Info(ctx, "client conn establish: %v", conn.Id())
+			log.Info(ctx, "client conn establish: %v, %p", conn.Id(), conn)
 		}),
 	)
 	time.Sleep(time.Second)
@@ -139,38 +139,40 @@ func TestWssRun(t *testing.T) {
 	packet.PMsg().Data = []byte("client request2")
 	conn2.SendMsg(context.Background(), packet, nil)
 
-	for i := 0; i < 100; i++ {
-		url := "ws://127.0.0.1:8003/join?uid=a" + strconv.Itoa(i)
-		DialConnect(context.Background(), url, http.Header{},
-			DebugOption(true),
-			ClientIdOption(strconv.Itoa(i)),
-			ClientDialWssOption(url, false),
-			ConnEstablishHandlerOption(func(ctx context.Context, conn *Connection) {
-				safego.Go(func() {
-					time.Sleep(time.Second * 3)
-					conn.KickServer()
-				})
-				log.Info(ctx, "client conn establish: %v", conn.Id())
-			}),
-		)
-	}
-	fmt.Println(len(ClientConnHub.ConnectionIds()))
-	time.Sleep(time.Second * 5)
-	for i := 0; i < 100; i++ {
-		url := "ws://127.0.0.1:8003/join?uid=b" + strconv.Itoa(i)
-		DialConnect(context.Background(), url, http.Header{},
-			DebugOption(true),
-			ClientIdOption("b"+strconv.Itoa(i)),
-			ClientDialWssOption(url, false),
-			ConnEstablishHandlerOption(func(ctx context.Context, conn *Connection) {
-				log.Info(ctx, "client conn establish: %v", conn.Id())
-			}),
-		)
-	}
+	clientConn, _ := ClientConnHub.Find("100-0-")
+	clientConn.DisplaceClientByIp(ctx, "127.0.0.1")
+	// for i := 0; i < 100; i++ {
+	// 	url := "ws://127.0.0.1:8003/join?uid=a" + strconv.Itoa(i)
+	// 	DialConnect(context.Background(), url, http.Header{},
+	// 		DebugOption(true),
+	// 		ClientIdOption(strconv.Itoa(i)),
+	// 		ClientDialWssOption(url, false),
+	// 		ConnEstablishHandlerOption(func(ctx context.Context, conn *Connection) {
+	// 			safego.Go(func() {
+	// 				time.Sleep(time.Second * 3)
+	// 				conn.KickServer()
+	// 			})
+	// 			log.Info(ctx, "client conn establish: %v", conn.Id())
+	// 		}),
+	// 	)
+	// }
+	// fmt.Println(len(ClientConnHub.ConnectionIds()))
+	// time.Sleep(time.Second * 5)
+	// for i := 0; i < 100; i++ {
+	// 	url := "ws://127.0.0.1:8003/join?uid=b" + strconv.Itoa(i)
+	// 	DialConnect(context.Background(), url, http.Header{},
+	// 		DebugOption(true),
+	// 		ClientIdOption("b"+strconv.Itoa(i)),
+	// 		ClientDialWssOption(url, false),
+	// 		ConnEstablishHandlerOption(func(ctx context.Context, conn *Connection) {
+	// 			log.Info(ctx, "client conn establish: %v", conn.Id())
+	// 		}),
+	// 	)
+	// }
 
-	time.Sleep(time.Second * 5)
+	// time.Sleep(time.Second * 5)
 
-	fmt.Println(len(ClientConnHub.ConnectionIds()))
+	// fmt.Println(len(ClientConnHub.ConnectionIds()))
 
 	time.Sleep(time.Minute * 1)
 }

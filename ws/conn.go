@@ -40,6 +40,7 @@ type Connection struct {
 	conn           *websocket.Conn       //websocket connection
 	stopped        int32                 //连接断开
 	displaced      int32                 //连接被顶号
+	displaceIp     string                //顶号IP(集群下使用)
 	sendBuffer     chan *Message         //发送缓冲区
 	pullChannelMap map[int]chan struct{} //pullSend消息通道
 	debug          bool                  //debug日志输出
@@ -130,6 +131,7 @@ func (c *Connection) Reset() {
 	c.commonData = nil
 	c.stopped = 0
 	c.displaced = 0
+	c.displaceIp = ""
 
 	c.pullChannelMap = nil
 	c.compressionLevel = 0
@@ -243,8 +245,6 @@ func (c *Connection) closeWrite(ctx context.Context) {
 	default:
 		close(c.sendBuffer)
 	}
-
-	c.sendBuffer = nil
 }
 
 func (c *Connection) closeRead(ctx context.Context) {
@@ -269,7 +269,6 @@ func (c *Connection) closeRead(ctx context.Context) {
 			}
 		}()
 	}
-	c.pullChannelMap = nil
 }
 
 func (c *Connection) handleEstablish(ctx context.Context) {

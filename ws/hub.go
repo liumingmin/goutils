@@ -125,7 +125,10 @@ func (h *Hub) processUnregister(conn *Connection) {
 
 		conn.handleClosing(ctx)
 		safego.Go(func() {
-			conn.closeSocket(ctx)
+			defer conn.closeSocket(ctx)
+			if conn.IsDisplaced() {
+				h.sendDisplace(ctx, conn, conn.displaceIp)
+			}
 		})
 
 		log.Debug(ctx, "%v unregister finish. id: %v", conn.typ, conn.id)
@@ -235,9 +238,4 @@ func (h *shardHub) run() {
 	for _, hub := range h.hubs {
 		safego.Go(hub.run)
 	}
-}
-
-func (h *shardHub) sendDisplace(ctx context.Context, conn *Connection, newIp string) {
-	idx := algorithm.Crc16s(conn.Id()) % uint16(len(h.hubs))
-	h.hubs[idx].sendDisplace(ctx, conn, newIp)
 }
