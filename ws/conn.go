@@ -39,6 +39,7 @@ type Connection struct {
 	meta           ConnectionMeta        //连接信息
 	conn           *websocket.Conn       //websocket connection
 	stopped        int32                 //连接断开
+	writen         chan interface{}      //writeConnection finished
 	displaced      int32                 //连接被顶号
 	displaceIp     string                //顶号IP(集群下使用)
 	sendBuffer     chan *Message         //发送缓冲区
@@ -130,6 +131,7 @@ func (c *Connection) Reset() {
 	c.dialConnFailedHandler = nil
 	c.commonData = nil
 	c.stopped = 0
+	c.writen = nil
 	c.displaced = 0
 	c.displaceIp = ""
 
@@ -345,6 +347,10 @@ func (c *Connection) writeToConnection() {
 	defer func() {
 		log.Debug(context.Background(), "%v write finish. id: %v, ptr: %p", c.typ, c.id, c)
 		ticker.Stop()
+
+		if c.writen != nil {
+			close(c.writen)
+		}
 
 		if c.typ == CONN_KIND_CLIENT {
 			c.KickServer()

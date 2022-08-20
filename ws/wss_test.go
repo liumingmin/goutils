@@ -140,7 +140,7 @@ func TestWssRun(t *testing.T) {
 	conn2.SendMsg(context.Background(), packet, nil)
 
 	clientConn, _ := ClientConnHub.Find("100-0-")
-	clientConn.DisplaceClientByIp(ctx, "127.0.0.1")
+	clientConn.DisplaceClientByIp(ctx, "newip")
 	// for i := 0; i < 100; i++ {
 	// 	url := "ws://127.0.0.1:8003/join?uid=a" + strconv.Itoa(i)
 	// 	DialConnect(context.Background(), url, http.Header{},
