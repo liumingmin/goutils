@@ -70,6 +70,7 @@ type IHub interface {
 	registerConn(*Connection)
 	unregisterConn(*Connection)
 	run()
+	sendDisplace(context.Context, *Connection, string)
 }
 
 //normal message 普通消息
@@ -115,18 +116,5 @@ func RegisterDataMsgType(protocolId int32, pMsg IDataMessage) {
 		New: func() interface{} {
 			return reflect.New(typ).Interface()
 		},
-	}
-}
-
-type SrvPuller interface {
-	PullSend()
-}
-
-func NewDefaultSrvPuller(conn *Connection, pullChannelId int, firstPullFunc, pullFunc func(context.Context, *Connection)) SrvPuller {
-	return &defaultSrvPuller{
-		conn:          conn,
-		pullChannelId: pullChannelId,
-		firstPullFunc: firstPullFunc,
-		pullFunc:      pullFunc,
 	}
 }

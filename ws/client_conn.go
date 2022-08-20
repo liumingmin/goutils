@@ -11,13 +11,9 @@ import (
 	"github.com/liumingmin/goutils/log"
 )
 
-func (c *Connection) KickServer(displace bool) {
+func (c *Connection) KickServer() {
 	if c.typ != CONN_KIND_CLIENT {
 		return
-	}
-
-	if displace {
-		c.setDisplaced()
 	}
 
 	ServerConnHub.unregisterConn(c)
@@ -123,7 +119,7 @@ func DialConnect(ctx context.Context, sUrl string, header http.Header, opts ...C
 	ServerConnHub.registerConn(connection)
 
 	conn.SetCloseHandler(func(code int, text string) error {
-		connection.KickServer(false)
+		connection.KickServer()
 		return nil
 	})
 	return connection, nil

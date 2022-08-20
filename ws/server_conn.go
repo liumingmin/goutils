@@ -21,6 +21,16 @@ var (
 	}
 )
 
+func (c *Connection) DisplaceClientByIp(ctx context.Context, newIp string) {
+	if c.typ != CONN_KIND_SERVER {
+		return
+	}
+
+	ClientConnHub.sendDisplace(ctx, c, newIp)
+
+	c.KickClient(true)
+}
+
 func (c *Connection) KickClient(displace bool) {
 	if c.typ != CONN_KIND_SERVER {
 		return

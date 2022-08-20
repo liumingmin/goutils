@@ -348,7 +348,7 @@ func (c *Connection) writeToConnection() {
 		ticker.Stop()
 
 		if c.typ == CONN_KIND_CLIENT {
-			c.KickServer(false)
+			c.KickServer()
 		} else if c.typ == CONN_KIND_SERVER {
 			c.KickClient(false)
 		}
@@ -395,7 +395,7 @@ func (c *Connection) readFromConnection() {
 	defer func() {
 		log.Debug(context.Background(), "%v read finish. id: %v, ptr: %p", c.typ, c.id, c)
 		if c.typ == CONN_KIND_CLIENT {
-			c.KickServer(false)
+			c.KickServer()
 		} else if c.typ == CONN_KIND_SERVER {
 			c.KickClient(false)
 		}

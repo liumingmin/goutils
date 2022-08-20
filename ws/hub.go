@@ -93,7 +93,8 @@ func (h *Hub) processRegister(conn *Connection) {
 
 		old.handleClosing(ctx)
 		safego.Go(func() {
-			h.sendDisplaceAndClose(ctx, old, conn.ClientIp())
+			defer old.closeSocket(ctx)
+			h.sendDisplace(ctx, old, conn.ClientIp())
 		})
 	} else if err == nil && old == conn {
 		return
@@ -132,7 +133,7 @@ func (h *Hub) processUnregister(conn *Connection) {
 	//not in hub conn is displaced connect,do not process it
 }
 
-func (h *Hub) sendDisplaceAndClose(ctx context.Context, old *Connection, newIp string) {
+func (h *Hub) sendDisplace(ctx context.Context, old *Connection, newIp string) {
 	message := GetPoolMessage(int32(P_S2C_s2c_err_displace))
 	dataMsg := message.DataMsg()
 	if dataMsg != nil {
@@ -141,8 +142,6 @@ func (h *Hub) sendDisplaceAndClose(ctx context.Context, old *Connection, newIp s
 		displaceMsg.NewIp = []byte(newIp)
 		displaceMsg.Ts = time.Now().UnixNano()
 	}
-
-	defer old.closeSocket(ctx)
 
 	old.sendMsgToWs(ctx, message)
 }
@@ -232,4 +231,9 @@ func (h *shardHub) run() {
 	for _, hub := range h.hubs {
 		safego.Go(hub.run)
 	}
+}
+
+func (h *shardHub) sendDisplace(ctx context.Context, conn *Connection, newIp string) {
+	idx := algorithm.Crc16s(conn.Id()) % uint16(len(h.hubs))
+	h.hubs[idx].sendDisplace(ctx, conn, newIp)
 }

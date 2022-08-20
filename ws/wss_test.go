@@ -38,8 +38,8 @@ func TestWssRun(t *testing.T) {
 	})
 
 	//server start
-	var createSrvPullerFunc = func(conn *Connection, pullChannelId int) SrvPuller {
-		return NewDefaultSrvPuller(conn, pullChannelId, func(ctx context.Context, pullConn *Connection) {
+	var createSrvPullerFunc = func(conn *Connection, pullChannelId int) Puller {
+		return NewDefaultPuller(conn, pullChannelId, func(ctx context.Context, pullConn *Connection) {
 			packet := GetPoolMessage(S2C_RESP)
 			packet.PMsg().Data = []byte("first msg from db")
 			pullConn.SendMsg(ctx, packet, nil)
@@ -70,7 +70,7 @@ func TestWssRun(t *testing.T) {
 				//在集群环境下，需要检查connId是否已经连接集群，如有需踢掉在集群其他节点建立的连接，可通过redis pub sub，其他节点收到通知调用KickClient
 				//lastConnNodeId, lastConnMTs := GetClientTs(ctx, conn.Id())
 				//if lastConnNodeId != "" && lastConnNodeId != config.NodeId && lastConnMTs < util.UtcMTs() {
-				//	MqPublish(ctx, conn.Id())
+				//	MqPublish(ctx, conn.Id(), conn.ClientIp())   //other node: ClientConnHub.Find(connId).DisplaceClientByIp(ctx, newIp)
 				//}
 				//RegisterConn() // save to redis
 				puller := createSrvPullerFunc(conn, pullMsgFromDB)
@@ -148,7 +148,7 @@ func TestWssRun(t *testing.T) {
 			ConnEstablishHandlerOption(func(ctx context.Context, conn *Connection) {
 				safego.Go(func() {
 					time.Sleep(time.Second * 3)
-					conn.KickServer(false)
+					conn.KickServer()
 				})
 				log.Info(ctx, "client conn establish: %v", conn.Id())
 			}),
