@@ -11,8 +11,11 @@ import (
 	"github.com/liumingmin/goutils/log"
 )
 
-//displace=true，通常在集群环境下，踢掉在其他集群节点建立的连接，当前节点不需要主动调用
 func (c *Connection) KickServer(displace bool) {
+	if c.typ != CONN_KIND_CLIENT {
+		return
+	}
+
 	if displace {
 		c.setDisplaced()
 	}

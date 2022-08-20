@@ -148,11 +148,12 @@ func (h *Hub) sendDisplaceAndClose(ctx context.Context, old *Connection, newIp s
 }
 
 //init server
-func initServer(serverOpt ServerOption) {
+func initServer(serverOpt ServerOption) IHub {
 	RegisterDataMsgType(int32(P_S2C_s2c_err_displace), &P_DISPLACE{})
 
-	ClientConnHub = newShardHub(serverOpt.HubOpts)
-	safego.Go(ClientConnHub.run)
+	connHub := newShardHub(serverOpt.HubOpts)
+	safego.Go(connHub.run)
+	return connHub
 }
 
 func newShardHub(opts []HubOption) IHub {
@@ -172,7 +173,7 @@ func newShardHub(opts []HubOption) IHub {
 }
 
 //init client
-func initClient() {
+func initClient() IHub {
 	RegisterDataMsgType(int32(P_S2C_s2c_err_displace), &P_DISPLACE{})
 
 	RegisterHandler(int32(P_S2C_s2c_err_displace), func(ctx context.Context, conn *Connection, message *Message) error {
@@ -188,8 +189,9 @@ func initClient() {
 		return nil
 	})
 
-	ServerConnHub = newHub()
-	safego.Go(ServerConnHub.run)
+	connHub := newHub()
+	safego.Go(connHub.run)
+	return connHub
 }
 
 //shard hub

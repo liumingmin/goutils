@@ -21,8 +21,11 @@ var (
 	}
 )
 
-//displace=true，通常在集群环境下，踢掉在其他集群节点建立的连接，当前节点不需要主动调用
 func (c *Connection) KickClient(displace bool) {
+	if c.typ != CONN_KIND_SERVER {
+		return
+	}
+
 	if displace {
 		c.setDisplaced()
 	}

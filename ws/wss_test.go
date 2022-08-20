@@ -67,7 +67,12 @@ func TestWssRun(t *testing.T) {
 			CompressionLevelOption(2),
 			ConnEstablishHandlerOption(func(ctx context.Context, conn *Connection) {
 				log.Info(ctx, "server conn establish: %v", conn.Id())
-
+				//在集群环境下，需要检查connId是否已经连接集群，如有需踢掉在集群其他节点建立的连接，可通过redis pub sub，其他节点收到通知调用KickClient
+				//lastConnNodeId, lastConnMTs := GetClientTs(ctx, conn.Id())
+				//if lastConnNodeId != "" && lastConnNodeId != config.NodeId && lastConnMTs < util.UtcMTs() {
+				//	MqPublish(ctx, conn.Id())
+				//}
+				//RegisterConn() // save to redis
 				puller := createSrvPullerFunc(conn, pullMsgFromDB)
 				safego.Go(func() {
 					puller.PullSend()
