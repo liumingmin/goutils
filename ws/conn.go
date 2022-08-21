@@ -41,6 +41,7 @@ type Connection struct {
 	stopped        int32                 //flag connection stopped and will disconnect
 	writeStop      chan interface{}      //writeConnection loop stop
 	writeDone      chan interface{}      //writeConnection finished
+	readDone       chan interface{}      //readFromConnection finished
 	displaced      int32                 //连接被顶号
 	displaceIp     string                //displaced by ip(cluster use) 顶号IP(集群下使用)
 	sendBuffer     chan *Message         //发送缓冲区
@@ -134,6 +135,7 @@ func (c *Connection) Reset() {
 	c.stopped = 0
 	c.writeStop = nil
 	c.writeDone = nil
+	c.readDone = nil
 	c.displaced = 0
 	c.displaceIp = ""
 
@@ -164,11 +166,11 @@ func (c *Connection) IsStopped() bool {
 }
 
 func (c *Connection) setStop(ctx context.Context) {
-	atomic.CompareAndSwapInt32(&c.stopped, 0, 1)
-
-	if c.IsStopped() {
+	ok := atomic.CompareAndSwapInt32(&c.stopped, 0, 1)
+	if !ok {
 		return
 	}
+
 	close(c.writeStop)
 	c.closePull(ctx)
 }
@@ -301,6 +303,9 @@ func (c *Connection) handleClosed(ctx context.Context) {
 		return fmt.Sprintf("%v handleClosed panic, error is: %v", c.typ, e)
 	})
 
+	<-c.writeDone
+	<-c.readDone
+
 	defer putPoolSrvConnection(c)
 
 	defer func() {
@@ -406,6 +411,8 @@ func (c *Connection) writeToConnection() {
 func (c *Connection) readFromConnection() {
 	defer func() {
 		log.Debug(context.Background(), "%v read finish. id: %v, ptr: %p", c.typ, c.id, c)
+
+		close(c.readDone)
 		if c.typ == CONN_KIND_CLIENT {
 			c.KickServer()
 		} else if c.typ == CONN_KIND_SERVER {

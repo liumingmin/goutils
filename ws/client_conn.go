@@ -71,6 +71,7 @@ func DialConnect(ctx context.Context, sUrl string, header http.Header, opts ...C
 	connection.compressionLevel = 1
 	connection.writeStop = make(chan interface{})
 	connection.writeDone = make(chan interface{})
+	connection.readDone = make(chan interface{})
 
 	defaultNetParamsOption()(connection)
 

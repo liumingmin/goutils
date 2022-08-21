@@ -141,9 +141,7 @@ func (h *Hub) sendDisplace(ctx context.Context, old *Connection, newIp string) {
 		return
 	}
 
-	select {
-	case <-old.writeDone:
-	}
+	<-old.writeDone
 
 	message := GetPoolMessage(int32(P_S2C_s2c_err_displace))
 	dataMsg := message.DataMsg()
