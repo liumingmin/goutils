@@ -83,7 +83,7 @@ type ConnectionMeta struct {
 	Charset  int    //客户端使用的字符集
 
 	//inner set
-	ip string
+	clientIp string
 }
 
 func (m *ConnectionMeta) BuildConnId() string {
@@ -115,7 +115,7 @@ func (c *Connection) Charset() int {
 }
 
 func (c *Connection) ClientIp() string {
-	return c.meta.ip
+	return c.meta.clientIp
 }
 
 func (c *Connection) Reset() {

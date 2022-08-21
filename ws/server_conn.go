@@ -39,13 +39,13 @@ func (c *Connection) KickClient(displace bool) {
 }
 
 func AcceptGin(ctx *gin.Context, meta ConnectionMeta, opts ...ConnOption) (*Connection, error) {
-	meta.ip = ctx.ClientIP()
+	meta.clientIp = ctx.ClientIP()
 	return Accept(ctx, ctx.Writer, ctx.Request, meta, opts...)
 }
 
 func Accept(ctx context.Context, w http.ResponseWriter, r *http.Request, meta ConnectionMeta, opts ...ConnOption) (*Connection, error) {
-	if meta.ip == "" {
-		meta.ip = ip.RemoteAddress(r)
+	if meta.clientIp == "" {
+		meta.clientIp = ip.RemoteAddress(r)
 	}
 
 	connection := getPoolSrvConnection()
