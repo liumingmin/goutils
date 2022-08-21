@@ -231,10 +231,10 @@ func (c *Connection) SendPullNotify(ctx context.Context, pullChannelId int) (err
 
 func (c *Connection) closeWrite(ctx context.Context) {
 	defer log.Recover(ctx, func(e interface{}) string {
-		return fmt.Sprintf("Close writer panic, error is: %v", e)
+		return fmt.Sprintf("%v Close writer panic, error is: %v", c.typ, e)
 	})
 
-	close(c.writeDone)
+	defer close(c.writeDone)
 
 	size := len(c.sendBuffer)
 	for i := 0; i < size; i++ {
@@ -352,13 +352,13 @@ func (c *Connection) writeToConnection() {
 		ctx := utils.ContextWithTsTrace()
 		c.setStop(ctx)
 		c.closeWrite(ctx)
+		log.Debug(ctx, "%v write finish. id: %v, ptr: %p", c.typ, c.id, c)
 
 		if c.typ == CONN_KIND_CLIENT {
 			c.KickServer()
 		} else if c.typ == CONN_KIND_SERVER {
 			c.KickClient(false)
 		}
-		log.Debug(ctx, "%v write finish. id: %v, ptr: %p", c.typ, c.id, c)
 	}()
 
 	pingPayload := []byte{}
