@@ -137,6 +137,7 @@ func (c *Connection) Reset() {
 	c.displaced = 0
 	c.displaceIp = ""
 
+	c.sendBuffer = nil
 	c.pullChannelMap = nil
 	c.compressionLevel = 0
 	c.debug = false
@@ -163,11 +164,11 @@ func (c *Connection) IsStopped() bool {
 }
 
 func (c *Connection) setStop(ctx context.Context) {
-	ok := atomic.CompareAndSwapInt32(&c.stopped, 0, 1)
-	if !ok {
+	atomic.CompareAndSwapInt32(&c.stopped, 0, 1)
+
+	if c.IsStopped() {
 		return
 	}
-
 	close(c.writeStop)
 	c.closePull(ctx)
 }
@@ -242,17 +243,7 @@ func (c *Connection) closeWrite(ctx context.Context) {
 			return //buffer has closed
 		}
 	}
-
-	select {
-	case msg, isok := <-c.sendBuffer:
-		if isok {
-			putPoolMessage(msg)
-			close(c.sendBuffer)
-		}
-		return
-	default:
-		close(c.sendBuffer)
-	}
+	close(c.sendBuffer)
 }
 
 func (c *Connection) closePull(ctx context.Context) {
