@@ -55,7 +55,8 @@ func Accept(ctx context.Context, w http.ResponseWriter, r *http.Request, meta Co
 	connection.meta = meta
 	connection.upgrader = defaultUpgrader
 	connection.compressionLevel = 1
-	connection.writen = make(chan interface{})
+	connection.writeStop = make(chan interface{})
+	connection.writeDone = make(chan interface{})
 
 	defaultNetParamsOption()(connection)
 

@@ -61,14 +61,17 @@ func AutoReDialConnect(ctx context.Context, sUrl string, header http.Header, can
 }
 
 func DialConnect(ctx context.Context, sUrl string, header http.Header, opts ...ConnOption) (*Connection, error) {
-	connection := &Connection{
-		id:                strconv.FormatInt(time.Now().UnixNano(), 10),
-		typ:               CONN_KIND_CLIENT,
-		dialer:            websocket.DefaultDialer,
-		dialRetryNum:      3,
-		dialRetryInterval: time.Second,
-		compressionLevel:  1,
-	}
+	connection := &Connection{}
+
+	connection.id = strconv.FormatInt(time.Now().UnixNano(), 10) //default
+	connection.typ = CONN_KIND_CLIENT
+	connection.dialer = websocket.DefaultDialer
+	connection.dialRetryNum = 3
+	connection.dialRetryInterval = time.Second
+	connection.compressionLevel = 1
+	connection.writeStop = make(chan interface{})
+	connection.writeDone = make(chan interface{})
+
 	defaultNetParamsOption()(connection)
 
 	if len(opts) > 0 {

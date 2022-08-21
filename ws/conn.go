@@ -38,12 +38,13 @@ type Connection struct {
 	typ            connKind
 	meta           ConnectionMeta        //连接信息
 	conn           *websocket.Conn       //websocket connection
-	stopped        int32                 //连接断开
-	writen         chan interface{}      //writeConnection finished
+	stopped        int32                 //flag connection stopped and will disconnect
+	writeStop      chan interface{}      //writeConnection loop stop
+	writeDone      chan interface{}      //writeConnection finished
 	displaced      int32                 //连接被顶号
-	displaceIp     string                //顶号IP(集群下使用)
+	displaceIp     string                //displaced by ip(cluster use) 顶号IP(集群下使用)
 	sendBuffer     chan *Message         //发送缓冲区
-	pullChannelMap map[int]chan struct{} //pullSend消息通道
+	pullChannelMap map[int]chan struct{} //pullSendNotify 拉取通知通道
 	debug          bool                  //debug日志输出
 
 	connEstablishHandler  EventHandler
@@ -131,7 +132,8 @@ func (c *Connection) Reset() {
 	c.dialConnFailedHandler = nil
 	c.commonData = nil
 	c.stopped = 0
-	c.writen = nil
+	c.writeStop = nil
+	c.writeDone = nil
 	c.displaced = 0
 	c.displaceIp = ""
 
@@ -161,10 +163,13 @@ func (c *Connection) IsStopped() bool {
 }
 
 func (c *Connection) setStop(ctx context.Context) {
-	atomic.CompareAndSwapInt32(&c.stopped, 0, 1)
+	ok := atomic.CompareAndSwapInt32(&c.stopped, 0, 1)
+	if !ok {
+		return
+	}
 
-	c.closeWrite(ctx)
-	c.closeRead(ctx)
+	close(c.writeStop)
+	c.closePull(ctx)
 }
 
 func (c *Connection) setDisplaced() bool {
@@ -192,8 +197,8 @@ func (c *Connection) SendMsg(ctx context.Context, payload *Message, sc SendCallb
 	}
 
 	payload.sc = sc
-	c.sendBuffer <- payload
 
+	c.sendBuffer <- payload
 	return nil
 }
 
@@ -204,28 +209,29 @@ func (c *Connection) SendPullNotify(ctx context.Context, pullChannelId int) (err
 		return fmt.Sprintf("%v SendPullNotify err: %v", c.typ, e)
 	})
 
-	if !c.IsStopped() {
-		pullChannel, ok := c.pullChannelMap[pullChannelId]
-		if !ok {
-			return
-		}
-
-		select {
-		case pullChannel <- struct{}{}:
-		default:
-		}
+	if c.IsStopped() {
+		return errors.New("connect is stopped")
 	}
+
+	pullChannel, ok := c.pullChannelMap[pullChannelId]
+	if !ok {
+		return
+	}
+
+	select {
+	case pullChannel <- struct{}{}:
+	default:
+	}
+
 	return nil
 }
 
 func (c *Connection) closeWrite(ctx context.Context) {
-	if c.sendBuffer == nil {
-		return
-	}
-
 	defer log.Recover(ctx, func(e interface{}) string {
 		return fmt.Sprintf("Close writer panic, error is: %v", e)
 	})
+
+	close(c.writeDone)
 
 	size := len(c.sendBuffer)
 	for i := 0; i < size; i++ {
@@ -249,7 +255,7 @@ func (c *Connection) closeWrite(ctx context.Context) {
 	}
 }
 
-func (c *Connection) closeRead(ctx context.Context) {
+func (c *Connection) closePull(ctx context.Context) {
 	if c.pullChannelMap == nil {
 		return
 	}
@@ -345,18 +351,18 @@ func (c *Connection) closeSocket(ctx context.Context) error {
 func (c *Connection) writeToConnection() {
 	ticker := time.NewTicker(c.writeWait * 4 / 10) //PingPeriod
 	defer func() {
-		log.Debug(context.Background(), "%v write finish. id: %v, ptr: %p", c.typ, c.id, c)
 		ticker.Stop()
 
-		if c.writen != nil {
-			close(c.writen)
-		}
+		ctx := utils.ContextWithTsTrace()
+		c.setStop(ctx)
+		c.closeWrite(ctx)
 
 		if c.typ == CONN_KIND_CLIENT {
 			c.KickServer()
 		} else if c.typ == CONN_KIND_SERVER {
 			c.KickClient(false)
 		}
+		log.Debug(ctx, "%v write finish. id: %v, ptr: %p", c.typ, c.id, c)
 	}()
 
 	pingPayload := []byte{}
@@ -364,17 +370,27 @@ func (c *Connection) writeToConnection() {
 	for {
 		ctx := utils.ContextWithTsTrace()
 
+		if c.IsStopped() {
+			log.Debug(ctx, "%v connection stopped, finish write. id: %v, ptr: %p", c.typ, c.id, c)
+			return
+		}
+
 		select {
 		case message, ok := <-c.sendBuffer:
 			if !ok {
-				log.Debug(ctx, "%v send channel closed. id: %v", c.typ, c.id)
 				return
 			}
 
-			if e := c.sendMsgToWs(ctx, message); e != nil {
-				log.Warn(ctx, "%v send message failed. id: %v, error: %v", c.typ, c.id, e)
+			if err := c.sendMsgToWs(ctx, message); err != nil {
+				log.Warn(ctx, "%v send message failed. id: %v, error: %v", c.typ, c.id, err)
 				return
 			}
+
+			ok = c.batchSendMsgToWs(ctx)
+			if !ok {
+				return
+			}
+
 		case <-ticker.C:
 			if c.debug {
 				pingPayload = strconv.AppendInt([]byte(c.typ.String()), time.Now().UnixNano(), 10)
@@ -384,14 +400,14 @@ func (c *Connection) writeToConnection() {
 			if err := c.conn.WriteControl(websocket.PingMessage, pingPayload, time.Now().Add(c.writeWait)); err != nil {
 				if errNet, ok := err.(net.Error); (ok && errNet.Timeout()) || (ok && errNet.Temporary()) {
 					log.Debug(ctx, "%v send ping. timeout. id: %v, error: %v", c.typ, c.id, errNet)
-
-					time.Sleep(c.temporaryWait)
 					continue
 				}
 
 				log.Error(ctx, "%v send Ping failed. id: %v, error: %v", c.typ, c.id, c, err)
 				return
 			}
+		case <-c.writeStop:
+			return
 		}
 	}
 }
@@ -497,6 +513,21 @@ func (c *Connection) processMsg(ctx context.Context, msgData []byte) {
 	c.dispatch(ctx, message)
 }
 
+func (c *Connection) batchSendMsgToWs(ctx context.Context) bool {
+	size := len(c.sendBuffer)
+	for i := 0; i < size; i++ {
+		message, ok := <-c.sendBuffer
+		if !ok {
+			return false
+		}
+		if err := c.sendMsgToWs(ctx, message); err != nil {
+			log.Warn(ctx, "%v batchSendMsgToWs failed. id: %v, error: %v", c.typ, c.id, err)
+			return false
+		}
+	}
+	return true
+}
+
 func (c *Connection) sendMsgToWs(ctx context.Context, message *Message) error {
 	defer log.Recover(ctx, func(e interface{}) string {
 		return fmt.Sprintf("%v sendMsgToWs failed, error: %v", c.typ, e)
@@ -517,6 +548,10 @@ func (c *Connection) sendMsgToWs(ctx context.Context, message *Message) error {
 }
 
 func (c *Connection) doSendMsgToWs(ctx context.Context, data []byte) error {
+	defer log.Recover(ctx, func(e interface{}) string {
+		return fmt.Sprintf("%v doSendMsgToWs failed, error: %v", c.typ, e)
+	})
+
 	c.conn.SetWriteDeadline(time.Now().Add(c.writeWait))
 
 	w, err := c.conn.NextWriter(websocket.BinaryMessage)
