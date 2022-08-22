@@ -55,9 +55,6 @@ func Accept(ctx context.Context, w http.ResponseWriter, r *http.Request, meta Co
 	connection.meta = meta
 	connection.upgrader = defaultUpgrader
 	connection.compressionLevel = 1
-	connection.writeStop = make(chan interface{})
-	connection.writeDone = make(chan interface{})
-	connection.readDone = make(chan interface{})
 
 	defaultNetParamsOption()(connection)
 
@@ -78,10 +75,11 @@ func Accept(ctx context.Context, w http.ResponseWriter, r *http.Request, meta Co
 	connection.conn = conn
 	connection.conn.SetCompressionLevel(connection.compressionLevel)
 	connection.commonData = make(map[string]interface{})
+	connection.writeStop = make(chan interface{})
+	connection.writeDone = make(chan interface{})
+	connection.readDone = make(chan interface{})
 
-	if connection.pullChannelMap == nil {
-		connection.pullChannelMap = make(map[int]chan struct{})
-	}
+	connection.createPullChannelMap()
 	if connection.sendBuffer == nil {
 		SendBufferOption(8)(connection)
 	}

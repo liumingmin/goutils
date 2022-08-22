@@ -45,6 +45,7 @@ type Connection struct {
 	displaced      int32                 //连接被顶号
 	displaceIp     string                //displaced by ip(cluster use) 顶号IP(集群下使用)
 	sendBuffer     chan *Message         //发送缓冲区
+	pullChannelIds []int                 //to construct pullChannelMap
 	pullChannelMap map[int]chan struct{} //pullSendNotify 拉取通知通道
 	debug          bool                  //debug日志输出
 
@@ -140,6 +141,7 @@ func (c *Connection) Reset() {
 	c.displaceIp = ""
 
 	c.sendBuffer = nil
+	c.pullChannelIds = nil
 	c.pullChannelMap = nil
 	c.compressionLevel = 0
 	c.debug = false
@@ -154,6 +156,18 @@ func (c *Connection) Reset() {
 	c.dialer = nil
 	c.dialRetryNum = 0
 	c.dialRetryInterval = 0
+}
+
+func (c *Connection) createPullChannelMap() {
+	pullChannelMap := make(map[int]chan struct{})
+
+	if len(c.pullChannelIds) > 0 {
+		for _, channel := range c.pullChannelIds {
+			pullChannelMap[channel] = make(chan struct{}, 1)
+		}
+	}
+
+	c.pullChannelMap = pullChannelMap
 }
 
 func (c *Connection) GetPullChannel(pullChannelId int) (chan struct{}, bool) {
@@ -233,8 +247,6 @@ func (c *Connection) closeWrite(ctx context.Context) {
 	defer log.Recover(ctx, func(e interface{}) string {
 		return fmt.Sprintf("%v Close writer panic, error is: %v", c.typ, e)
 	})
-
-	defer close(c.writeDone)
 
 	size := len(c.sendBuffer)
 	for i := 0; i < size; i++ {
@@ -325,8 +337,6 @@ func (c *Connection) handleDialConnFailed(ctx context.Context) {
 		return fmt.Sprintf("%v handleDialConnFailed panic, error is: %v", c.typ, e)
 	})
 
-	c.setStop(ctx)
-
 	if c.dialConnFailedHandler != nil {
 		log.Debug(ctx, "%v dialConnFailedHandler. id: %v", c.typ, c.id)
 		c.dialConnFailedHandler(ctx, c)
@@ -352,6 +362,8 @@ func (c *Connection) writeToConnection() {
 		ctx := utils.ContextWithTsTrace()
 		c.setStop(ctx)
 		c.closeWrite(ctx)
+		close(c.writeDone)
+
 		log.Debug(ctx, "%v write finish. id: %v, ptr: %p", c.typ, c.id, c)
 
 		if c.typ == CONN_KIND_CLIENT {
@@ -410,9 +422,9 @@ func (c *Connection) writeToConnection() {
 
 func (c *Connection) readFromConnection() {
 	defer func() {
+		close(c.readDone)
 		log.Debug(context.Background(), "%v read finish. id: %v, ptr: %p", c.typ, c.id, c)
 
-		close(c.readDone)
 		if c.typ == CONN_KIND_CLIENT {
 			c.KickServer()
 		} else if c.typ == CONN_KIND_SERVER {

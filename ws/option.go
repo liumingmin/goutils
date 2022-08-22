@@ -129,14 +129,9 @@ func SrvUpgraderOption(upgrader *websocket.Upgrader) ConnOption {
 }
 
 //为每种消息拉取逻辑分别注册不同的通道
-func SrvPullChannelsOption(channels []int) ConnOption {
+func SrvPullChannelsOption(pullChannelIds []int) ConnOption {
 	return func(conn *Connection) {
-		pullChannelMap := make(map[int]chan struct{})
-		for _, channel := range channels {
-			pullChannelMap[channel] = make(chan struct{}, 1)
-		}
-
-		conn.pullChannelMap = pullChannelMap
+		conn.pullChannelIds = pullChannelIds
 	}
 }
 

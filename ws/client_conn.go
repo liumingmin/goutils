@@ -69,9 +69,6 @@ func DialConnect(ctx context.Context, sUrl string, header http.Header, opts ...C
 	connection.dialRetryNum = 3
 	connection.dialRetryInterval = time.Second
 	connection.compressionLevel = 1
-	connection.writeStop = make(chan interface{})
-	connection.writeDone = make(chan interface{})
-	connection.readDone = make(chan interface{})
 
 	defaultNetParamsOption()(connection)
 
@@ -112,10 +109,11 @@ func DialConnect(ctx context.Context, sUrl string, header http.Header, opts ...C
 	connection.conn = conn
 	connection.conn.SetCompressionLevel(connection.compressionLevel)
 	connection.commonData = make(map[string]interface{})
+	connection.writeStop = make(chan interface{})
+	connection.writeDone = make(chan interface{})
+	connection.readDone = make(chan interface{})
 
-	if connection.pullChannelMap == nil {
-		connection.pullChannelMap = make(map[int]chan struct{})
-	}
+	connection.createPullChannelMap()
 	if connection.sendBuffer == nil {
 		SendBufferOption(8)(connection)
 	}
