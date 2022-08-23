@@ -120,8 +120,6 @@ func (c *Connection) ClientIp() string {
 }
 
 func (c *Connection) Reset() {
-	c.setStop(context.Background())
-
 	c.id = ""
 	c.meta = ConnectionMeta{}
 	c.conn = nil
