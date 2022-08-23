@@ -91,7 +91,9 @@ func (h *Hub) processRegister(conn *Connection) {
 		h.connections.Delete(old.id)
 		old.setStop(ctx)
 
-		old.handleClosing(ctx)
+		if old.connClosingHandler != nil {
+			old.connClosingHandler(ctx, old)
+		}
 		safego.Go(func() {
 			defer old.closeSocket(ctx)
 			h.sendDisplace(ctx, old, conn.ClientIp())
@@ -104,7 +106,9 @@ func (h *Hub) processRegister(conn *Connection) {
 
 	h.connections.Store(conn.id, conn)
 
-	conn.handleEstablish(ctx)
+	if conn.connEstablishHandler != nil {
+		conn.connEstablishHandler(ctx, conn)
+	}
 	log.Debug(ctx, "%v Register ok. id: %v", conn.typ, conn.id)
 
 	safego.Go(conn.readFromConnection)
@@ -123,7 +127,9 @@ func (h *Hub) processUnregister(conn *Connection) {
 		h.connections.Delete(conn.id)
 		conn.setStop(ctx)
 
-		conn.handleClosing(ctx)
+		if conn.connClosingHandler != nil {
+			conn.connClosingHandler(ctx, conn)
+		}
 		safego.Go(func() {
 			defer conn.closeSocket(ctx)
 			if conn.IsDisplaced() {

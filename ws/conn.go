@@ -284,32 +284,6 @@ func (c *Connection) closePull(ctx context.Context) {
 	}
 }
 
-func (c *Connection) handleEstablish(ctx context.Context) {
-	if c.connEstablishHandler == nil {
-		return
-	}
-
-	defer log.Recover(ctx, func(e interface{}) string {
-		return fmt.Sprintf("%v connEstablishHandler panic, error is: %v", c.typ, e)
-	})
-
-	log.Debug(ctx, "%v connEstablishHandler. id: %v", c.typ, c.id)
-	c.connEstablishHandler(ctx, c)
-}
-
-func (c *Connection) handleClosing(ctx context.Context) {
-	if c.connClosingHandler == nil {
-		return
-	}
-
-	defer log.Recover(ctx, func(e interface{}) string {
-		return fmt.Sprintf("%v connClosingHandler panic, error is: %v", c.typ, e)
-	})
-
-	log.Debug(ctx, "%v connClosingHandler. id: %v", c.typ, c.id)
-	c.connClosingHandler(ctx, c)
-}
-
 func (c *Connection) handleClosed(ctx context.Context) {
 	defer log.Recover(ctx, func(e interface{}) string {
 		return fmt.Sprintf("%v handleClosed panic, error is: %v", c.typ, e)
@@ -320,26 +294,12 @@ func (c *Connection) handleClosed(ctx context.Context) {
 
 	defer putPoolSrvConnection(c)
 
-	defer func() {
-		if c.connAutoReconHandler != nil {
-			c.connAutoReconHandler(ctx, c)
-		}
-	}()
-
 	if c.connClosedHandler != nil {
-		log.Debug(ctx, "%v connClosedHandler. id: %v", c.typ, c.id)
 		c.connClosedHandler(ctx, c)
 	}
-}
 
-func (c *Connection) handleDialConnFailed(ctx context.Context) {
-	defer log.Recover(ctx, func(e interface{}) string {
-		return fmt.Sprintf("%v handleDialConnFailed panic, error is: %v", c.typ, e)
-	})
-
-	if c.dialConnFailedHandler != nil {
-		log.Debug(ctx, "%v dialConnFailedHandler. id: %v", c.typ, c.id)
-		c.dialConnFailedHandler(ctx, c)
+	if c.connAutoReconHandler != nil {
+		c.connAutoReconHandler(ctx, c)
 	}
 }
 

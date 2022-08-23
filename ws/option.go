@@ -3,6 +3,7 @@ package ws
 import (
 	"context"
 	"crypto/tls"
+	"fmt"
 	"net/http"
 	"net/url"
 	"time"
@@ -28,31 +29,71 @@ func DebugOption(debug bool) ConnOption {
 // callback
 func ConnEstablishHandlerOption(handler EventHandler) ConnOption {
 	return func(conn *Connection) {
-		conn.connEstablishHandler = handler
+		if handler != nil {
+			conn.connEstablishHandler = func(ctx context.Context, c *Connection) {
+				defer log.Recover(ctx, func(e interface{}) string {
+					return fmt.Sprintf("%v connEstablishHandler panic, error is: %v", c.typ, e)
+				})
+
+				handler(ctx, c)
+			}
+		}
 	}
 }
 
 func ConnClosingHandlerOption(handler EventHandler) ConnOption {
 	return func(conn *Connection) {
-		conn.connClosingHandler = handler
+		if handler != nil {
+			conn.connClosingHandler = func(ctx context.Context, c *Connection) {
+				defer log.Recover(ctx, func(e interface{}) string {
+					return fmt.Sprintf("%v connClosingHandler panic, error is: %v", c.typ, e)
+				})
+
+				handler(ctx, c)
+			}
+		}
 	}
 }
 
 func ConnClosedHandlerOption(handler EventHandler) ConnOption {
 	return func(conn *Connection) {
-		conn.connClosedHandler = handler
+		if handler != nil {
+			conn.connClosedHandler = func(ctx context.Context, c *Connection) {
+				defer log.Recover(ctx, func(e interface{}) string {
+					return fmt.Sprintf("%v connClosedHandler panic, error is: %v", c.typ, e)
+				})
+
+				handler(ctx, c)
+			}
+		}
 	}
 }
 
 func RecvPingHandlerOption(handler EventHandler) ConnOption {
 	return func(conn *Connection) {
-		conn.recvPingHandler = handler
+		if handler != nil {
+			conn.recvPingHandler = func(ctx context.Context, c *Connection) {
+				defer log.Recover(ctx, func(e interface{}) string {
+					return fmt.Sprintf("%v recvPingHandler panic, error is: %v", c.typ, e)
+				})
+
+				handler(ctx, c)
+			}
+		}
 	}
 }
 
 func RecvPongHandlerOption(handler EventHandler) ConnOption {
 	return func(conn *Connection) {
-		conn.recvPongHandler = handler
+		if handler != nil {
+			conn.recvPongHandler = func(ctx context.Context, c *Connection) {
+				defer log.Recover(ctx, func(e interface{}) string {
+					return fmt.Sprintf("%v recvPongHandler panic, error is: %v", c.typ, e)
+				})
+
+				handler(ctx, c)
+			}
+		}
 	}
 }
 
@@ -195,13 +236,29 @@ func ClientDialRetryOption(retryNum int, retryInterval time.Duration) ConnOption
 
 func ClientDialConnFailedHandlerOption(handler EventHandler) ConnOption {
 	return func(conn *Connection) {
-		conn.dialConnFailedHandler = handler
+		if handler != nil {
+			conn.dialConnFailedHandler = func(ctx context.Context, c *Connection) {
+				defer log.Recover(ctx, func(e interface{}) string {
+					return fmt.Sprintf("%v dialConnFailedHandler panic, error is: %v", c.typ, e)
+				})
+
+				handler(ctx, c)
+			}
+		}
 	}
 }
 
 func ClientAutoReconHandlerOption(handler EventHandler) ConnOption {
 	return func(conn *Connection) {
-		conn.connAutoReconHandler = handler
+		if handler != nil {
+			conn.connAutoReconHandler = func(ctx context.Context, c *Connection) {
+				defer log.Recover(ctx, func(e interface{}) string {
+					return fmt.Sprintf("%v connAutoReconHandler panic, error is: %v", c.typ, e)
+				})
+
+				handler(ctx, c)
+			}
+		}
 	}
 }
 
