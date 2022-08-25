@@ -1,6 +1,7 @@
 package ws
 
 import (
+	"reflect"
 	"sync"
 )
 
@@ -14,6 +15,7 @@ var (
 	}
 
 	dataMsgPools = make(map[int32]*sync.Pool)
+	dataMsgTypes = make(map[int32]reflect.Type)
 
 	srvConnectionPool = sync.Pool{
 		New: func() interface{} {
@@ -51,6 +53,14 @@ func getPoolDataMsg(protocolId int32) IDataMessage {
 		return nil
 	}
 	return pool.Get().(IDataMessage)
+}
+
+func getDataMsg(protocolId int32) IDataMessage {
+	typ, ok := dataMsgTypes[protocolId]
+	if !ok {
+		return nil
+	}
+	return reflect.New(typ).Interface().(IDataMessage)
 }
 
 func putPoolDataMsg(protocolId int32, dataMsg IDataMessage) {

@@ -116,4 +116,5 @@ func RegisterDataMsgType(protocolId int32, pMsg IDataMessage) {
 			return reflect.New(typ).Interface()
 		},
 	}
+	dataMsgTypes[protocolId] = typ
 }

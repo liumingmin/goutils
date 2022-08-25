@@ -14,6 +14,26 @@ import (
 	"github.com/liumingmin/goutils/log"
 )
 
+func TestMessage(t *testing.T) {
+	InitClient()
+
+	//poolMsg := GetPoolMessage(int32(P_S2C_s2c_err_displace))
+	//displace := poolMsg.DataMsg().(*P_DISPLACE)
+	//displace.Ts = time.Now().Unix()
+	//displace.OldIp = []byte("1")
+	//displace.NewIp = []byte("2")
+	//bs, _ := poolMsg.Marshal()
+	//for _, b := range bs {
+	//	fmt.Print(fmt.Sprintf("%v,", b))
+	//}
+
+	m := NewMessage()
+	err := m.Unmarshal([]byte{8, 255, 255, 255, 255, 255, 255, 255, 255, 255, 1, 18, 12, 10, 1, 49, 18, 1, 50, 24, 143, 186, 156, 152, 6})
+	t.Log(err)
+	t.Log(m.PMsg())
+	t.Log(m.DataMsg())
+}
+
 func TestWssRun(t *testing.T) {
 	//InitServer()
 	InitServerWithOpt(ServerOption{[]HubOption{HubShardOption(4)}}) //server invoke 服务端调用

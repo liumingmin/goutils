@@ -1,14 +1,15 @@
 package safego
 
 import (
-	"os"
-	"fmt"
+	"context"
+
+	"github.com/liumingmin/goutils/log"
 )
 
 type Handler func(err interface{})
 
 var DefaultHandler = func(err interface{}) {
-	fmt.Fprintf(os.Stderr, "recovered: %s\n%s", err, CallStack(3))
+	log.ErrorStack(context.Background(), err)
 }
 
 func Go(f func(), handler ...Handler) {
@@ -35,7 +36,7 @@ func GoWithArgs(f func(args ...interface{}), args ...interface{}) {
 
 // GoWithHandler will run function f(args... interface{}) in a go routines.
 // And handler the panic if occur with given handler.
-func GoWithHandler(f func(args... interface{}), handler Handler, args... interface{}) {
+func GoWithHandler(f func(args ...interface{}), handler Handler, args ...interface{}) {
 	go func() {
 		defer func() {
 			if r := recover(); r != nil {

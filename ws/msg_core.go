@@ -40,7 +40,11 @@ func (t *Message) Unmarshal(payload []byte) error {
 		return nil
 	}
 
-	t.dataMsg = getPoolDataMsg(t.pMsg.ProtocolId)
+	if t.isPool {
+		t.dataMsg = getPoolDataMsg(t.pMsg.ProtocolId)
+	} else {
+		t.dataMsg = getDataMsg(t.pMsg.ProtocolId)
+	}
 	if t.dataMsg == nil {
 		return nil
 	}
