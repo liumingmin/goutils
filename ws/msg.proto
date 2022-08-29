@@ -18,9 +18,9 @@ message P_DISPLACE
 }
 
 //基础协议
-enum P_S2C
+enum P_BASE
 {
-    s2c_connected           = 0;                            //连接成功建立
+    raw_bytes_msg           = 0;                            //raw bytes
     s2c_err_displace        = -1;                           //被顶号
 }
 

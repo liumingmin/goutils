@@ -8,6 +8,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/golang/protobuf/proto"
+
 	"github.com/liumingmin/goutils/utils/safego"
 
 	"github.com/gin-gonic/gin"
@@ -57,6 +59,13 @@ func TestWssRun(t *testing.T) {
 		return nil
 	})
 
+	rawMsg := &P_MESSAGE{}
+	rawMsg.ProtocolId = S2C_RESP
+	rawMsg.Data = []byte("common msg")
+
+	commonMsg := NewMessage()
+	commonMsg.PMsg().Data, _ = proto.Marshal(rawMsg)
+
 	//server start
 	var createSrvPullerFunc = func(conn *Connection, pullChannelId int) Puller {
 		return NewDefaultPuller(conn, pullChannelId, func(ctx context.Context, pullConn *Connection) {
@@ -70,6 +79,8 @@ func TestWssRun(t *testing.T) {
 			packet := GetPoolMessage(S2C_RESP)
 			packet.PMsg().Data = []byte("pull msg from db")
 			pullConn.SendMsg(ctx, packet, nil)
+
+			pullConn.SendMsg(ctx, commonMsg, nil)
 		})
 	}
 

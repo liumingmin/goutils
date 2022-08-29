@@ -51,7 +51,7 @@ type IConnection interface {
 	SendMsg(ctx context.Context, payload IMessage, sc SendCallback) error
 
 	KickClient(displace bool) //server side invoke
-	KickServer(displace bool) //client side invoke
+	KickServer()              //client side invoke
 
 	GetPullChannel(pullChannelId int) (chan struct{}, bool)
 	SendPullNotify(ctx context.Context, pullChannelId int) error

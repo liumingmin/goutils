@@ -503,6 +503,12 @@ func (c *Connection) sendMsgToWs(ctx context.Context, message *Message) error {
 
 	defer putPoolMessage(message)
 
+	if message.PMsg().ProtocolId == int32(P_BASE_raw_bytes_msg) {
+		err := c.doSendMsgToWs(ctx, message.PMsg().Data)
+		c.callback(ctx, message.sc, err)
+		return err
+	}
+
 	msgData, err := message.Marshal()
 	if err != nil {
 		log.Error(ctx, "%v Marshal message to pb failed. error: %v", c.typ, err)
