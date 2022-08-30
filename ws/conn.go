@@ -439,10 +439,18 @@ func (c *Connection) readFromConnection() {
 }
 
 func (c *Connection) readMsgFromWs() {
+	defer log.Recover(context.Background(), func(e interface{}) string {
+		return fmt.Sprintf("%v readMsgFromWs failed, error: %v", c.typ, e)
+	})
+
 	failedRetry := 0
 
 	for {
 		ctx := utils.ContextWithTsTrace()
+		if c.IsStopped() {
+			log.Info(ctx, "%v connect is stopped. id: %v, ptr: %p", c.typ, c.id, c)
+			return
+		}
 
 		c.conn.SetReadDeadline(time.Now().Add(c.readWait))
 		t, data, err := c.conn.ReadMessage()
@@ -457,19 +465,19 @@ func (c *Connection) readMsgFromWs() {
 					continue
 				}
 
-				log.Debug(ctx, "%v Read failure and reach max times. id: %v, ptr: %p messageType: %v, error: %v",
+				log.Info(ctx, "%v Read failure and reach max times. id: %v, ptr: %p messageType: %v, error: %v",
 					c.typ, c.id, c, t, errNet)
-				break
+				return
 			}
 
 			if _, ok := err.(*websocket.CloseError); ok || c.IsStopped() {
-				log.Debug(ctx, "%v Conn closed or Read failed. id: %v, ptr: %p, msgType: %v, err: %v",
+				log.Debug(ctx, "%v Conn closed. id: %v, ptr: %p, msgType: %v, err: %v",
 					c.typ, c.id, c, t, err)
 			} else {
-				log.Warn(ctx, "%v Conn closed or Read failed. id: %v, ptr: %p, msgType: %v, err: %v",
+				log.Warn(ctx, "%v Read failed. id: %v, ptr: %p, msgType: %v, err: %v",
 					c.typ, c.id, c, t, err)
 			}
-			break
+			return
 		}
 
 		safego.Go(func() {
