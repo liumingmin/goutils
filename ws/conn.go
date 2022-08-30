@@ -309,7 +309,15 @@ func (c *Connection) closeSocket(ctx context.Context) error {
 	defer c.handleClosed(ctx)
 
 	c.conn.WriteControl(websocket.CloseMessage, []byte{}, time.Now().Add(c.writeWait))
-	return c.conn.Close()
+
+	var err error
+	for i := 0; i < 3; i++ {
+		err = c.conn.Close()
+		if err == nil {
+			return nil
+		}
+	}
+	return err
 }
 
 func (c *Connection) writeToConnection() {
@@ -394,6 +402,11 @@ func (c *Connection) readFromConnection() {
 
 	pingHandler := c.conn.PingHandler()
 	c.conn.SetPingHandler(func(message string) error {
+		if c.IsStopped() {
+			log.Info(context.Background(), "%v recv ping. pingId: %v, ptr: %p, connect is stopped", c.typ, message, c)
+			return nil
+		}
+
 		c.conn.SetReadDeadline(time.Now().Add(c.readWait))
 		err := pingHandler(message)
 
@@ -407,6 +420,11 @@ func (c *Connection) readFromConnection() {
 		return err
 	})
 	c.conn.SetPongHandler(func(message string) error {
+		if c.IsStopped() {
+			log.Info(context.Background(), "%v recv pong. pingId: %v, ptr: %p, connect is stopped", c.typ, message, c)
+			return nil
+		}
+
 		c.conn.SetReadDeadline(time.Now().Add(c.readWait))
 		if c.recvPongHandler != nil {
 			c.recvPongHandler(context.Background(), c)
