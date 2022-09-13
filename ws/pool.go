@@ -73,14 +73,14 @@ func putPoolDataMsg(protocolId int32, dataMsg IDataMessage) {
 	pool.Put(dataMsg)
 }
 
-func getPoolSrvConnection() *Connection {
+func getPoolConnection() *Connection {
 	conn := srvConnectionPool.Get().(*Connection)
-	conn.typ = CONN_KIND_SERVER
+	conn.isPool = true
 	return conn
 }
 
-func putPoolSrvConnection(conn *Connection) {
-	if conn.typ != CONN_KIND_SERVER {
+func putPoolConnection(conn *Connection) {
+	if !conn.isPool {
 		return
 	}
 

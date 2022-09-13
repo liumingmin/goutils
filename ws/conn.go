@@ -48,6 +48,7 @@ type Connection struct {
 	pullChannelIds []int                 //to construct pullChannelMap
 	pullChannelMap map[int]chan struct{} //pullSendNotify 拉取通知通道
 	debug          bool                  //debug日志输出
+	isPool         bool                  //poolObject 池对象
 
 	connEstablishHandler  EventHandler
 	connClosingHandler    EventHandler
@@ -143,6 +144,7 @@ func (c *Connection) Reset() {
 	c.pullChannelMap = nil
 	c.compressionLevel = 0
 	c.debug = false
+	c.isPool = false
 
 	c.maxFailureRetry = 0
 	c.readWait = 0
@@ -290,7 +292,7 @@ func (c *Connection) handleClosed(ctx context.Context) {
 	<-c.writeDone
 	<-c.readDone
 
-	defer putPoolSrvConnection(c)
+	defer putPoolConnection(c)
 
 	if c.connClosedHandler != nil {
 		c.connClosedHandler(ctx, c)

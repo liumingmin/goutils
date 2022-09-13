@@ -48,7 +48,7 @@ func Accept(ctx context.Context, w http.ResponseWriter, r *http.Request, meta Co
 		meta.clientIp = ip.RemoteAddress(r)
 	}
 
-	connection := getPoolSrvConnection()
+	connection := getPoolConnection()
 
 	connection.id = meta.BuildConnId()
 	connection.typ = CONN_KIND_SERVER
@@ -66,7 +66,7 @@ func Accept(ctx context.Context, w http.ResponseWriter, r *http.Request, meta Co
 
 	conn, err := connection.upgrader.Upgrade(w, r, nil)
 	if err != nil {
-		putPoolSrvConnection(connection)
+		putPoolConnection(connection)
 		log.Warn(ctx, "%v connect failed. Header: %v, error: %v", connection.typ, r.Header, err)
 		return nil, err
 	}
