@@ -50,14 +50,14 @@ func (c *defaultPuller) PullSend() {
 
 	for {
 		if c.conn.IsStopped() {
-			log.Debug(ctx, "agent is stopped: %v", c.conn.Id())
+			log.Info(ctx, "agent is stopped: %v", c.conn.Id())
 			return
 		}
 
 		c.pullFunc(ctx, c.conn)
 
 		if _, ok := <-pullChannel; !ok {
-			log.Debug(ctx, "Connect stop pull channel. connId: %v, channelId: %v", c.conn.Id(), c.pullChannelId)
+			log.Info(ctx, "Connect stop pull channel. connId: %v, channelId: %v", c.conn.Id(), c.pullChannelId)
 			return
 		}
 

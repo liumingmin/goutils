@@ -332,7 +332,7 @@ func (c *Connection) writeToConnection() {
 		c.closeWrite(ctx)
 		close(c.writeDone)
 
-		log.Debug(ctx, "%v write finish. id: %v, ptr: %p", c.typ, c.id, c)
+		log.Info(ctx, "%v write finish. id: %v, ptr: %p", c.typ, c.id, c)
 
 		if c.typ == CONN_KIND_CLIENT {
 			c.KickServer()
@@ -347,7 +347,7 @@ func (c *Connection) writeToConnection() {
 		ctx := utils.ContextWithTsTrace()
 
 		if c.IsStopped() {
-			log.Debug(ctx, "%v connection stopped, finish write. id: %v, ptr: %p", c.typ, c.id, c)
+			log.Info(ctx, "%v connection stopped, finish write. id: %v, ptr: %p", c.typ, c.id, c)
 			return
 		}
 
@@ -379,7 +379,7 @@ func (c *Connection) writeToConnection() {
 					continue
 				}
 
-				log.Error(ctx, "%v send Ping failed. id: %v, error: %v", c.typ, c.id, c, err)
+				log.Warn(ctx, "%v send Ping failed. id: %v, error: %v", c.typ, c.id, c, err)
 				return
 			}
 		case <-c.writeStop:
@@ -391,7 +391,7 @@ func (c *Connection) writeToConnection() {
 func (c *Connection) readFromConnection() {
 	defer func() {
 		close(c.readDone)
-		log.Debug(context.Background(), "%v read finish. id: %v, ptr: %p", c.typ, c.id, c)
+		log.Info(context.Background(), "%v read finish. id: %v, ptr: %p", c.typ, c.id, c)
 
 		if c.typ == CONN_KIND_CLIENT {
 			c.KickServer()
@@ -473,7 +473,7 @@ func (c *Connection) readMsgFromWs() {
 			}
 
 			if _, ok := err.(*websocket.CloseError); ok || c.IsStopped() {
-				log.Debug(ctx, "%v Conn closed. id: %v, ptr: %p, msgType: %v, err: %v",
+				log.Info(ctx, "%v Conn closed. id: %v, ptr: %p, msgType: %v, err: %v",
 					c.typ, c.id, c, messageType, err)
 			} else {
 				log.Warn(ctx, "%v Read failed. id: %v, ptr: %p, msgType: %v, err: %v",
@@ -593,7 +593,7 @@ func (c *Connection) doSendMsgToWs(ctx context.Context, data []byte) error {
 		}
 
 		if _, ok := err.(*websocket.CloseError); ok || c.IsStopped() {
-			log.Debug(ctx, "%v Websocket close error. client id: %v, ptr: %p, error: %v",
+			log.Info(ctx, "%v Websocket close error. client id: %v, ptr: %p, error: %v",
 				c.typ, c.id, c, err)
 		} else {
 			log.Warn(ctx, "%v Writer close failed. id: %v, ptr: %p, error: %v", c.typ, c.id, c, err)
@@ -613,7 +613,7 @@ func (c *Connection) dispatch(ctx context.Context, msg *Message) error {
 	if h, exist := msgHandlers[msg.pMsg.ProtocolId]; exist {
 		return h(ctx, c, msg)
 	} else {
-		log.Warn(ctx, "%v No handler. CMD: %d, Body len: %v", c.typ, msg.pMsg.ProtocolId, len(msg.pMsg.Data))
+		log.Debug(ctx, "%v No handler. CMD: %d, Body len: %v", c.typ, msg.pMsg.ProtocolId, len(msg.pMsg.Data))
 		return errors.New("no handler")
 	}
 }
