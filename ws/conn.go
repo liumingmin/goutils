@@ -455,11 +455,11 @@ func (c *Connection) readMsgFromWs() {
 		}
 
 		c.conn.SetReadDeadline(time.Now().Add(c.readWait))
-		t, data, err := c.conn.ReadMessage()
+		messageType, data, err := c.conn.ReadMessage()
 		if err != nil {
 			if errNet, ok := err.(net.Error); (ok && errNet.Timeout()) || (ok && errNet.Temporary()) {
 				log.Debug(ctx, "%v Read failure. retryTimes: %v, id: %v, ptr: %p messageType: %v, error: %v",
-					c.typ, failedRetry, c.id, c, t, errNet)
+					c.typ, failedRetry, c.id, c, messageType, errNet)
 
 				failedRetry++
 				if failedRetry < c.maxFailureRetry {
@@ -468,23 +468,25 @@ func (c *Connection) readMsgFromWs() {
 				}
 
 				log.Info(ctx, "%v Read failure and reach max times. id: %v, ptr: %p messageType: %v, error: %v",
-					c.typ, c.id, c, t, errNet)
+					c.typ, c.id, c, messageType, errNet)
 				return
 			}
 
 			if _, ok := err.(*websocket.CloseError); ok || c.IsStopped() {
 				log.Debug(ctx, "%v Conn closed. id: %v, ptr: %p, msgType: %v, err: %v",
-					c.typ, c.id, c, t, err)
+					c.typ, c.id, c, messageType, err)
 			} else {
 				log.Warn(ctx, "%v Read failed. id: %v, ptr: %p, msgType: %v, err: %v",
-					c.typ, c.id, c, t, err)
+					c.typ, c.id, c, messageType, err)
 			}
 			return
 		}
 
-		safego.Go(func() {
-			c.processMsg(ctx, data)
-		})
+		if messageType == websocket.BinaryMessage && len(data) > 0 {
+			safego.Go(func() {
+				c.processMsg(ctx, data)
+			})
+		}
 	}
 }
 
