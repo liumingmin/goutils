@@ -17,7 +17,7 @@ import (
 )
 
 var (
-	msgHandlers = make(map[int32]MsgHandler)
+	msgHandlers sync.Map // map[int32]MsgHandler
 )
 
 type connKind int8
@@ -610,8 +610,9 @@ func (c *Connection) callback(ctx context.Context, sc SendCallback, e error) {
 
 // 消息分发器，分发器会根据消息的协议ID查找对应的Handler。
 func (c *Connection) dispatch(ctx context.Context, msg *Message) error {
-	if h, exist := msgHandlers[msg.pMsg.ProtocolId]; exist {
-		return h(ctx, c, msg)
+	handler, exist := msgHandlers.Load(msg.pMsg.ProtocolId)
+	if exist && handler != nil {
+		return (handler.(MsgHandler))(ctx, c, msg)
 	} else {
 		log.Debug(ctx, "%v No handler. CMD: %d, Body len: %v", c.typ, msg.pMsg.ProtocolId, len(msg.pMsg.Data))
 		return errors.New("no handler")

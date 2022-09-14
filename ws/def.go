@@ -101,7 +101,7 @@ type EventHandler func(context.Context, *Connection)
 
 // 注册消息处理器
 func RegisterHandler(protocolId int32, h MsgHandler) {
-	msgHandlers[protocolId] = h
+	msgHandlers.Store(protocolId, h)
 }
 
 // 注册数据消息类型[P_MESSAGE.Data],功能可选，当需要使用框架提供的池功能时使用
