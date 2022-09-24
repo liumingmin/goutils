@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"net"
-	"strconv"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -369,7 +368,7 @@ func (c *Connection) writeToConnection() {
 
 		case <-ticker.C:
 			if c.debug {
-				pingPayload = strconv.AppendInt([]byte(c.typ.String()), time.Now().UnixNano(), 10)
+				pingPayload = []byte(c.typ.String() + utils.NanoTsBase36() + utils.RandBase36())
 				log.Debug(ctx, "%v send ping. pingId: %v, ptr: %p", c.typ, string(pingPayload), c)
 			}
 

@@ -1,20 +1,17 @@
 package utils
 
 import (
-	"crypto/md5"
-	"encoding/hex"
-	"strings"
-
-	"github.com/google/uuid"
+	"math/rand"
+	"strconv"
+	"time"
 )
 
-func NewUUID() string {
-	return strings.Replace(uuid.New().String(), "-", "", -1)
+const tsBase36 = 36
+
+func NanoTsBase36() string {
+	return strconv.FormatInt(time.Now().UnixNano(), tsBase36)
 }
 
-func MD5(origStr string) string {
-	md5Ctx := md5.New()
-	md5Ctx.Write([]byte(origStr))
-	cipherStr := md5Ctx.Sum(nil)
-	return hex.EncodeToString(cipherStr)
+func RandBase36() string {
+	return strconv.FormatInt(rand.Int63n(tsBase36), tsBase36)
 }
