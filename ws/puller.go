@@ -57,7 +57,7 @@ func (c *defaultPuller) PullSend() {
 		c.pullFunc(ctx, c.conn)
 
 		if _, ok := <-pullChannel; !ok {
-			log.Info(ctx, "Connect stop pull channel. connId: %v, channelId: %v", c.conn.Id(), c.pullChannelId)
+			log.Debug(ctx, "Connect stop pull channel. connId: %v, channelId: %v", c.conn.Id(), c.pullChannelId)
 			return
 		}
 
