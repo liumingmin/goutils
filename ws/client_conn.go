@@ -11,6 +11,13 @@ import (
 	"github.com/liumingmin/goutils/log"
 )
 
+var defaultDialer = &websocket.Dialer{
+	Proxy:            http.ProxyFromEnvironment,
+	HandshakeTimeout: 10 * time.Second,
+	ReadBufferSize:   4096,
+	WriteBufferSize:  4096,
+}
+
 func (c *Connection) KickServer() {
 	if c.typ != CONN_KIND_CLIENT {
 		return
@@ -65,7 +72,7 @@ func DialConnect(ctx context.Context, sUrl string, header http.Header, opts ...C
 
 	connection.id = strconv.FormatInt(time.Now().UnixNano(), 10) //default
 	connection.typ = CONN_KIND_CLIENT
-	connection.dialer = websocket.DefaultDialer
+	connection.dialer = defaultDialer
 	connection.dialRetryNum = 3
 	connection.dialRetryInterval = time.Second
 	connection.compressionLevel = 1
