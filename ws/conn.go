@@ -471,7 +471,7 @@ func (c *Connection) readMsgFromWs() {
 				return
 			}
 
-			if websocket.IsCloseError(err, websocket.CloseNormalClosure, websocket.CloseNoStatusReceived) {
+			if websocket.IsCloseError(err, websocket.CloseNormalClosure, websocket.CloseNoStatusReceived) || c.IsStopped() {
 				log.Debug(ctx, "%v Conn closed. id: %v, ptr: %p, msgType: %v, err: %v",
 					c.typ, c.id, c, messageType, err)
 			} else {
@@ -591,7 +591,7 @@ func (c *Connection) doSendMsgToWs(ctx context.Context, data []byte) error {
 			return errors.New("writer close failed")
 		}
 
-		if websocket.IsCloseError(err, websocket.CloseNormalClosure, websocket.CloseNoStatusReceived) {
+		if websocket.IsCloseError(err, websocket.CloseNormalClosure, websocket.CloseNoStatusReceived) || c.IsStopped() {
 			log.Debug(ctx, "%v Websocket close error. client id: %v, ptr: %p, error: %v",
 				c.typ, c.id, c, err)
 		} else {
