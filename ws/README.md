@@ -11,9 +11,11 @@ cd ws
 protoc --js_out=import_style=commonjs,binary:js  msg.proto
 
 cd js
-npm i -g google-protobuf
+npm i google-protobuf
 npm i -g browserify
+npm i -g minifier
 browserify msg_pb.js <custom_pb.js> -o  msg_pb_dist.js
+minify msg_pb_dist.js   //msg_pb_dist.min.js
 ```
 
 https://www.npmjs.com/package/google-protobuf
