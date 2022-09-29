@@ -3,14 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <title>demo ws</title>
-    <script src="msg_pb_dist.min.js?ver=1"></script>
-    <script src="ws.js?ver=1"></script>
+    <script src="msg_pb_dist.min.js?ver=2"></script>
+    <script src="ws.js?ver=2"></script>
     <script>
         let conn = new WsConnection();
 
         conn.setEstablishHandler((ws) => {
             console.log("connected");
-            conn.sendMsg(1, conn.stringToArrayBuffer("js request"));
+            conn.sendMsg(1, new TextEncoder("utf-8").encode("js request"));
         });
 
         conn.setErrHandler((ws, error) => {
