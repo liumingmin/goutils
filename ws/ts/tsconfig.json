@@ -1,0 +1,14 @@
+{
+    "compilerOptions": {
+        "module": "commonjs",
+        "noImplicitAny": true,
+        "removeComments": true,
+        "preserveConstEnums": true,
+        "sourceMap": true
+    },
+    "files": [  
+        "msg_pb.d.ts",
+        "ws.ts",
+        "demo.ts"
+    ]
+}
