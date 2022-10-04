@@ -1,5 +1,7 @@
 
 # ws模块用法
+
+## js客户端使用lib模式和commonjs模式
 ```shell script
 protoc --go_out=. ws/msg.proto
 
@@ -20,8 +22,20 @@ minify msg_pb_dist.js   //msg_pb_dist.min.js
 
 https://www.npmjs.com/package/google-protobuf
 
+## ts客户端使用commonjs模式
+```shell script
+npm i -g protobufjs
+npm i -g protobufjs-cli
 
-#  demo
+pbjs -t static-module -w commonjs -o ts/msg_pb.js msg.proto
+pbts -o ts/msg_pb.d.ts ts/msg_pb.js
+
+tsc ws.ts demo.ts
+browserify msg_pb.js ws.js demo.js  -o msg_pb_dist.js
+```
+
+
+## go原生demo
 ```go
 InitServerWithOpt(ServerOption{[]HubOption{HubShardOption(4)}}) //server invoke 服务端调用
 InitClient()                                                    //client invoke 客户端调用
