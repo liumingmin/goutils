@@ -5,12 +5,12 @@ export namespace ws {
     type EvtHanlder = (ws: WebSocket, evt?: Event) => void;
 
     export class Connection {
-        private ws: WebSocket;
-        private connected: boolean;
+        private ws: WebSocket = null;
+        private connected: boolean = false;
         private msgHandler: Map<number, MsgHandler> = new Map();
-        private establishHandler: EvtHanlder;
-        private errHandler: EvtHanlder;
-        private closeHandler: EvtHanlder;
+        private establishHandler: EvtHanlder = null;
+        private errHandler: EvtHanlder = null;
+        private closeHandler: EvtHanlder = null;
         private static packetHeadFlag: Uint8Array = new Uint8Array([254, 238]);
 
         constructor() {
@@ -91,12 +91,7 @@ export namespace ws {
         packMsg(dataArray: Uint8Array): ArrayBuffer {
             let packetLength = new Uint8Array(4);
             new DataView(packetLength.buffer).setUint32(0, dataArray.byteLength, true /* littleEndian */);
-
-            let length = Connection.packetHeadFlag.byteLength + packetLength.byteLength + dataArray.byteLength;
-            let packet = new Uint8Array(length); //([...Connection.packetHeadFlag, ...packetLength, ...dataArray]);
-            packet.set(Connection.packetHeadFlag, 0);
-            packet.set(packetLength, Connection.packetHeadFlag.byteLength);
-            packet.set(dataArray, Connection.packetHeadFlag.byteLength + packetLength.byteLength);
+            let packet = new Uint8Array([...Connection.packetHeadFlag, ...packetLength, ...dataArray]);
             return packet.buffer;
         }
     }

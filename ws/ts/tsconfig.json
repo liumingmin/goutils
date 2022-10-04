@@ -4,9 +4,9 @@
         "noImplicitAny": true,
         "removeComments": true,
         "preserveConstEnums": true,
-        "sourceMap": true
+        "target": "ES6"
     },
-    "files": [  
+    "files": [
         "msg_pb.d.ts",
         "ws.ts",
         "demo.ts"
