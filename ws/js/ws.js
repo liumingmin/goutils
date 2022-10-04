@@ -6,6 +6,7 @@ class WsConnection {
         this.establishHandler = null;
         this.errHandler = null;
         this.closeHandler = null;
+        this.packetHeadFlag = new Uint8Array([254,238]);
     }
 
     registerMsgHandler(protocolId, handler) {
@@ -41,7 +42,9 @@ class WsConnection {
         };
 
         this.ws.onmessage = (e) => {
-            let wsMessage = proto.ws.P_MESSAGE.deserializeBinary(e.data);
+            let msgPack = this.unpackMsg(e.data);
+            //console.log(msgPack);
+            let wsMessage = proto.ws.P_MESSAGE.deserializeBinary(msgPack.dataBuffer);
             let handler = this.msgHandler[wsMessage.getProtocolId()];
             if (handler) {
                 handler(this.ws, wsMessage.getData());
@@ -59,6 +62,28 @@ class WsConnection {
         let wsMessage = new proto.ws.P_MESSAGE;
         wsMessage.setProtocolId(protocolId);
         wsMessage.setData(data);
-        this.ws.send(wsMessage.serializeBinary());
+        this.ws.send(this.packMsg(wsMessage.serializeBinary()));
+    }
+
+    unpackMsg(buffer){
+        let packetHeadFlag = buffer.slice(0,2);
+        const dv = new DataView(buffer.slice(2,6));
+        const packetLength = dv.getUint32(0, /* little endian data */ true);
+        let dataBuffer = buffer.slice(6);
+        return {
+            packetHeadFlag,
+            packetLength,
+            dataBuffer
+        };
+    }
+
+    packMsg(buffer){
+        let dataArray = new Uint8Array(buffer);
+
+        let packetLength = new Uint8Array(4);
+        new DataView(packetLength.buffer).setUint32(0, buffer.byteLength, true /* littleEndian */);
+
+        let packet = new Uint8Array([...this.packetHeadFlag, ...packetLength, ...dataArray]);
+        return packet.buffer;
     }
 }

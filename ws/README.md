@@ -23,9 +23,8 @@ https://www.npmjs.com/package/google-protobuf
 
 #  demo
 ```go
-//TestWssRun.go
-InitServer() //server invoke 服务端调用
-InitClient() //client invoke 客户端调用
+InitServerWithOpt(ServerOption{[]HubOption{HubShardOption(4)}}) //server invoke 服务端调用
+InitClient()                                                    //client invoke 客户端调用
 ctx := context.Background()
 
 const (
@@ -35,7 +34,7 @@ const (
 const pullMsgFromDB = 1
 
 //server reg handler
-RegisterHandler(C2S_REQ, func(ctx context.Context, connection *Connection, message *Message) error {
+RegisterHandler(C2S_REQ, func(ctx context.Context, connection IConnection, message IMessage) error {
     log.Info(ctx, "server recv: %v, %v", message.PMsg().ProtocolId, string(message.PMsg().Data))
     packet := GetPoolMessage(S2C_RESP)
     packet.PMsg().Data = []byte("server response")
@@ -45,19 +44,28 @@ RegisterHandler(C2S_REQ, func(ctx context.Context, connection *Connection, messa
     return nil
 })
 
+rawMsg := &P_MESSAGE{}
+rawMsg.ProtocolId = S2C_RESP
+rawMsg.Data = []byte("common msg")
+
+commonMsg := NewMessage()
+commonMsg.PMsg().Data, _ = proto.Marshal(rawMsg)
+
 //server start
-var createSrvPullerFunc = func(conn *Connection, pullChannelId int) SrvPuller {
-    return NewDefaultSrvPuller(conn, pullChannelId, func(ctx context.Context, pullConn *Connection) {
+var createSrvPullerFunc = func(conn IConnection, pullChannelId int) Puller {
+    return NewDefaultPuller(conn, pullChannelId, func(ctx context.Context, pullConn IConnection) {
         packet := GetPoolMessage(S2C_RESP)
         packet.PMsg().Data = []byte("first msg from db")
         pullConn.SendMsg(ctx, packet, nil)
-    }, func(ctx context.Context, pullConn *Connection) {
+    }, func(ctx context.Context, pullConn IConnection) {
         //msg from db...
         time.Sleep(time.Second * 1)
 
         packet := GetPoolMessage(S2C_RESP)
         packet.PMsg().Data = []byte("pull msg from db")
         pullConn.SendMsg(ctx, packet, nil)
+
+        pullConn.SendMsg(ctx, commonMsg, nil)
     })
 }
 
@@ -73,19 +81,24 @@ e.GET("/join", func(ctx *gin.Context) {
     _, err := AcceptGin(ctx, connMeta, DebugOption(true),
         SrvUpgraderCompressOption(true),
         CompressionLevelOption(2),
-        ConnEstablishHandlerOption(func(ctx context.Context, conn *Connection) {
-            log.Info(ctx, "server conn establish: %v", conn.Id())
-
+        ConnEstablishHandlerOption(func(ctx context.Context, conn IConnection) {
+            log.Info(ctx, "server conn establish: %v, %p", conn.Id(), conn)
+            //在集群环境下，需要检查connId是否已经连接集群，如有需踢掉在集群其他节点建立的连接，可通过redis pub sub，其他节点收到通知调用KickClient
+            //lastConnNodeId, lastConnMTs := GetClientTs(ctx, conn.Id())
+            //if lastConnNodeId != "" && lastConnNodeId != config.NodeId && lastConnMTs < util.UtcMTs() {
+            //	MqPublish(ctx, conn.Id(), conn.ClientIp())   //other node: ClientConnHub.Find(connId).DisplaceClientByIp(ctx, newIp)
+            //}
+            //RegisterConn() // save to redis
             puller := createSrvPullerFunc(conn, pullMsgFromDB)
             safego.Go(func() {
                 puller.PullSend()
             })
         }),
-        ConnClosingHandlerOption(func(ctx context.Context, conn *Connection) {
-            log.Info(ctx, "server conn closing: %v", conn.Id())
+        ConnClosingHandlerOption(func(ctx context.Context, conn IConnection) {
+            log.Info(ctx, "server conn closing: %v, %p", conn.Id(), conn)
         }),
-        ConnClosedHandlerOption(func(ctx context.Context, conn *Connection) {
-            log.Info(ctx, "server conn closed: %v", conn.Id())
+        ConnClosedHandlerOption(func(ctx context.Context, conn IConnection) {
+            log.Info(ctx, "server conn closed: %v, %p", conn.Id(), conn)
         }),
         SrvPullChannelsOption([]int{pullMsgFromDB}))
     if err != nil {
@@ -96,7 +109,7 @@ e.GET("/join", func(ctx *gin.Context) {
 go e.Run(":8003")
 
 //client reg handler
-RegisterHandler(S2C_RESP, func(ctx context.Context, connection *Connection, message *Message) error {
+RegisterHandler(S2C_RESP, func(ctx context.Context, connection IConnection, message IMessage) error {
     log.Info(ctx, "client recv: %v, %v", message.PMsg().ProtocolId, string(message.PMsg().Data))
     return nil
 })
@@ -109,14 +122,14 @@ conn, _ := DialConnect(context.Background(), url, http.Header{},
     ClientDialWssOption(url, false),
     ClientDialCompressOption(true),
     CompressionLevelOption(2),
-    ConnEstablishHandlerOption(func(ctx context.Context, conn *Connection) {
-        log.Info(ctx, "client conn establish: %v", conn.Id())
+    ConnEstablishHandlerOption(func(ctx context.Context, conn IConnection) {
+        log.Info(ctx, "client conn establish: %v, %p", conn.Id(), conn)
     }),
-    ConnClosingHandlerOption(func(ctx context.Context, conn *Connection) {
-        log.Info(ctx, "client conn closing: %v", conn.Id())
+    ConnClosingHandlerOption(func(ctx context.Context, conn IConnection) {
+        log.Info(ctx, "client conn closing: %v, %p", conn.Id(), conn)
     }),
-    ConnClosedHandlerOption(func(ctx context.Context, conn *Connection) {
-        log.Info(ctx, "client conn closed: %v", conn.Id())
+    ConnClosedHandlerOption(func(ctx context.Context, conn IConnection) {
+        log.Info(ctx, "client conn closed: %v, %p", conn.Id(), conn)
     }),
 )
 log.Info(ctx, "%v", conn)
@@ -133,8 +146,10 @@ conn2, _ := DialConnect(context.Background(), url, http.Header{},
     DebugOption(true),
     ClientIdOption("server2"),
     ClientDialWssOption(url, false),
-    ConnEstablishHandlerOption(func(ctx context.Context, conn *Connection) {
-        log.Info(ctx, "client conn establish: %v", conn.Id())
+    ClientDialCompressOption(true),
+    CompressionLevelOption(2),
+    ConnEstablishHandlerOption(func(ctx context.Context, conn IConnection) {
+        log.Info(ctx, "client conn establish: %v, %p", conn.Id(), conn)
     }),
 )
 time.Sleep(time.Second)

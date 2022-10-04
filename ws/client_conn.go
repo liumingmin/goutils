@@ -38,7 +38,7 @@ func AutoReDialConnect(ctx context.Context, sUrl string, header http.Header, can
 		connInterval = time.Second * 5
 	}
 
-	reConnOpts := append(opts, ClientAutoReconHandlerOption(func(context.Context, *Connection) {
+	reConnOpts := append(opts, ClientAutoReconHandlerOption(func(context.Context, IConnection) {
 		select {
 		case closedAutoReconChan <- struct{}{}:
 		default:
@@ -67,7 +67,7 @@ func AutoReDialConnect(ctx context.Context, sUrl string, header http.Header, can
 	}
 }
 
-func DialConnect(ctx context.Context, sUrl string, header http.Header, opts ...ConnOption) (*Connection, error) {
+func DialConnect(ctx context.Context, sUrl string, header http.Header, opts ...ConnOption) (IConnection, error) {
 	connection := &Connection{}
 
 	connection.id = strconv.FormatInt(time.Now().UnixNano(), 10) //default
@@ -76,6 +76,7 @@ func DialConnect(ctx context.Context, sUrl string, header http.Header, opts ...C
 	connection.dialRetryNum = 3
 	connection.dialRetryInterval = time.Second
 	connection.compressionLevel = 1
+	connection.maxMessageBytesSize = defaultMaxMessageBytesSize
 
 	defaultNetParamsOption()(connection)
 

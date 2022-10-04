@@ -8,7 +8,7 @@ import (
 var (
 	messagePool = sync.Pool{
 		New: func() interface{} {
-			msg := NewMessage()
+			msg := NewMessage().(*Message)
 			msg.isPool = true
 			return msg
 		},

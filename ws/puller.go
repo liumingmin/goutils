@@ -12,7 +12,7 @@ type Puller interface {
 	PullSend()
 }
 
-func NewDefaultPuller(conn *Connection, pullChannelId int, firstPullFunc, pullFunc func(context.Context, *Connection)) Puller {
+func NewDefaultPuller(conn IConnection, pullChannelId int, firstPullFunc, pullFunc func(context.Context, IConnection)) Puller {
 	return &defaultPuller{
 		conn:          conn,
 		pullChannelId: pullChannelId,
@@ -22,10 +22,10 @@ func NewDefaultPuller(conn *Connection, pullChannelId int, firstPullFunc, pullFu
 }
 
 type defaultPuller struct {
-	conn          *Connection
+	conn          IConnection
 	pullChannelId int
-	firstPullFunc func(context.Context, *Connection) // first connected exec
-	pullFunc      func(context.Context, *Connection) // every times exec
+	firstPullFunc func(context.Context, IConnection) // first connected exec
+	pullFunc      func(context.Context, IConnection) // every times exec
 	isRunning     int32
 }
 

@@ -158,7 +158,7 @@ func (h *Hub) sendDisplace(ctx context.Context, old *Connection, newIp string) {
 		displaceMsg.Ts = time.Now().UnixNano()
 	}
 
-	old.sendMsgToWs(ctx, message)
+	old.sendMsgToWs(ctx, message.(*Message))
 }
 
 //init server
@@ -190,7 +190,7 @@ func newShardHub(opts []HubOption) IHub {
 func initClient() IHub {
 	RegisterDataMsgType(int32(P_BASE_s2c_err_displace), &P_DISPLACE{})
 
-	RegisterHandler(int32(P_BASE_s2c_err_displace), func(ctx context.Context, conn *Connection, message *Message) error {
+	RegisterHandler(int32(P_BASE_s2c_err_displace), func(ctx context.Context, conn IConnection, message IMessage) error {
 		dataMsg := message.DataMsg()
 		if dataMsg != nil {
 			displaceMsg := dataMsg.(*P_DISPLACE)

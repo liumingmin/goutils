@@ -38,6 +38,7 @@ type IDataMessage interface {
 
 type IConnection interface {
 	Id() string
+	ConnType() ConnType
 	UserId() string
 	Type() int
 	DeviceId() string
@@ -73,14 +74,14 @@ type IHub interface {
 }
 
 //normal message 普通消息
-func NewMessage() *Message {
+func NewMessage() IMessage {
 	return &Message{
 		pMsg: &P_MESSAGE{},
 	}
 }
 
 //pool message 对象池消息
-func GetPoolMessage(protocolId int32) *Message {
+func GetPoolMessage(protocolId int32) IMessage {
 	msg := getPoolMessage()
 	msg.pMsg.ProtocolId = protocolId
 	msg.dataMsg = getPoolDataMsg(protocolId)
@@ -88,16 +89,16 @@ func GetPoolMessage(protocolId int32) *Message {
 }
 
 // 消息发送回调接口
-type SendCallback func(ctx context.Context, c *Connection, err error)
+type SendCallback func(ctx context.Context, c IConnection, err error)
 
 // 客户端消息处理函数对象  use RegisterHandler(protocolId, MsgHandler)
-type MsgHandler func(context.Context, *Connection, *Message) error
+type MsgHandler func(context.Context, IConnection, IMessage) error
 
 // 客户端事件处理函数
 // ConnEstablishHandlerOption  sync(阻塞主流程)
 // ConnClosingHandlerOption   sync(阻塞主流程)
 // ConnClosedHandlerOption  async
-type EventHandler func(context.Context, *Connection)
+type EventHandler func(context.Context, IConnection)
 
 // 注册消息处理器
 func RegisterHandler(protocolId int32, h MsgHandler) {

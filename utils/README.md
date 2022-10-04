@@ -93,14 +93,14 @@ t.Log(checksumMd5Path)
 ```go
 
 dirMap := make(map[string][]string)
-dirMap["fullClient"] = []string{"E:\\game\\dev_test_01", "E:\\game\\dev_test_01\\fullClient"}
+dirMap["jsex"] = []string{"E:\\game\\jsex\\base"}
 for code, dirs := range dirMap {
 	t.Log("game: ", code)
 	for _, dir := range dirs {
 		t.Log("dir: ", dir)
 		start := time.Now() // 获取当前时间
-		checksumName := fmt.Sprintf("%v-62e204c376d4be7b1458d077", code)
-		checksumMd5Path, err := GenerateChecksumFileWithIgnore(context.Background(), dir, checksumName, []string{fmt.Sprintf("%v-62e204c376d4be7b1458d077.checksum", code)})
+		checksumName := fmt.Sprintf("%v", code)
+		checksumMd5Path, err := GenerateChecksumFileWithIgnore(context.Background(), dir, checksumName, []string{fmt.Sprintf("%v.checksum", code), "pak", "locales\\pak"})
 		if err != nil {
 			t.Error(err)
 			return
@@ -122,6 +122,22 @@ if !valid {
 	return
 }
 t.Log(valid)
+```
+#### TestRelPath
+```go
+
+repos := []string{"", "a", "b", "a\\b", "a/c", "a\\b/c", "a/d/c", "d/a", "d/c"}
+
+for _, repo1 := range repos {
+	t.Log(">>>", repo1)
+	for _, repo2 := range repos {
+		rel, _ := filepath.Rel(repo1, repo2)
+		if !strings.Contains(rel, ".") {
+			t.Log(repo2, ":", rel)
+		}
+	}
+}
+
 ```
 #### TestCompareChecksumFiles
 ```go

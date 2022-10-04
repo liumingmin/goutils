@@ -1,9 +1,12 @@
 package ws
 
 import (
+	"bytes"
 	"context"
+	"encoding/binary"
 	"errors"
 	"fmt"
+	"io"
 	"net"
 	"sync"
 	"sync/atomic"
@@ -17,11 +20,12 @@ import (
 
 var (
 	msgHandlers sync.Map // map[int32]MsgHandler
+	msgHeadFlag = [2]byte{0xFE, 0xEE}
 )
 
-type connKind int8
+type ConnType int8
 
-func (t connKind) String() string {
+func (t ConnType) String() string {
 	if t == CONN_KIND_CLIENT {
 		return "client"
 	}
@@ -34,7 +38,7 @@ func (t connKind) String() string {
 //websocket连接封装
 type Connection struct {
 	id             string
-	typ            connKind
+	typ            ConnType
 	meta           ConnectionMeta        //连接信息
 	conn           *websocket.Conn       //websocket connection
 	stopped        int32                 //flag connection stopped and will disconnect
@@ -61,11 +65,12 @@ type Connection struct {
 	commonData     map[string]interface{}
 
 	//net params
-	maxFailureRetry  int           //重试次数
-	readWait         time.Duration //读等待
-	writeWait        time.Duration //写等待
-	temporaryWait    time.Duration //网络抖动重试等待
-	compressionLevel int
+	maxFailureRetry     int           //重试次数
+	readWait            time.Duration //读等待
+	writeWait           time.Duration //写等待
+	temporaryWait       time.Duration //网络抖动重试等待
+	compressionLevel    int
+	maxMessageBytesSize uint32
 
 	//server internal param
 	upgrader *websocket.Upgrader //custome upgrader
@@ -119,6 +124,10 @@ func (c *Connection) ClientIp() string {
 	return c.meta.clientIp
 }
 
+func (c *Connection) ConnType() ConnType {
+	return c.typ
+}
+
 func (c *Connection) Reset() {
 	c.id = ""
 	c.meta = ConnectionMeta{}
@@ -155,6 +164,7 @@ func (c *Connection) Reset() {
 	c.dialer = nil
 	c.dialRetryNum = 0
 	c.dialRetryInterval = 0
+	c.maxMessageBytesSize = defaultMaxMessageBytesSize
 }
 
 func (c *Connection) createPullChannelMap() {
@@ -202,7 +212,7 @@ func (c *Connection) RefreshDeadline() {
 	c.conn.SetWriteDeadline(t.Add(c.writeWait))
 }
 
-func (c *Connection) SendMsg(ctx context.Context, payload *Message, sc SendCallback) (err error) {
+func (c *Connection) SendMsg(ctx context.Context, payload IMessage, sc SendCallback) (err error) {
 	defer log.Recover(ctx, func(e interface{}) string {
 		err = fmt.Errorf("%v", e)
 		return fmt.Sprintf("%v send msg failed, sendBuffer chan is closed. error: %v", c.typ, err)
@@ -212,9 +222,10 @@ func (c *Connection) SendMsg(ctx context.Context, payload *Message, sc SendCallb
 		return errors.New("connect is stopped")
 	}
 
-	payload.sc = sc
+	message := payload.(*Message)
+	message.sc = sc
 
-	c.sendBuffer <- payload
+	c.sendBuffer <- message
 	return nil
 }
 
@@ -454,7 +465,8 @@ func (c *Connection) readMsgFromWs() {
 		}
 
 		c.conn.SetReadDeadline(time.Now().Add(c.readWait))
-		messageType, data, err := c.conn.ReadMessage()
+		messageType, data, err := c.readMessageData() //c.conn.ReadMessage()
+
 		if err != nil {
 			if errNet, ok := err.(net.Error); (ok && errNet.Timeout()) || (ok && errNet.Temporary()) {
 				log.Debug(ctx, "%v Read failure. retryTimes: %v, id: %v, ptr: %p messageType: %v, error: %v",
@@ -488,6 +500,46 @@ func (c *Connection) readMsgFromWs() {
 			})
 		}
 	}
+}
+
+func (c *Connection) isErrEOF(err error) bool {
+	if err == io.EOF {
+		return true
+	}
+	return false
+}
+
+func (c *Connection) readMessageData() (int, []byte, error) {
+	var reader io.Reader
+	messageType, reader, err := c.conn.NextReader()
+	if err != nil && !c.isErrEOF(err) {
+		return messageType, nil, err
+	}
+
+	var headBytes [6]byte
+	_, err = io.ReadAtLeast(reader, headBytes[:], 6)
+	if err != nil && !c.isErrEOF(err) {
+		return messageType, nil, err
+	}
+
+	if headBytes[0] != msgHeadFlag[0] || headBytes[1] != msgHeadFlag[1] {
+		return messageType, nil, errors.New("packet head flag error")
+	}
+
+	lengthSlice := headBytes[2:6]
+	var length uint32
+	binary.Read(bytes.NewReader(lengthSlice), binary.LittleEndian, &length)
+
+	if length > c.maxMessageBytesSize {
+		return messageType, nil, errors.New("packet size exceed max")
+	}
+
+	dataBuffer := make([]byte, length)
+	_, err = io.ReadAtLeast(reader, dataBuffer, int(length))
+	if err != nil && !c.isErrEOF(err) {
+		return messageType, nil, err
+	}
+	return messageType, dataBuffer, nil
 }
 
 func (c *Connection) processMsg(ctx context.Context, msgData []byte) {
@@ -564,9 +616,20 @@ func (c *Connection) doSendMsgToWs(ctx context.Context, data []byte) error {
 		return err
 	}
 
+	var headBytes [6]byte
+	headBytes[0] = msgHeadFlag[0]
+	headBytes[1] = msgHeadFlag[1]
+	binary.LittleEndian.PutUint32(headBytes[2:6], uint32(len(data)))
+
+	_, err = w.Write(headBytes[:])
+	if err != nil {
+		log.Warn(ctx, "%v Write packet head to writer failed. error: %v", c.typ, err)
+		return err
+	}
+
 	_, err = w.Write(data)
 	if err != nil {
-		log.Warn(ctx, "%v Write msgSendWrapper to writer failed. message: %v, error: %v", c.typ, len(data), err)
+		log.Warn(ctx, "%v Write payload to writer failed. message: %v, error: %v", c.typ, len(data), err)
 		return err
 	}
 

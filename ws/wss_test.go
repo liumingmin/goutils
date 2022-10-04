@@ -29,7 +29,7 @@ func TestMessage(t *testing.T) {
 	//	fmt.Print(fmt.Sprintf("%v,", b))
 	//}
 
-	m := NewMessage()
+	m := NewMessage().(*Message)
 	err := m.Unmarshal([]byte{8, 255, 255, 255, 255, 255, 255, 255, 255, 255, 1, 18, 12, 10, 1, 49, 18, 1, 50, 24, 143, 186, 156, 152, 6})
 	t.Log(err)
 	t.Log(m.PMsg())
@@ -49,7 +49,7 @@ func TestWssRun(t *testing.T) {
 	const pullMsgFromDB = 1
 
 	//server reg handler
-	RegisterHandler(C2S_REQ, func(ctx context.Context, connection *Connection, message *Message) error {
+	RegisterHandler(C2S_REQ, func(ctx context.Context, connection IConnection, message IMessage) error {
 		log.Info(ctx, "server recv: %v, %v", message.PMsg().ProtocolId, string(message.PMsg().Data))
 		packet := GetPoolMessage(S2C_RESP)
 		packet.PMsg().Data = []byte("server response")
@@ -67,12 +67,12 @@ func TestWssRun(t *testing.T) {
 	commonMsg.PMsg().Data, _ = proto.Marshal(rawMsg)
 
 	//server start
-	var createSrvPullerFunc = func(conn *Connection, pullChannelId int) Puller {
-		return NewDefaultPuller(conn, pullChannelId, func(ctx context.Context, pullConn *Connection) {
+	var createSrvPullerFunc = func(conn IConnection, pullChannelId int) Puller {
+		return NewDefaultPuller(conn, pullChannelId, func(ctx context.Context, pullConn IConnection) {
 			packet := GetPoolMessage(S2C_RESP)
 			packet.PMsg().Data = []byte("first msg from db")
 			pullConn.SendMsg(ctx, packet, nil)
-		}, func(ctx context.Context, pullConn *Connection) {
+		}, func(ctx context.Context, pullConn IConnection) {
 			//msg from db...
 			time.Sleep(time.Second * 1)
 
@@ -96,7 +96,7 @@ func TestWssRun(t *testing.T) {
 		_, err := AcceptGin(ctx, connMeta, DebugOption(true),
 			SrvUpgraderCompressOption(true),
 			CompressionLevelOption(2),
-			ConnEstablishHandlerOption(func(ctx context.Context, conn *Connection) {
+			ConnEstablishHandlerOption(func(ctx context.Context, conn IConnection) {
 				log.Info(ctx, "server conn establish: %v, %p", conn.Id(), conn)
 				//在集群环境下，需要检查connId是否已经连接集群，如有需踢掉在集群其他节点建立的连接，可通过redis pub sub，其他节点收到通知调用KickClient
 				//lastConnNodeId, lastConnMTs := GetClientTs(ctx, conn.Id())
@@ -109,10 +109,10 @@ func TestWssRun(t *testing.T) {
 					puller.PullSend()
 				})
 			}),
-			ConnClosingHandlerOption(func(ctx context.Context, conn *Connection) {
+			ConnClosingHandlerOption(func(ctx context.Context, conn IConnection) {
 				log.Info(ctx, "server conn closing: %v, %p", conn.Id(), conn)
 			}),
-			ConnClosedHandlerOption(func(ctx context.Context, conn *Connection) {
+			ConnClosedHandlerOption(func(ctx context.Context, conn IConnection) {
 				log.Info(ctx, "server conn closed: %v, %p", conn.Id(), conn)
 			}),
 			SrvPullChannelsOption([]int{pullMsgFromDB}))
@@ -124,7 +124,7 @@ func TestWssRun(t *testing.T) {
 	go e.Run(":8003")
 
 	//client reg handler
-	RegisterHandler(S2C_RESP, func(ctx context.Context, connection *Connection, message *Message) error {
+	RegisterHandler(S2C_RESP, func(ctx context.Context, connection IConnection, message IMessage) error {
 		log.Info(ctx, "client recv: %v, %v", message.PMsg().ProtocolId, string(message.PMsg().Data))
 		return nil
 	})
@@ -137,13 +137,13 @@ func TestWssRun(t *testing.T) {
 		ClientDialWssOption(url, false),
 		ClientDialCompressOption(true),
 		CompressionLevelOption(2),
-		ConnEstablishHandlerOption(func(ctx context.Context, conn *Connection) {
+		ConnEstablishHandlerOption(func(ctx context.Context, conn IConnection) {
 			log.Info(ctx, "client conn establish: %v, %p", conn.Id(), conn)
 		}),
-		ConnClosingHandlerOption(func(ctx context.Context, conn *Connection) {
+		ConnClosingHandlerOption(func(ctx context.Context, conn IConnection) {
 			log.Info(ctx, "client conn closing: %v, %p", conn.Id(), conn)
 		}),
-		ConnClosedHandlerOption(func(ctx context.Context, conn *Connection) {
+		ConnClosedHandlerOption(func(ctx context.Context, conn IConnection) {
 			log.Info(ctx, "client conn closed: %v, %p", conn.Id(), conn)
 		}),
 	)
@@ -163,7 +163,7 @@ func TestWssRun(t *testing.T) {
 		ClientDialWssOption(url, false),
 		ClientDialCompressOption(true),
 		CompressionLevelOption(2),
-		ConnEstablishHandlerOption(func(ctx context.Context, conn *Connection) {
+		ConnEstablishHandlerOption(func(ctx context.Context, conn IConnection) {
 			log.Info(ctx, "client conn establish: %v, %p", conn.Id(), conn)
 		}),
 	)
@@ -180,7 +180,7 @@ func TestWssRun(t *testing.T) {
 			DebugOption(true),
 			ClientIdOption(strconv.Itoa(i)),
 			ClientDialWssOption(url, false),
-			ConnEstablishHandlerOption(func(ctx context.Context, conn *Connection) {
+			ConnEstablishHandlerOption(func(ctx context.Context, conn IConnection) {
 				safego.Go(func() {
 					time.Sleep(time.Second * 3)
 					conn.KickServer()
@@ -197,7 +197,7 @@ func TestWssRun(t *testing.T) {
 			DebugOption(true),
 			ClientIdOption("b"+strconv.Itoa(i)),
 			ClientDialWssOption(url, false),
-			ConnEstablishHandlerOption(func(ctx context.Context, conn *Connection) {
+			ConnEstablishHandlerOption(func(ctx context.Context, conn IConnection) {
 				log.Info(ctx, "client conn establish: %v", conn.Id())
 			}),
 		)
