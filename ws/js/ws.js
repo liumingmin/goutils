@@ -26,6 +26,11 @@ class WsConnection {
     }
 
     connect(url) {
+        if(this.ws){
+            this.ws.close();
+            this.connected = false;
+        }
+
         this.ws = new WebSocket(url);
 
         this.ws.onopen = () => {
