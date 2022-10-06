@@ -1,8 +1,7 @@
-import {ws} from "./ws"
-//import {TextEncoder} from "text-encoder"
+import {wsc} from "./wsc"
 
 function initConn(){
-    let conn = new ws.Connection();
+    let conn = new wsc.Connection();
 
     conn.setEstablishHandler((ws) => {
         console.log("connected");

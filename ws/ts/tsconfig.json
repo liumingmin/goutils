@@ -1,14 +1,12 @@
 {
     "compilerOptions": {
         "module": "commonjs",
+        "moduleResolution": "Node",
         "noImplicitAny": true,
         "removeComments": true,
         "preserveConstEnums": true,
-        "target": "ES6"
+        "target": "ES6",
+        "outDir": "dist"
     },
-    "files": [
-        "msg_pb.d.ts",
-        "ws.ts",
-        "demo.ts"
-    ]
+    "include": ["*.ts"]
 }

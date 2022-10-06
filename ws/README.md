@@ -24,14 +24,20 @@ https://www.npmjs.com/package/google-protobuf
 
 ## ts客户端使用commonjs模式
 ```shell script
-npm i -g protobufjs
+npm i protobufjs
 npm i -g protobufjs-cli
 
-pbjs -t static-module -w commonjs -o ts/msg_pb.js msg.proto
-pbts -o ts/msg_pb.d.ts ts/msg_pb.js
+cd ts
 
-tsc ws.ts demo.ts
-browserify msg_pb.js ws.js demo.js  -o msg_pb_dist.js
+pbjs -t static-module -w commonjs -o dist/msg_pb.js ../msg.proto
+pbts -o msg_pb.d.ts dist/msg_pb.js
+
+tsc -p tsconfig.json
+node demo.js //const WebSocket = require("ws");
+
+npm i -g browserify
+
+browserify dist/msg_pb.js dist/wsc.js dist/demo.js  -o dist/bundle.js
 ```
 
 

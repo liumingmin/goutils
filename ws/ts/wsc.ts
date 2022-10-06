@@ -1,6 +1,6 @@
 import * as $msg_pb from "./msg_pb"
 
-export namespace ws {
+export namespace wsc {
     type MsgHandler = (ws: WebSocket, buffer: Uint8Array) => void;
     type EvtHanlder = (ws: WebSocket, evt?: Event) => void;
 
@@ -33,7 +33,7 @@ export namespace ws {
         }
 
         connect(url: string) {
-            if (this.ws != null) {
+            if (this.ws !== null) {
                 this.ws.close();
                 this.connected = false;
             }
