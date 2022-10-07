@@ -32,22 +32,22 @@ export namespace wsc {
             this.closeHandler = closeHandler;
         }
 
-        connect(url: string) {
+        connect(url: string, retryInterval?: number) {
             if (this.ws !== null) {
                 this.ws.close();
                 this.connected = false;
             }
 
             this.ws = new WebSocket(url);
-            this.ws.onopen = () => {
+            this.ws.onopen = (e) => {
                 this.ws.binaryType = 'arraybuffer';
                 this.connected = true;
-                if (this.establishHandler) {
-                    this.establishHandler(this.ws);
+                if (this.establishHandler !== null) {
+                    this.establishHandler(this.ws, e);
                 }
             };
             this.ws.onerror = (error) => {
-                if (this.errHandler) {
+                if (this.errHandler !== null) {
                     this.errHandler(this.ws, error);
                 }
             };
@@ -57,15 +57,20 @@ export namespace wsc {
                 //console.log(msgPack);
                 let wsMessage = $msg_pb.ws.P_MESSAGE.decode(new Uint8Array(msgPack.dataBuffer));
                 let handler = this.msgHandler.get(wsMessage.protocolId);
-                if (handler != null) {
+                if (handler !== null) {
                     handler(this.ws, wsMessage.data);
                 }
             };
             this.ws.onclose = (e) => {
                 this.connected = false;
-                if (this.closeHandler != null) {
+                if (this.closeHandler !== null) {
                     this.closeHandler(this.ws, e);
                 }
+                this.ws = null;
+
+                if (retryInterval === undefined) return;
+
+                setTimeout(() => this.connect(url, retryInterval), retryInterval);
             };
         }
 

@@ -19,7 +19,7 @@ function initConn(){
     conn.registerMsgHandler(2, (ws, data) => {
         console.log(new TextDecoder().decode(data));
     });
-    conn.connect("ws://127.0.0.1:8003/join?uid=x10000");
+    conn.connect("ws://127.0.0.1:8003/join?uid=x10000", 2000);
 }
 
 initConn();
