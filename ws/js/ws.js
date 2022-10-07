@@ -6,7 +6,10 @@ class WsConnection {
         this.establishHandler = null;
         this.errHandler = null;
         this.closeHandler = null;
+        this.displacedHandler = null;
         this.packetHeadFlag = new Uint8Array([254, 238]);
+
+        this.msgHandler[proto.ws.P_BASE.S2C_ERR_DISPLACE] = (ws, buffer) => { this.onDisplaced(ws, buffer); };
     }
 
     registerMsgHandler(protocolId, handler) {
@@ -25,6 +28,10 @@ class WsConnection {
         this.closeHandler = closeHandler;
     }
 
+    setDisplacedHandler(displacedHandler) {
+        this.displacedHandler = displacedHandler;
+    }
+
     connect(url, retryInterval) {
         if (this.ws !== null) {
             this.ws.close();
@@ -36,14 +43,11 @@ class WsConnection {
         this.ws.onopen = (e) => {
             this.ws.binaryType = 'arraybuffer';
             this.connected = true;
-            if (this.establishHandler !== null) {
-                this.establishHandler(this.ws, e);
-            }
+            
+            this.establishHandler?.(this.ws, e);
         };
         this.ws.onerror = (error) => {
-            if (this.errHandler !== null) {
-                this.errHandler(this.ws, error);
-            }
+            this.errHandler?.(this.ws, error);
         };
 
         this.ws.onmessage = (e) => {
@@ -51,15 +55,11 @@ class WsConnection {
             //console.log(msgPack);
             let wsMessage = proto.ws.P_MESSAGE.deserializeBinary(msgPack.dataBuffer);
             let handler = this.msgHandler[wsMessage.getProtocolId()];
-            if (handler !== null) {
-                handler(this.ws, wsMessage.getData());
-            }
+            handler?.(this.ws, wsMessage.getData());
         };
         this.ws.onclose = (e) => {
+            this.closeHandler?.(this.ws, e);
             this.connected = false;
-            if (this.closeHandler !== null) {
-                this.closeHandler(this.ws, e);
-            }
             this.ws = null;
 
             if (retryInterval === undefined) return;
@@ -95,5 +95,13 @@ class WsConnection {
 
         let packet = new Uint8Array([...this.packetHeadFlag, ...packetLength, ...dataArray]);
         return packet.buffer;
+    }
+
+    onDisplaced(ws, buffer) {
+        let displacedMsg = proto.ws.P_DISPLACE.deserializeBinary(buffer);
+        let oldIp = new TextDecoder().decode(displacedMsg.getOldIp());
+        let newIp = new TextDecoder().decode(displacedMsg.getNewIp());
+        console.log(oldIp, " displaced by ", newIp, " at ", displacedMsg.getTs().toString());
+        this.displacedHandler?.(this.ws, oldIp, newIp, displacedMsg.getTs());
     }
 }

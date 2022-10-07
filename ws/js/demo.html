@@ -3,8 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <title>demo ws</title>
-    <script src="msg_pb_dist.min.js?ver=2"></script>
-    <script src="ws.js?ver=2"></script>
+    <script src="msg_pb_dist.min.js?ver=3"></script>
+    <script src="ws.js?ver=3"></script>
     <script>
         let conn = new WsConnection();
 
@@ -22,8 +22,11 @@
         });
 
         conn.registerMsgHandler(2, (ws, data) => {
-            const bytesString = String.fromCharCode(...data)
+            const bytesString = new TextDecoder().decode(data)
             console.log(bytesString);
+        });
+        conn.setDisplacedHandler((ws, oldIp, newIp, ts) => {
+            console.log(oldIp, " displaced by ", newIp, " at ", ts);
         });
         conn.connect("ws://127.0.0.1:8003/join?uid=x10000",2000);
     </script>
