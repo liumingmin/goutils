@@ -2,34 +2,41 @@ import * as $msg_pb from "./msg_pb"
 
 export namespace wsc {
     type MsgHandler = (ws: WebSocket, buffer: Uint8Array) => void;
-    type EvtHanlder = (ws: WebSocket, evt?: Event) => void;
+    type EvtHandler = (ws: WebSocket, evt?: Event) => void;
+    type DisplacedHandler = (ws: WebSocket, oldIp: string, newIp: string, ts: string) => void;
 
     export class Connection {
         private ws: WebSocket = null;
         private connected: boolean = false;
         private msgHandler: Map<number, MsgHandler> = new Map();
-        private establishHandler: EvtHanlder = null;
-        private errHandler: EvtHanlder = null;
-        private closeHandler: EvtHanlder = null;
+        private establishHandler: EvtHandler = null;
+        private errHandler: EvtHandler = null;
+        private closeHandler: EvtHandler = null;
+        private displacedHandler: DisplacedHandler = null;
         private static packetHeadFlag: Uint8Array = new Uint8Array([254, 238]);
 
         constructor() {
+            this.msgHandler.set($msg_pb.ws.P_BASE.s2c_err_displace, (ws: WebSocket, buffer: Uint8Array) => { this.onDisplaced(ws, buffer); });
         }
 
         registerMsgHandler(protocolId: number, handler: MsgHandler) {
             this.msgHandler.set(protocolId, handler);
         }
 
-        setEstablishHandler(establishHandler: EvtHanlder) {
+        setEstablishHandler(establishHandler: EvtHandler) {
             this.establishHandler = establishHandler;
         }
 
-        setErrHandler(errHandler: EvtHanlder) {
+        setErrHandler(errHandler: EvtHandler) {
             this.errHandler = errHandler;
         }
 
-        setCloseHandler(closeHandler: EvtHanlder) {
+        setCloseHandler(closeHandler: EvtHandler) {
             this.closeHandler = closeHandler;
+        }
+
+        setDisplacedHandler(displacedHandler: DisplacedHandler) {
+            this.displacedHandler = displacedHandler;
         }
 
         connect(url: string, retryInterval?: number) {
@@ -42,14 +49,11 @@ export namespace wsc {
             this.ws.onopen = (e) => {
                 this.ws.binaryType = 'arraybuffer';
                 this.connected = true;
-                if (this.establishHandler !== null) {
-                    this.establishHandler(this.ws, e);
-                }
+                
+                this.establishHandler?.(this.ws, e);
             };
             this.ws.onerror = (error) => {
-                if (this.errHandler !== null) {
-                    this.errHandler(this.ws, error);
-                }
+                this.errHandler?.(this.ws, error);
             };
 
             this.ws.onmessage = (e) => {
@@ -57,15 +61,12 @@ export namespace wsc {
                 //console.log(msgPack);
                 let wsMessage = $msg_pb.ws.P_MESSAGE.decode(new Uint8Array(msgPack.dataBuffer));
                 let handler = this.msgHandler.get(wsMessage.protocolId);
-                if (handler !== null) {
-                    handler(this.ws, wsMessage.data);
-                }
+                handler?.(this.ws, wsMessage.data);
             };
+
             this.ws.onclose = (e) => {
+                this.closeHandler?.(this.ws, e);
                 this.connected = false;
-                if (this.closeHandler !== null) {
-                    this.closeHandler(this.ws, e);
-                }
                 this.ws = null;
 
                 if (retryInterval === undefined) return;
@@ -98,6 +99,14 @@ export namespace wsc {
             new DataView(packetLength.buffer).setUint32(0, dataArray.byteLength, true /* littleEndian */);
             let packet = new Uint8Array([...Connection.packetHeadFlag, ...packetLength, ...dataArray]);
             return packet.buffer;
+        }
+
+        onDisplaced(ws: WebSocket, buffer: Uint8Array) {
+            let displacedMsg = $msg_pb.ws.P_DISPLACE.decode(buffer);
+            let oldIp = new TextDecoder().decode(displacedMsg.oldIp);
+            let newIp = new TextDecoder().decode(displacedMsg.newIp);
+            console.log(oldIp, " displaced by ", newIp, " at ", displacedMsg.ts);
+            this.displacedHandler?.(this.ws, oldIp, newIp, displacedMsg.ts.toString());
         }
     }
 }

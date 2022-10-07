@@ -1,25 +1,29 @@
-import {wsc} from "./wsc"
+import { wsc } from "./wsc"
 
-function initConn(){
-    let conn = new wsc.Connection();
+let wscConn: wsc.Connection;
 
-    conn.setEstablishHandler((ws) => {
+function initConn() {
+    wscConn = new wsc.Connection();
+
+    wscConn.setEstablishHandler((ws) => {
         console.log("connected");
-        conn.sendMsg(1, new TextEncoder().encode("js request"));
+        wscConn.sendMsg(1, new TextEncoder().encode("js request"));
     });
 
-    conn.setErrHandler((ws, error) => {
+    wscConn.setErrHandler((ws, error) => {
         console.log("err" + error);
     });
 
-    conn.setCloseHandler((ws) => {
-        console.log("closed");
+    wscConn.setCloseHandler((ws, e) => {
+        console.log("closed", e);
     });
-
-    conn.registerMsgHandler(2, (ws, data) => {
+    wscConn.setDisplacedHandler((ws, oldIp, newIp, ts) => {
+        console.log(oldIp, " displaced by ", newIp, " at ", ts);
+    });
+    wscConn.registerMsgHandler(2, (ws, data) => {
         console.log(new TextDecoder().decode(data));
     });
-    conn.connect("ws://127.0.0.1:8003/join?uid=x10000", 2000);
+    wscConn.connect("ws://127.0.0.1:8003/join?uid=x10000", 2000);
 }
 
 initConn();
