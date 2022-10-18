@@ -8,14 +8,14 @@ import (
 var (
 	messagePool = sync.Pool{
 		New: func() interface{} {
-			msg := NewMessage().(*Message)
+			msg := &Message{}
 			msg.isPool = true
 			return msg
 		},
 	}
 
-	dataMsgPools = make(map[int32]*sync.Pool)
-	dataMsgTypes = make(map[int32]reflect.Type)
+	dataMsgPools = make(map[uint32]*sync.Pool)
+	dataMsgTypes = make(map[uint32]reflect.Type)
 
 	srvConnectionPool = sync.Pool{
 		New: func() interface{} {
@@ -36,18 +36,19 @@ func putPoolMessage(msg *Message) {
 	}
 
 	if msg.dataMsg != nil {
-		putPoolDataMsg(msg.pMsg.ProtocolId, msg.dataMsg)
+		putPoolDataMsg(msg.protocolId, msg.dataMsg)
 		msg.dataMsg = nil
 	}
 
-	msg.pMsg.Reset()
+	msg.protocolId = 0
+	msg.data = nil
 	msg.sc = nil
 	messagePool.Put(msg)
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-func getPoolDataMsg(protocolId int32) IDataMessage {
+func getPoolDataMsg(protocolId uint32) IDataMessage {
 	pool, ok := dataMsgPools[protocolId]
 	if !ok {
 		return nil
@@ -55,7 +56,7 @@ func getPoolDataMsg(protocolId int32) IDataMessage {
 	return pool.Get().(IDataMessage)
 }
 
-func getDataMsg(protocolId int32) IDataMessage {
+func getDataMsg(protocolId uint32) IDataMessage {
 	typ, ok := dataMsgTypes[protocolId]
 	if !ok {
 		return nil
@@ -63,7 +64,7 @@ func getDataMsg(protocolId int32) IDataMessage {
 	return reflect.New(typ).Interface().(IDataMessage)
 }
 
-func putPoolDataMsg(protocolId int32, dataMsg IDataMessage) {
+func putPoolDataMsg(protocolId uint32, dataMsg IDataMessage) {
 	pool, ok := dataMsgPools[protocolId]
 	if !ok {
 		return

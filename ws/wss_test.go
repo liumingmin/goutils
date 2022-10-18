@@ -8,8 +8,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/golang/protobuf/proto"
-
 	"github.com/liumingmin/goutils/utils/safego"
 
 	"github.com/gin-gonic/gin"
@@ -29,11 +27,11 @@ func TestMessage(t *testing.T) {
 	//	fmt.Print(fmt.Sprintf("%v,", b))
 	//}
 
-	m := NewMessage().(*Message)
-	err := m.Unmarshal([]byte{8, 255, 255, 255, 255, 255, 255, 255, 255, 255, 1, 18, 12, 10, 1, 49, 18, 1, 50, 24, 143, 186, 156, 152, 6})
-	t.Log(err)
-	t.Log(m.PMsg())
-	t.Log(m.DataMsg())
+	//m := NewMessage().(*Message)
+	//err := m.unmarshal([]byte{8, 255, 255, 255, 255, 255, 255, 255, 255, 255, 1, 18, 12, 10, 1, 49, 18, 1, 50, 24, 143, 186, 156, 152, 6})
+	//t.Log(err)
+	//t.Log(m.protocolId())
+	//t.Log(m.DataMsg())
 }
 
 func TestWssRun(t *testing.T) {
@@ -43,41 +41,37 @@ func TestWssRun(t *testing.T) {
 	ctx := context.Background()
 
 	const (
-		C2S_REQ  = 1
-		S2C_RESP = 2
+		C2S_REQ  = 2
+		S2C_RESP = 3
 	)
 	const pullMsgFromDB = 1
 
 	//server reg handler
 	RegisterHandler(C2S_REQ, func(ctx context.Context, connection IConnection, message IMessage) error {
-		log.Info(ctx, "server recv: %v, %v", message.PMsg().ProtocolId, string(message.PMsg().Data))
+		log.Info(ctx, "server recv: %v, %v", message.GetProtocolId(), string(message.GetData()))
 		packet := GetPoolMessage(S2C_RESP)
-		packet.PMsg().Data = []byte("server response")
+		packet.SetData([]byte("server response"))
 		connection.SendMsg(ctx, packet, nil)
 
 		connection.SendPullNotify(ctx, pullMsgFromDB)
 		return nil
 	})
 
-	rawMsg := &P_MESSAGE{}
-	rawMsg.ProtocolId = S2C_RESP
-	rawMsg.Data = []byte("common msg")
-
-	commonMsg := NewMessage()
-	commonMsg.PMsg().Data, _ = proto.Marshal(rawMsg)
+	commonMsg := NewMessage(S2C_RESP)
+	commonMsg.SetData([]byte("common msg"))
 
 	//server start
 	var createSrvPullerFunc = func(conn IConnection, pullChannelId int) Puller {
 		return NewDefaultPuller(conn, pullChannelId, func(ctx context.Context, pullConn IConnection) {
 			packet := GetPoolMessage(S2C_RESP)
-			packet.PMsg().Data = []byte("first msg from db")
+			packet.SetData([]byte("first msg from db"))
 			pullConn.SendMsg(ctx, packet, nil)
 		}, func(ctx context.Context, pullConn IConnection) {
 			//msg from db...
 			time.Sleep(time.Second * 1)
 
 			packet := GetPoolMessage(S2C_RESP)
-			packet.PMsg().Data = []byte("pull msg from db")
+			packet.SetData([]byte("pull msg from db"))
 			pullConn.SendMsg(ctx, packet, nil)
 
 			pullConn.SendMsg(ctx, commonMsg, nil)
@@ -125,7 +119,7 @@ func TestWssRun(t *testing.T) {
 
 	//client reg handler
 	RegisterHandler(S2C_RESP, func(ctx context.Context, connection IConnection, message IMessage) error {
-		log.Info(ctx, "client recv: %v, %v", message.PMsg().ProtocolId, string(message.PMsg().Data))
+		log.Info(ctx, "client recv: %v, %v", message.GetProtocolId(), string(message.GetData()))
 		return nil
 	})
 	//client connect
@@ -151,7 +145,7 @@ func TestWssRun(t *testing.T) {
 	time.Sleep(time.Second * 5)
 
 	packet := GetPoolMessage(C2S_REQ)
-	packet.PMsg().Data = []byte("client request")
+	packet.SetData([]byte("client request"))
 	conn.SendMsg(context.Background(), packet, nil)
 
 	time.Sleep(time.Second * 10)
@@ -169,7 +163,7 @@ func TestWssRun(t *testing.T) {
 	)
 	time.Sleep(time.Second)
 	packet = GetPoolMessage(C2S_REQ)
-	packet.PMsg().Data = []byte("client request2")
+	packet.SetData([]byte("client request2"))
 	conn2.SendMsg(context.Background(), packet, nil)
 
 	clientConn, _ := ClientConnHub.Find("100-0-")

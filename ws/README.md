@@ -1,10 +1,14 @@
 
 # ws模块用法
 
-## js客户端使用lib模式和commonjs模式
+## go客户端
 ```shell script
 protoc --go_out=. ws/msg.proto
+```
 
+
+## js客户端使用lib模式和commonjs模式
+```shell script
 //lib js  (msg_pb_libs.js+google-protobuf.js)
 protoc --js_out=library=msg_pb_libs,binary:ws/js  ws/msg.proto
 

@@ -3,13 +3,6 @@ package ws;
 
 option go_package = "/ws";
 
-//通用消息体封装
-message P_MESSAGE
-{
-    int32                   protocol_id             = 1;    //消息协议ID
-    bytes                   data                    = 2;    //内容-自定义消息
-}
-
 message P_DISPLACE
 {
     bytes                   old_ip                  = 1;
@@ -20,7 +13,7 @@ message P_DISPLACE
 //基础协议
 enum P_BASE
 {
-    raw_bytes_msg           = 0;                            //raw bytes
-    s2c_err_displace        = -1;                           //被顶号
+    none                    = 0;                           //保留字段
+    s2c_err_displace        = 1;                           //被顶号
 }
 

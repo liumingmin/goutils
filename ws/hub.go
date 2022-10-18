@@ -149,7 +149,7 @@ func (h *Hub) sendDisplace(ctx context.Context, old *Connection, newIp string) {
 
 	<-old.writeDone
 
-	message := GetPoolMessage(int32(P_BASE_s2c_err_displace))
+	message := GetPoolMessage(uint32(P_BASE_s2c_err_displace))
 	dataMsg := message.DataMsg()
 	if dataMsg != nil {
 		displaceMsg := dataMsg.(*P_DISPLACE)
@@ -163,7 +163,7 @@ func (h *Hub) sendDisplace(ctx context.Context, old *Connection, newIp string) {
 
 //init server
 func initServer(serverOpt ServerOption) IHub {
-	RegisterDataMsgType(int32(P_BASE_s2c_err_displace), &P_DISPLACE{})
+	RegisterDataMsgType(uint32(P_BASE_s2c_err_displace), &P_DISPLACE{})
 
 	connHub := newShardHub(serverOpt.HubOpts)
 	safego.Go(connHub.run)
@@ -188,9 +188,9 @@ func newShardHub(opts []HubOption) IHub {
 
 //init client
 func initClient() IHub {
-	RegisterDataMsgType(int32(P_BASE_s2c_err_displace), &P_DISPLACE{})
+	RegisterDataMsgType(uint32(P_BASE_s2c_err_displace), &P_DISPLACE{})
 
-	RegisterHandler(int32(P_BASE_s2c_err_displace), func(ctx context.Context, conn IConnection, message IMessage) error {
+	RegisterHandler(uint32(P_BASE_s2c_err_displace), func(ctx context.Context, conn IConnection, message IMessage) error {
 		dataMsg := message.DataMsg()
 		if dataMsg != nil {
 			displaceMsg := dataMsg.(*P_DISPLACE)

@@ -26,7 +26,9 @@ func InitClient() {
 }
 
 type IMessage interface {
-	PMsg() *P_MESSAGE
+	GetProtocolId() uint32
+	GetData() []byte
+	SetData(data []byte)
 	DataMsg() IDataMessage
 }
 
@@ -74,16 +76,16 @@ type IHub interface {
 }
 
 //normal message 普通消息
-func NewMessage() IMessage {
+func NewMessage(protocolId uint32) IMessage {
 	return &Message{
-		pMsg: &P_MESSAGE{},
+		protocolId: protocolId,
 	}
 }
 
 //pool message 对象池消息
-func GetPoolMessage(protocolId int32) IMessage {
+func GetPoolMessage(protocolId uint32) IMessage {
 	msg := getPoolMessage()
-	msg.pMsg.ProtocolId = protocolId
+	msg.protocolId = protocolId
 	msg.dataMsg = getPoolDataMsg(protocolId)
 	return msg
 }
@@ -101,12 +103,12 @@ type MsgHandler func(context.Context, IConnection, IMessage) error
 type EventHandler func(context.Context, IConnection)
 
 // 注册消息处理器
-func RegisterHandler(protocolId int32, h MsgHandler) {
+func RegisterHandler(protocolId uint32, h MsgHandler) {
 	msgHandlers.Store(protocolId, h)
 }
 
 // 注册数据消息类型[P_MESSAGE.Data],功能可选，当需要使用框架提供的池功能时使用
-func RegisterDataMsgType(protocolId int32, pMsg IDataMessage) {
+func RegisterDataMsgType(protocolId uint32, pMsg IDataMessage) {
 	typ := reflect.TypeOf(pMsg)
 	if typ.Kind() == reflect.Ptr {
 		typ = typ.Elem()

@@ -550,7 +550,7 @@ func (c *Connection) processMsg(ctx context.Context, msgData []byte) {
 	message := getPoolMessage()
 	defer putPoolMessage(message)
 
-	err := message.Unmarshal(msgData)
+	err := message.unmarshal(msgData)
 	if err != nil {
 		log.Error(ctx, "%v Unmarshal pb failed. data: %v, err: %v, cid: %v", c.typ, msgData, err, c.id)
 		return
@@ -585,28 +585,21 @@ func (c *Connection) sendMsgToWs(ctx context.Context, message *Message) error {
 
 	defer putPoolMessage(message)
 
-	if message.PMsg().ProtocolId == int32(P_BASE_raw_bytes_msg) {
-		err := c.doSendMsgToWs(ctx, message.PMsg().Data)
-		c.callback(ctx, message.sc, err)
-		return err
-	}
-
-	msgData, err := message.Marshal()
-	if err != nil {
-		log.Warn(ctx, "%v Marshal message to pb failed. error: %v", c.typ, err)
-		c.callback(ctx, message.sc, err)
-		return err
-	}
-
-	err = c.doSendMsgToWs(ctx, msgData)
+	err := c.doSendMsgToWs(ctx, message)
 	c.callback(ctx, message.sc, err)
 	return err
 }
 
-func (c *Connection) doSendMsgToWs(ctx context.Context, data []byte) error {
+func (c *Connection) doSendMsgToWs(ctx context.Context, message *Message) error {
 	defer log.Recover(ctx, func(e interface{}) string {
 		return fmt.Sprintf("%v doSendMsgToWs failed, error: %v", c.typ, e)
 	})
+
+	err := message.marshal()
+	if err != nil {
+		log.Info(ctx, "%v Marshal data message to pb failed. error: %v", c.typ, err)
+		return err
+	}
 
 	c.conn.SetWriteDeadline(time.Now().Add(c.writeWait))
 
@@ -619,7 +612,7 @@ func (c *Connection) doSendMsgToWs(ctx context.Context, data []byte) error {
 	var headBytes [6]byte
 	headBytes[0] = msgHeadFlag[0]
 	headBytes[1] = msgHeadFlag[1]
-	binary.LittleEndian.PutUint32(headBytes[2:6], uint32(len(data)))
+	binary.LittleEndian.PutUint32(headBytes[2:6], uint32(len(message.data)+4))
 
 	_, err = w.Write(headBytes[:])
 	if err != nil {
@@ -627,16 +620,25 @@ func (c *Connection) doSendMsgToWs(ctx context.Context, data []byte) error {
 		return err
 	}
 
-	_, err = w.Write(data)
+	protoIdToLEBytes := message.protoIdToLEBytes()
+	_, err = w.Write(protoIdToLEBytes[:])
 	if err != nil {
-		log.Warn(ctx, "%v Write payload to writer failed. message: %v, error: %v", c.typ, len(data), err)
+		log.Warn(ctx, "%v Write protocolId to writer failed. protocolId: %v, error: %v", c.typ, message.protocolId, err)
 		return err
+	}
+
+	if len(message.data) > 0 {
+		_, err = w.Write(message.data)
+		if err != nil {
+			log.Warn(ctx, "%v Write data to writer failed. message: %v, error: %v", c.typ, len(message.data), err)
+			return err
+		}
 	}
 
 	failedRetry := 0
 	for {
 		if err := w.Close(); err == nil {
-			log.Debug(ctx, "%v finish write message. cid: %v, message: %v", c.typ, c.id, len(data))
+			log.Debug(ctx, "%v finish write message. cid: %v, message: %v", c.typ, c.id, len(message.data))
 			return nil
 		}
 
@@ -674,11 +676,11 @@ func (c *Connection) callback(ctx context.Context, sc SendCallback, e error) {
 
 // 消息分发器，分发器会根据消息的协议ID查找对应的Handler。
 func (c *Connection) dispatch(ctx context.Context, msg *Message) error {
-	handler, exist := msgHandlers.Load(msg.pMsg.ProtocolId)
+	handler, exist := msgHandlers.Load(msg.protocolId)
 	if exist && handler != nil {
 		return (handler.(MsgHandler))(ctx, c, msg)
 	} else {
-		log.Debug(ctx, "%v No handler. CMD: %d, Body len: %v", c.typ, msg.pMsg.ProtocolId, len(msg.pMsg.Data))
+		log.Debug(ctx, "%v No handler. CMD: %d, Body len: %v", c.typ, msg.protocolId, len(msg.data))
 		return errors.New("no handler")
 	}
 }
