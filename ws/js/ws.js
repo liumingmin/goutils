@@ -53,9 +53,8 @@ class WsConnection {
         this.ws.onmessage = (e) => {
             let msgPack = this.unpackMsg(e.data);
             //console.log(msgPack);
-            let wsMessage = proto.ws.P_MESSAGE.deserializeBinary(msgPack.dataBuffer);
-            let handler = this.msgHandler[wsMessage.getProtocolId()];
-            handler?.(this.ws, wsMessage.getData());
+            let handler = this.msgHandler[msgPack.protocolId];
+            handler?.(this.ws, msgPack.dataBuffer);
         };
         this.ws.onclose = (e) => {
             this.closeHandler?.(this.ws, e);
@@ -69,31 +68,34 @@ class WsConnection {
     }
 
     sendMsg(protocolId, data) {
-        let wsMessage = new proto.ws.P_MESSAGE;
-        wsMessage.setProtocolId(protocolId);
-        wsMessage.setData(data);
-        this.ws.send(this.packMsg(wsMessage.serializeBinary()));
+        this.ws.send(this.packMsg(protocolId, data));
     }
 
     unpackMsg(buffer) {
         let packetHeadFlag = buffer.slice(0, 2);
-        const dv = new DataView(buffer.slice(2, 6));
-        const packetLength = dv.getUint32(0, /* little endian data */ true);
-        let dataBuffer = buffer.slice(6);
+        const packetLenDv = new DataView(buffer.slice(2, 6));
+        const packetLength = packetLenDv.getUint32(0, /* little endian data */ true);
+        const protocolIdDv = new DataView(buffer.slice(6, 10));
+        const protocolId = protocolIdDv.getUint32(0, /* little endian data */ true);
+        let dataBuffer = buffer.slice(10);
         return {
             packetHeadFlag,
             packetLength,
+            protocolId,
             dataBuffer
         };
     }
 
-    packMsg(buffer) {
+    packMsg(protocolId, buffer) {
         let dataArray = new Uint8Array(buffer);
 
         let packetLength = new Uint8Array(4);
-        new DataView(packetLength.buffer).setUint32(0, buffer.byteLength, true /* littleEndian */);
+        new DataView(packetLength.buffer).setUint32(0, buffer.byteLength+4, true /* littleEndian */);
 
-        let packet = new Uint8Array([...this.packetHeadFlag, ...packetLength, ...dataArray]);
+        let protocolIdArray = new Uint8Array(4);
+        new DataView(protocolIdArray.buffer).setUint32(0, protocolId, true /* littleEndian */);
+
+        let packet = new Uint8Array([...this.packetHeadFlag, ...packetLength, ...protocolIdArray, ...dataArray]);
         return packet.buffer;
     }
 

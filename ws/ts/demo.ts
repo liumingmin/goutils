@@ -7,7 +7,7 @@ function initConn() {
 
     wscConn.setEstablishHandler((ws) => {
         console.log("connected");
-        wscConn.sendMsg(1, new TextEncoder().encode("js request"));
+        wscConn.sendMsg(2, new TextEncoder().encode("js request"));
     });
 
     wscConn.setErrHandler((ws, error) => {
@@ -20,7 +20,7 @@ function initConn() {
     wscConn.setDisplacedHandler((ws, oldIp, newIp, ts) => {
         console.log(oldIp, " displaced by ", newIp, " at ", ts);
     });
-    wscConn.registerMsgHandler(2, (ws, data) => {
+    wscConn.registerMsgHandler(3, (ws, data) => {
         console.log(new TextDecoder().decode(data));
     });
     wscConn.connect("ws://127.0.0.1:8003/join?uid=x10000", 2000);

@@ -9,6 +9,8 @@ protoc --go_out=. ws/msg.proto
 
 ## js客户端使用lib模式和commonjs模式
 ```shell script
+npm i google-protobuf
+
 //lib js  (msg_pb_libs.js+google-protobuf.js)
 protoc --js_out=library=msg_pb_libs,binary:ws/js  ws/msg.proto
 
@@ -17,7 +19,6 @@ cd ws
 protoc --js_out=import_style=commonjs,binary:js  msg.proto
 
 cd js
-npm i google-protobuf
 npm i -g browserify
 npm i -g minifier
 browserify msg_pb.js <custom_pb.js> -o  msg_pb_dist.js
