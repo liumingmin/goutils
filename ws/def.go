@@ -79,6 +79,7 @@ type IHub interface {
 func NewMessage(protocolId uint32) IMessage {
 	return &Message{
 		protocolId: protocolId,
+		dataMsg:    getDataMsg(protocolId),
 	}
 }
 
@@ -107,7 +108,7 @@ func RegisterHandler(protocolId uint32, h MsgHandler) {
 	msgHandlers.Store(protocolId, h)
 }
 
-// 注册数据消息类型[P_MESSAGE.Data],功能可选，当需要使用框架提供的池功能时使用
+// 注册数据消息类型[Data],功能可选，当需要使用框架提供的池功能时使用
 func RegisterDataMsgType(protocolId uint32, pMsg IDataMessage) {
 	typ := reflect.TypeOf(pMsg)
 	if typ.Kind() == reflect.Ptr {
