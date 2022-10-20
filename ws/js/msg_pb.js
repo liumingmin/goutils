@@ -281,7 +281,7 @@ proto.ws.P_DISPLACE.prototype.setTs = function(value) {
  */
 proto.ws.P_BASE = {
   NONE: 0,
-  S2C_ERR_DISPLACE: 1
+  S2C_ERR_DISPLACE: 2147483647
 };
 
 goog.object.extend(exports, proto.ws);

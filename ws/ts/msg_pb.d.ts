@@ -115,6 +115,6 @@ export namespace ws {
     /** P_BASE enum. */
     enum P_BASE {
         none = 0,
-        s2c_err_displace = 1
+        s2c_err_displace = 2147483647
     }
 }

@@ -14,6 +14,6 @@ message P_DISPLACE
 enum P_BASE
 {
     none                    = 0;                           //保留字段
-    s2c_err_displace        = 1;                           //被顶号
+    s2c_err_displace        = 2147483647;                  //被顶号
 }
 
