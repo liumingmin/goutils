@@ -1,12 +1,19 @@
 package log
 
 import (
+	"bytes"
 	"context"
 	"fmt"
+	"github.com/axgle/mahonia"
+	"github.com/liumingmin/goutils/utils/safego"
+	"gopkg.in/natefinch/lumberjack.v2"
+	"io/ioutil"
+	"net/http"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/liumingmin/goutils/conf"
@@ -14,15 +21,85 @@ import (
 	"go.uber.org/zap/zapcore"
 )
 
-const LOG_TRADE_ID = "__GTraceId__"
+const (
+	LOG_TRADE_ID           = "__GTraceId__"
+	LOGGER_ENCODER_JSON    = "json"
+	LOGGER_ENCODER_CONSOLE = "console"
+)
 
 var (
 	logger      *zap.Logger
 	loggerLevel zap.AtomicLevel
 	stackLogger *zap.Logger
+	enc         = mahonia.NewEncoder(conf.Conf.Log.ContentEncoder)
+	generator   DefaultFieldsGenerator
+	lock        sync.Mutex
 )
 
 func init() {
+	generator = new(DefaultGenerator)
+
+	syncers := populateWriteSyncer()
+
+	// 创建zap core
+	core := zapcore.NewCore(
+		populateEncoder(),                       // 编码器配置 NewConsoleEncoder NewJSONEncoder
+		zapcore.NewMultiWriteSyncer(syncers...), // 打印到控制台、文件、HTTP
+		populateLogLevel(),                      // 日志级别
+	)
+
+	// 开启开发模式，堆栈跟踪
+	caller := zap.AddCaller()
+	// 开启文件及行号
+	development := zap.Development()
+	// 构造日志
+	logger = zap.New(core, caller, development, zap.AddCallerSkip(1))
+	stackLogger = logger.WithOptions(zap.AddStacktrace(zap.ErrorLevel), zap.AddCallerSkip(1))
+	Debug(context.Background(), "log 初始化成功")
+}
+
+func populateWriteSyncer() []zapcore.WriteSyncer {
+	writeSyncers := make([]zapcore.WriteSyncer, 0)
+	// 标准输出流
+	if conf.Conf.Log.Stdout {
+		writeSyncers = append(writeSyncers, zapcore.AddSync(os.Stdout))
+	}
+	// 文件输出流
+	if conf.Conf.Log.FileOut {
+		hook := populateLogHook()
+		writeSyncers = append(writeSyncers, zapcore.AddSync(&hook))
+	}
+	// Http输出流
+	if conf.Conf.Log.HttpOut {
+		writeSyncers = append(writeSyncers, zapcore.AddSync(new(httpWriter)))
+	}
+	return writeSyncers
+}
+
+func populateEncoder() zapcore.Encoder {
+	config := zapcore.EncoderConfig{
+		TimeKey:        "time",
+		LevelKey:       "level",
+		NameKey:        "log",
+		CallerKey:      "linenum",
+		MessageKey:     "msg",
+		StacktraceKey:  "stacktrace",
+		LineEnding:     zapcore.DefaultLineEnding,
+		EncodeLevel:    zapcore.CapitalLevelEncoder,    // 小写编码器
+		EncodeTime:     CnTimeEncoder,                  // 时间格式
+		EncodeDuration: zapcore.SecondsDurationEncoder, //
+		EncodeCaller:   zapcore.ShortCallerEncoder,     // 路径编码器
+		EncodeName:     zapcore.FullNameEncoder,
+	}
+	// JSON 编码器
+	if conf.Conf.Log.OutputEncoder == LOGGER_ENCODER_JSON {
+		return zapcore.NewJSONEncoder(config)
+	}
+	// 默认：CONSOLE 编码器
+	return zapcore.NewConsoleEncoder(config)
+}
+
+func populateLogHook() lumberjack.Logger {
 	hook := conf.Conf.Log.Logger
 
 	if hook.Filename == "" {
@@ -47,51 +124,15 @@ func init() {
 	if hook.MaxAge == 0 {
 		hook.MaxAge = 7
 	}
+	return hook
+}
 
-	// 设置日志级别
+func populateLogLevel() zapcore.LevelEnabler {
 	loggerLevel = zap.NewAtomicLevelAt(zapcore.DebugLevel)
 	if conf.Conf.Log.LogLevel != "" {
 		loggerLevel.UnmarshalText([]byte(conf.Conf.Log.LogLevel))
 	}
-
-	writeSyncers := make([]zapcore.WriteSyncer, 0)
-	if conf.Conf.Log.Stdout {
-		writeSyncers = append(writeSyncers, zapcore.AddSync(os.Stdout))
-	}
-	if conf.Conf.Log.FileOut {
-		writeSyncers = append(writeSyncers, zapcore.AddSync(&hook))
-	}
-
-	encoderConfig := zapcore.EncoderConfig{
-		TimeKey:        "time",
-		LevelKey:       "level",
-		NameKey:        "log",
-		CallerKey:      "linenum",
-		MessageKey:     "msg",
-		StacktraceKey:  "stacktrace",
-		LineEnding:     zapcore.DefaultLineEnding,
-		EncodeLevel:    zapcore.CapitalLevelEncoder,    // 小写编码器
-		EncodeTime:     CnTimeEncoder,                  // 时间格式
-		EncodeDuration: zapcore.SecondsDurationEncoder, //
-		EncodeCaller:   zapcore.ShortCallerEncoder,     // 路径编码器
-		EncodeName:     zapcore.FullNameEncoder,
-	}
-
-	core := zapcore.NewCore(
-		zapcore.NewConsoleEncoder(encoderConfig),     // 编码器配置 NewConsoleEncoder NewJSONEncoder
-		zapcore.NewMultiWriteSyncer(writeSyncers...), // 打印到控制台和文件
-		loggerLevel, // 日志级别
-	)
-
-	// 开启开发模式，堆栈跟踪
-	caller := zap.AddCaller()
-	// 开启文件及行号
-	development := zap.Development()
-	// 构造日志
-	logger = zap.New(core, caller, development, zap.AddCallerSkip(1))
-	stackLogger = logger.WithOptions(zap.AddStacktrace(zap.ErrorLevel), zap.AddCallerSkip(1))
-
-	Debug(context.Background(), "log 初始化成功")
+	return loggerLevel
 }
 
 func CnTimeEncoder(t time.Time, enc zapcore.PrimitiveArrayEncoder) {
@@ -115,7 +156,7 @@ func Debug(c context.Context, args ...interface{}) {
 	}
 
 	msg := parseArgs(c, args...)
-	logger.Debug(msg)
+	logger.Debug(msg, generator.getDefaultFields()...)
 }
 
 func Info(c context.Context, args ...interface{}) {
@@ -124,7 +165,7 @@ func Info(c context.Context, args ...interface{}) {
 	}
 
 	msg := parseArgs(c, args...)
-	logger.Info(msg)
+	logger.Info(msg, generator.getDefaultFields()...)
 }
 
 func Warn(c context.Context, args ...interface{}) {
@@ -133,7 +174,7 @@ func Warn(c context.Context, args ...interface{}) {
 	}
 
 	msg := parseArgs(c, args...)
-	logger.Warn(msg)
+	logger.Warn(msg, generator.getDefaultFields()...)
 }
 
 func Error(c context.Context, args ...interface{}) {
@@ -142,7 +183,7 @@ func Error(c context.Context, args ...interface{}) {
 	}
 
 	msg := parseArgs(c, args...)
-	logger.Error(msg)
+	logger.Error(msg, generator.getDefaultFields()...)
 }
 
 func Fatal(c context.Context, args ...interface{}) {
@@ -151,7 +192,7 @@ func Fatal(c context.Context, args ...interface{}) {
 	}
 
 	msg := parseArgs(c, args...)
-	logger.Fatal(msg)
+	logger.Fatal(msg, generator.getDefaultFields()...)
 }
 
 func Panic(c context.Context, args ...interface{}) {
@@ -160,7 +201,7 @@ func Panic(c context.Context, args ...interface{}) {
 	}
 
 	msg := parseArgs(c, args...)
-	logger.Panic(msg)
+	logger.Panic(msg, generator.getDefaultFields()...)
 }
 
 func LogMore() zapcore.Level {
@@ -183,7 +224,7 @@ func LogLess() zapcore.Level {
 
 func Recover(c context.Context, errHandler func(interface{}) string) {
 	if err := recover(); err != nil {
-		stackLogger.Error(ctxParams(c) + " " + "panic: " + errHandler(err))
+		stackLogger.Error(ctxParams(c)+" "+"panic: "+errHandler(err), generator.getDefaultFields()...)
 	}
 }
 
@@ -208,7 +249,11 @@ func parseArgs(c context.Context, args ...interface{}) (msg string) {
 	}
 
 	msg = ctxParams(c) + " " + msg
-	return
+
+	if enc == nil {
+		return msg
+	}
+	return enc.ConvertString(msg)
 }
 
 func ctxParams(c context.Context) string {
@@ -218,4 +263,48 @@ func ctxParams(c context.Context) string {
 	}
 
 	return ""
+}
+
+// DefaultFieldsGenerator 默认值入参
+type DefaultFieldsGenerator interface {
+	getDefaultFields() []zap.Field
+}
+
+type DefaultGenerator struct {
+}
+
+func (f *DefaultGenerator) getDefaultFields() []zap.Field {
+	return nil
+}
+
+func SetDefaultGenerator(g DefaultFieldsGenerator) {
+	lock.Lock()
+	defer lock.Unlock()
+	generator = g
+}
+
+type httpWriter struct {
+}
+
+func (h *httpWriter) Write(byteData []byte) (int, error) {
+	if conf.Conf.Log.HttpUrl == "" {
+		return 0, nil
+	}
+
+	safego.Go(func() {
+		resp, err := http.Post(conf.Conf.Log.HttpUrl, "application/json;charset=UTF-8", bytes.NewBuffer(byteData))
+		if err != nil {
+			if conf.Conf.Log.HttpDebug {
+				fmt.Printf("http writer failed, err: %+v\n", err)
+			}
+			return
+		}
+		defer resp.Body.Close()
+
+		if conf.Conf.Log.HttpDebug {
+			body, _ := ioutil.ReadAll(resp.Body)
+			fmt.Printf("http writer successful: %+v\n", string(body))
+		}
+	})
+	return 1, nil
 }

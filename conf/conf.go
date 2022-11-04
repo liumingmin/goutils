@@ -19,6 +19,11 @@ type Log struct {
 	LogLevel          string `yaml:"logLevel"`
 	Stdout            bool   `yaml:"stdout"`
 	FileOut           bool   `yaml:"fileOut"`
+	HttpOut           bool   `yaml:"httpOut"`
+	OutputEncoder     string `yaml:"outputEncoder"`  // 编码器配置,json：NewJSONEncoder,console：NewConsoleEncoder。默认是console
+	ContentEncoder    string `yaml:"contentEncoder"` // 内容编码器，默认utf-8, 还支持gbk,bg18030,等等...
+	HttpUrl           string `yaml:"httpUrl"`        // 请求地址
+	HttpDebug         bool   `yaml:"httpDebug"`      // 是否打印请求输出成功和失败的情况
 }
 
 type Database struct {
