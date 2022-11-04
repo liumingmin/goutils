@@ -15,7 +15,7 @@ import (
 type GameDefaultFieldGenerator struct {
 }
 
-func (f *GameDefaultFieldGenerator) getDefaultFields() []zap.Field {
+func (f *GameDefaultFieldGenerator) GetDefaultFields() []zap.Field {
 	return []zap.Field{
 		zap.String("gameCode", "lol"),
 		zap.String("version", "1.0"),

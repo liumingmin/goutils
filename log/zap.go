@@ -156,7 +156,7 @@ func Debug(c context.Context, args ...interface{}) {
 	}
 
 	msg := parseArgs(c, args...)
-	logger.Debug(msg, generator.getDefaultFields()...)
+	logger.Debug(msg, generator.GetDefaultFields()...)
 }
 
 func Info(c context.Context, args ...interface{}) {
@@ -165,7 +165,7 @@ func Info(c context.Context, args ...interface{}) {
 	}
 
 	msg := parseArgs(c, args...)
-	logger.Info(msg, generator.getDefaultFields()...)
+	logger.Info(msg, generator.GetDefaultFields()...)
 }
 
 func Warn(c context.Context, args ...interface{}) {
@@ -174,7 +174,7 @@ func Warn(c context.Context, args ...interface{}) {
 	}
 
 	msg := parseArgs(c, args...)
-	logger.Warn(msg, generator.getDefaultFields()...)
+	logger.Warn(msg, generator.GetDefaultFields()...)
 }
 
 func Error(c context.Context, args ...interface{}) {
@@ -183,7 +183,7 @@ func Error(c context.Context, args ...interface{}) {
 	}
 
 	msg := parseArgs(c, args...)
-	logger.Error(msg, generator.getDefaultFields()...)
+	logger.Error(msg, generator.GetDefaultFields()...)
 }
 
 func Fatal(c context.Context, args ...interface{}) {
@@ -192,7 +192,7 @@ func Fatal(c context.Context, args ...interface{}) {
 	}
 
 	msg := parseArgs(c, args...)
-	logger.Fatal(msg, generator.getDefaultFields()...)
+	logger.Fatal(msg, generator.GetDefaultFields()...)
 }
 
 func Panic(c context.Context, args ...interface{}) {
@@ -201,7 +201,7 @@ func Panic(c context.Context, args ...interface{}) {
 	}
 
 	msg := parseArgs(c, args...)
-	logger.Panic(msg, generator.getDefaultFields()...)
+	logger.Panic(msg, generator.GetDefaultFields()...)
 }
 
 func LogMore() zapcore.Level {
@@ -224,7 +224,7 @@ func LogLess() zapcore.Level {
 
 func Recover(c context.Context, errHandler func(interface{}) string) {
 	if err := recover(); err != nil {
-		stackLogger.Error(ctxParams(c)+" "+"panic: "+errHandler(err), generator.getDefaultFields()...)
+		stackLogger.Error(ctxParams(c)+" "+"panic: "+errHandler(err), generator.GetDefaultFields()...)
 	}
 }
 
@@ -250,10 +250,11 @@ func parseArgs(c context.Context, args ...interface{}) (msg string) {
 
 	msg = ctxParams(c) + " " + msg
 
-	if enc == nil {
-		return msg
+	if enc != nil {
+		msg = enc.ConvertString(msg)
 	}
-	return enc.ConvertString(msg)
+
+	return msg
 }
 
 func ctxParams(c context.Context) string {
@@ -267,13 +268,13 @@ func ctxParams(c context.Context) string {
 
 // DefaultFieldsGenerator 默认值入参
 type DefaultFieldsGenerator interface {
-	getDefaultFields() []zap.Field
+	GetDefaultFields() []zap.Field
 }
 
 type DefaultGenerator struct {
 }
 
-func (f *DefaultGenerator) getDefaultFields() []zap.Field {
+func (f *DefaultGenerator) GetDefaultFields() []zap.Field {
 	return nil
 }
 
@@ -286,25 +287,28 @@ func SetDefaultGenerator(g DefaultFieldsGenerator) {
 type httpWriter struct {
 }
 
-func (h *httpWriter) Write(byteData []byte) (int, error) {
+func (h *httpWriter) Write(data []byte) (int, error) {
 	if conf.Conf.Log.HttpUrl == "" {
 		return 0, nil
 	}
 
+	input := make([]byte, len(data))
+	copy(input, data)
+
 	safego.Go(func() {
-		resp, err := http.Post(conf.Conf.Log.HttpUrl, "application/json;charset=UTF-8", bytes.NewBuffer(byteData))
+		resp, err := http.Post(conf.Conf.Log.HttpUrl, "application/json;charset=UTF-8", bytes.NewBuffer(input))
 		if err != nil {
 			if conf.Conf.Log.HttpDebug {
-				fmt.Printf("http writer failed, err: %+v\n", err)
+				fmt.Printf("http log failed, err: %+v, data: %+v", err, string(input))
 			}
 			return
 		}
 		defer resp.Body.Close()
-
 		if conf.Conf.Log.HttpDebug {
 			body, _ := ioutil.ReadAll(resp.Body)
-			fmt.Printf("http writer successful: %+v\n", string(body))
+			fmt.Printf("http log successful: %+v, data: %+v", string(body), string(input))
 		}
 	})
+
 	return 1, nil
 }
