@@ -296,7 +296,7 @@ func (h *httpWriter) Write(data []byte) (int, error) {
 	copy(input, data)
 
 	safego.Go(func() {
-		resp, err := http.Post(conf.Conf.Log.HttpUrl, "application/json;charset=UTF-8", bytes.NewBuffer(input))
+		resp, err := http.Post(conf.Conf.Log.HttpUrl, "application/json", bytes.NewBuffer(input))
 		if err != nil {
 			if conf.Conf.Log.HttpDebug {
 				fmt.Printf("http log failed, err: %+v, data: %+v", err, string(input))
