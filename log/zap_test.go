@@ -4,17 +4,30 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"go.uber.org/zap"
+	"strings"
 	"testing"
-	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 )
+
+type GameDefaultFieldGenerator struct {
+}
+
+func (f *GameDefaultFieldGenerator) GetDefaultFields() []zap.Field {
+	return []zap.Field{
+		zap.String("gameCode", "lol"),
+		zap.String("version", "1.0"),
+	}
+}
 
 func TestZap(t *testing.T) {
 	ctx := &gin.Context{}
 	ctx.Set(LOG_TRADE_ID, "aaabbbbbcccc")
 
 	Info(ctx, "我是日志2")
+	SetDefaultGenerator(new(GameDefaultFieldGenerator))
 	Error(ctx, "我是日志4: %v,%v", "管理员", "eee")
 }
 
@@ -24,7 +37,6 @@ func TestErrorStack(t *testing.T) {
 
 func TestPanicLog(t *testing.T) {
 	testPanicLog()
-
 	Info(context.Background(), "catch panic")
 }
 
