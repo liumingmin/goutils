@@ -5,7 +5,6 @@ import (
 	"context"
 	"fmt"
 	"github.com/axgle/mahonia"
-	"github.com/liumingmin/goutils/utils/safego"
 	"gopkg.in/natefinch/lumberjack.v2"
 	"io/ioutil"
 	"net/http"
@@ -156,7 +155,7 @@ func Debug(c context.Context, args ...interface{}) {
 	}
 
 	msg := parseArgs(c, args...)
-	logger.Debug(msg, generator.GetDefaultFields()...)
+	logger.Debug(msg, SupplementFields(c)...)
 }
 
 func Info(c context.Context, args ...interface{}) {
@@ -165,7 +164,7 @@ func Info(c context.Context, args ...interface{}) {
 	}
 
 	msg := parseArgs(c, args...)
-	logger.Info(msg, generator.GetDefaultFields()...)
+	logger.Info(msg, SupplementFields(c)...)
 }
 
 func Warn(c context.Context, args ...interface{}) {
@@ -174,7 +173,7 @@ func Warn(c context.Context, args ...interface{}) {
 	}
 
 	msg := parseArgs(c, args...)
-	logger.Warn(msg, generator.GetDefaultFields()...)
+	logger.Warn(msg, SupplementFields(c)...)
 }
 
 func Error(c context.Context, args ...interface{}) {
@@ -183,7 +182,7 @@ func Error(c context.Context, args ...interface{}) {
 	}
 
 	msg := parseArgs(c, args...)
-	logger.Error(msg, generator.GetDefaultFields()...)
+	logger.Error(msg, SupplementFields(c)...)
 }
 
 func Fatal(c context.Context, args ...interface{}) {
@@ -192,7 +191,7 @@ func Fatal(c context.Context, args ...interface{}) {
 	}
 
 	msg := parseArgs(c, args...)
-	logger.Fatal(msg, generator.GetDefaultFields()...)
+	logger.Fatal(msg, SupplementFields(c)...)
 }
 
 func Panic(c context.Context, args ...interface{}) {
@@ -201,7 +200,7 @@ func Panic(c context.Context, args ...interface{}) {
 	}
 
 	msg := parseArgs(c, args...)
-	logger.Panic(msg, generator.GetDefaultFields()...)
+	logger.Panic(msg, SupplementFields(c)...)
 }
 
 func LogMore() zapcore.Level {
@@ -224,7 +223,7 @@ func LogLess() zapcore.Level {
 
 func Recover(c context.Context, errHandler func(interface{}) string) {
 	if err := recover(); err != nil {
-		stackLogger.Error(ctxParams(c) + " panic: " + errHandler(err), generator.GetDefaultFields()...)
+		stackLogger.Error(ctxParams(c)+" panic: "+errHandler(err), SupplementFields(c)...)
 	}
 }
 
@@ -275,6 +274,17 @@ func ctxParams(c context.Context) string {
 	return ""
 }
 
+func SupplementFields(ctx context.Context) []zap.Field {
+	if conf.Conf.Log.OutputEncoder == LOGGER_ENCODER_JSON {
+		return generator.GetDefaultFields()
+	}
+	traceId := ctx.Value(LOG_TRADE_ID)
+	if traceId == nil {
+		return generator.GetDefaultFields()
+	}
+	return append(generator.GetDefaultFields(), zap.String("traceId", traceId.(string)))
+}
+
 // DefaultFieldsGenerator 默认值入参
 type DefaultFieldsGenerator interface {
 	GetDefaultFields() []zap.Field
@@ -304,7 +314,14 @@ func (h *httpWriter) Write(data []byte) (int, error) {
 	input := make([]byte, len(data))
 	copy(input, data)
 
-	safego.Go(func() {
+	go func() {
+		defer func() {
+			if e := recover(); e != nil {
+				if conf.Conf.Log.HttpDebug {
+					fmt.Fprintf(os.Stderr, "http log failed, err: %v", e)
+				}
+			}
+		}()
 		resp, err := http.Post(conf.Conf.Log.HttpUrl, "application/json", bytes.NewBuffer(input))
 		if err != nil {
 			if conf.Conf.Log.HttpDebug {
@@ -317,7 +334,7 @@ func (h *httpWriter) Write(data []byte) (int, error) {
 			body, _ := ioutil.ReadAll(resp.Body)
 			fmt.Printf("http log successful: %+v, data: %+v", string(body), string(input))
 		}
-	})
+	}()
 
 	return 1, nil
 }
