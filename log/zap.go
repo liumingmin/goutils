@@ -275,14 +275,14 @@ func ctxParams(c context.Context) string {
 }
 
 func SupplementFields(ctx context.Context) []zap.Field {
-	if conf.Conf.Log.OutputEncoder == LOGGER_ENCODER_JSON {
+	if conf.Conf.Log.OutputEncoder == LOGGER_ENCODER_CONSOLE {
 		return generator.GetDefaultFields()
 	}
 	traceId := ctx.Value(LOG_TRADE_ID)
 	if traceId == nil {
 		return generator.GetDefaultFields()
 	}
-	return append(generator.GetDefaultFields(), zap.String("traceId", traceId.(string)))
+	return append(generator.GetDefaultFields(), zap.String("traceId", fmt.Sprint(traceId)))
 }
 
 // DefaultFieldsGenerator 默认值入参
