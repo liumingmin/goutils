@@ -63,11 +63,12 @@ func TestIsChecksumFileValid(t *testing.T) {
 }
 
 func TestRelPath(t *testing.T) {
-	repos := []string{"", "a", "b", "a\\b", "a/c", "a\\b/c", "a/d/c", "d/a", "d/c"}
+	repos := []string{"", "a", "b", "a\\b", "a/c", "a\\b/c", "a/d/c", "d/a", "d/c", "/a", "\\a", "/a\\b\\", "\\a/b/b\\"}
 
 	for _, repo1 := range repos {
 		t.Log(">>>", repo1)
 		for _, repo2 := range repos {
+			repo2 = strings.Trim(repo2, "/\\")
 			rel, _ := filepath.Rel(repo1, repo2)
 			if !strings.Contains(rel, ".") {
 				t.Log(repo2, ":", rel)

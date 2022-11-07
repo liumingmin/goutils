@@ -1,0 +1,10 @@
+log:
+  filename: "ssgpaksync.log"
+  logLevel: info
+  stdout: true
+  fileOut: true
+  httpOut: true
+  outputEncoder: json
+  contentEncoder: utf-8
+  httpUrl: "http://127.0.0.1:8053/techpass/log"
+  httpDebug: true
