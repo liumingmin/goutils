@@ -4,8 +4,6 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"github.com/axgle/mahonia"
-	"gopkg.in/natefinch/lumberjack.v2"
 	"io/ioutil"
 	"net/http"
 	"os"
@@ -15,13 +13,17 @@ import (
 	"sync"
 	"time"
 
+	"github.com/axgle/mahonia"
 	"github.com/liumingmin/goutils/conf"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
+	lumberjack "gopkg.in/natefinch/lumberjack.v2"
 )
 
 const (
-	LOG_TRADE_ID           = "__GTraceId__"
+	LOG_TRADE_ID            = "__GTraceId__"
+	LOG_JSON_FIELD_TRACE_ID = "traceId"
+
 	LOGGER_ENCODER_JSON    = "json"
 	LOGGER_ENCODER_CONSOLE = "console"
 )
@@ -256,7 +258,7 @@ func parseArgs(c context.Context, args ...interface{}) (msg string) {
 		msg = fmt.Sprintf(msg, paramArgs...)
 	}
 
-	msg = ctxParams(c) + " " + msg
+	msg = ctxParams(c) + msg
 
 	if enc != nil {
 		msg = enc.ConvertString(msg)
@@ -266,23 +268,28 @@ func parseArgs(c context.Context, args ...interface{}) (msg string) {
 }
 
 func ctxParams(c context.Context) string {
+	if conf.Conf.Log.OutputEncoder == LOGGER_ENCODER_JSON {
+		return ""
+	}
+
 	traceId := c.Value(LOG_TRADE_ID)
 	if traceId != nil {
-		return "<" + fmt.Sprint(traceId) + ">"
+		return "<" + fmt.Sprint(traceId) + "> "
 	}
 
 	return ""
 }
 
 func SupplementFields(ctx context.Context) []zap.Field {
-	if conf.Conf.Log.OutputEncoder == LOGGER_ENCODER_CONSOLE {
+	if conf.Conf.Log.OutputEncoder != LOGGER_ENCODER_JSON {
 		return generator.GetDefaultFields()
 	}
+
 	traceId := ctx.Value(LOG_TRADE_ID)
-	if traceId == nil {
-		return generator.GetDefaultFields()
+	if traceId != nil {
+		return append(generator.GetDefaultFields(), zap.String(LOG_JSON_FIELD_TRACE_ID, fmt.Sprint(traceId)))
 	}
-	return append(generator.GetDefaultFields(), zap.String("traceId", fmt.Sprint(traceId)))
+	return generator.GetDefaultFields()
 }
 
 // DefaultFieldsGenerator 默认值入参
@@ -322,17 +329,19 @@ func (h *httpWriter) Write(data []byte) (int, error) {
 				}
 			}
 		}()
+
 		resp, err := http.Post(conf.Conf.Log.HttpUrl, "application/json", bytes.NewBuffer(input))
 		if err != nil {
 			if conf.Conf.Log.HttpDebug {
-				fmt.Printf("http log failed, err: %+v, data: %+v", err, string(input))
+				fmt.Fprintf(os.Stderr, "http log failed, err: %+v, data: %+v", err, string(input))
 			}
 			return
 		}
 		defer resp.Body.Close()
+
 		if conf.Conf.Log.HttpDebug {
 			body, _ := ioutil.ReadAll(resp.Body)
-			fmt.Printf("http log successful: %+v, data: %+v", string(body), string(input))
+			fmt.Fprintf(os.Stdout, "http log successful: %+v, data: %+v", string(body), string(input))
 		}
 	}()
 
