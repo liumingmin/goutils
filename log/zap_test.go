@@ -5,11 +5,10 @@ import (
 	"errors"
 	"fmt"
 	"go.uber.org/zap"
-	"strings"
 	"testing"
+	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/google/uuid"
 )
 
 type GameDefaultFieldGenerator struct {
