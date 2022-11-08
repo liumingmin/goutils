@@ -4,9 +4,10 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"go.uber.org/zap"
 	"testing"
 	"time"
+
+	"go.uber.org/zap"
 
 	"github.com/gin-gonic/gin"
 )
@@ -28,6 +29,11 @@ func TestZap(t *testing.T) {
 	Info(ctx, "我是日志2")
 	SetDefaultGenerator(new(GameDefaultFieldGenerator))
 	Error(ctx, "我是日志4: %v,%v", "管理员", "eee")
+
+	Info(ctx, "我是日志5: %v", "hello")
+	Warn(ctx, "我是日志6: %v", "hello sam")
+
+	time.Sleep(time.Second * 5)
 }
 
 func TestErrorStack(t *testing.T) {

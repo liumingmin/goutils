@@ -29,12 +29,13 @@ const (
 )
 
 var (
-	logger      *zap.Logger
-	loggerLevel zap.AtomicLevel
-	stackLogger *zap.Logger
-	enc         = mahonia.NewEncoder(conf.Conf.Log.ContentEncoder)
-	generator   DefaultFieldsGenerator
-	lock        sync.Mutex
+	logger           *zap.Logger
+	loggerLevel      zap.AtomicLevel
+	stackLogger      *zap.Logger
+	loggerHttpClient *http.Client
+	enc              = mahonia.NewEncoder(conf.Conf.Log.ContentEncoder)
+	generator        DefaultFieldsGenerator
+	generatorLock    sync.Mutex
 )
 
 func init() {
@@ -56,6 +57,9 @@ func init() {
 	// 构造日志
 	logger = zap.New(core, caller, development, zap.AddCallerSkip(1))
 	stackLogger = logger.WithOptions(zap.AddStacktrace(zap.ErrorLevel), zap.AddCallerSkip(1))
+
+	loggerHttpClient = &http.Client{Timeout: time.Second * time.Duration(conf.Conf.Log.HttpTimeout)}
+
 	Debug(context.Background(), "log 初始化成功")
 }
 
@@ -305,8 +309,8 @@ func (f *DefaultGenerator) GetDefaultFields() []zap.Field {
 }
 
 func SetDefaultGenerator(g DefaultFieldsGenerator) {
-	lock.Lock()
-	defer lock.Unlock()
+	generatorLock.Lock()
+	defer generatorLock.Unlock()
 	generator = g
 }
 
@@ -330,7 +334,7 @@ func (h *httpWriter) Write(data []byte) (int, error) {
 			}
 		}()
 
-		resp, err := http.Post(conf.Conf.Log.HttpUrl, "application/json", bytes.NewBuffer(input))
+		resp, err := loggerHttpClient.Post(conf.Conf.Log.HttpUrl, "application/json", bytes.NewBuffer(input))
 		if err != nil {
 			if conf.Conf.Log.HttpDebug {
 				fmt.Fprintf(os.Stderr, "http log failed, err: %+v, data: %+v", err, string(input))
@@ -345,5 +349,5 @@ func (h *httpWriter) Write(data []byte) (int, error) {
 		}
 	}()
 
-	return 1, nil
+	return len(input), nil
 }
