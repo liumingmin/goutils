@@ -8,7 +8,7 @@ import (
 	"strings"
 	"time"
 
-	"gopkg.in/natefinch/lumberjack.v2"
+	lumberjack "gopkg.in/natefinch/lumberjack.v2"
 	"gopkg.in/yaml.v2"
 )
 
@@ -24,6 +24,7 @@ type Log struct {
 	ContentEncoder    string `yaml:"contentEncoder"` // 内容编码器，默认utf-8, 还支持gbk,bg18030,等等...
 	HttpUrl           string `yaml:"httpUrl"`        // 请求地址
 	HttpDebug         bool   `yaml:"httpDebug"`      // 是否打印请求输出成功和失败的情况
+	HttpTimeout       int    `yaml:"httpTimeout"`    // httpclient超时
 }
 
 type Database struct {
