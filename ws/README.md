@@ -45,6 +45,15 @@ npm i -g browserify
 browserify dist/msg_pb.js dist/wsc.js dist/demo.js  -o dist/bundle.js
 ```
 
+## cpp客户端
+```shell script
+#1. unzip cpp/protobuf.zip
+#2. gen compatible protobuf cpp code
+cpp\protobuf\bin\protoc --cpp_out=cpp/QWS msg.proto
+
+#build sln
+```
+
 ## go服务端demo
 ```go
 InitServerWithOpt(ServerOption{[]HubOption{HubShardOption(4)}}) //server invoke 服务端调用
