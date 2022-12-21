@@ -14,7 +14,7 @@ class QWsConnection : public QObject
     using DisplacedHandler = std::function<void(QWebSocket*, QString, QString, int64_t)>;
 
 public:
-    explicit QWsConnection(QObject* parent = nullptr);
+    explicit QWsConnection(const QString& url, uint32_t retryInterval=0, QObject* parent = nullptr);
     ~QWsConnection();
 
     void RegisterMsgHandler(uint32_t protocolId, MsgHandler handler);
@@ -24,8 +24,10 @@ public:
     inline void SetErrHandler(ErrHandler errHandler) { m_errHandler = errHandler; }
     inline void SetDisplacedHandler(DisplacedHandler displacedHandler) { m_displacedHandler = displacedHandler; }
 
-    void Connect(const QString& url, int retryInterval = 0);
     void SendMsg(uint32_t protocolId, const QByteArray& data);
+
+public slots:
+    void Connect();
 
 protected:
     struct innerMsgPack
@@ -41,13 +43,15 @@ protected:
         }
     };
 
-    QByteArray _PackMsg(uint32_t protocolId, QByteArray dataBuffer);
-    innerMsgPack _UnpackMsg(QByteArray rawMsg);
+    QByteArray _PackMsg(uint32_t protocolId, const QByteArray& dataBuffer);
+    innerMsgPack _UnpackMsg(const QByteArray& rawMsg);
     void _OnDisplaced(QWebSocket* ws, QByteArray msgData);
 
 private:
     QWebSocket*                 m_pWs;
     bool                        m_bConnected;
+    QString                     m_strUrl;
+    uint32_t                    m_nRetryInterval;
 
     QHash<uint32_t, MsgHandler> m_mapMsgHandler;
     EvtHandler                  m_establishHandler;

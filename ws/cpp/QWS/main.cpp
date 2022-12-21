@@ -6,7 +6,31 @@ int main(int argc, char *argv[])
 {
     QCoreApplication app(argc, argv);
 
-    QWsConnection conn;
-    conn.Connect("ws://127.0.0.1:8003/join?uid=y10000");
+    QWsConnection conn("ws://127.0.0.1:8003/join?uid=y10000",10000);
+    conn.SetEstablishHandler([&](QWebSocket*)
+    {
+        qDebug() << "connected";
+        conn.SendMsg(2, QByteArray::fromStdString("js request"));
+    });
+
+    conn.SetCloseHandler([&](QWebSocket*)
+    {
+        qDebug() << "closed";
+    });
+    conn.SetErrHandler([&](QWebSocket*, QAbstractSocket::SocketError err)
+    {
+        qDebug() << "err:" << err;
+    });
+
+    conn.SetDisplacedHandler([&](QWebSocket*, QString oldIp, QString newIp, int64_t ts)
+    {
+        qDebug() << oldIp << " displaced by " << newIp << " at " << ts;
+    });
+
+    conn.RegisterMsgHandler(3, [&](QWebSocket*, QByteArray data){
+        qDebug() << data;
+    });
+
+    conn.Connect();
     app.exec();
 }
