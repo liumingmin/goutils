@@ -17,6 +17,9 @@ public:
     explicit QWsConnection(const QString& url, uint32_t retryInterval=0, QObject* parent = nullptr);
     ~QWsConnection();
 
+    void AcceptAllSelfSignCert();
+    void AcceptSelfSignCert(const QString&  caCertPath);
+
     void RegisterMsgHandler(uint32_t protocolId, MsgHandler handler);
 
     inline void SetEstablishHandler(EvtHandler establishHandler) { m_establishHandler = establishHandler; }

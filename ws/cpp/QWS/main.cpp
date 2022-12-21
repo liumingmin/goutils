@@ -6,7 +6,7 @@ int main(int argc, char *argv[])
 {
     QCoreApplication app(argc, argv);
 
-    QWsConnection conn("ws://127.0.0.1:8003/join?uid=y10000",10000);
+    QWsConnection conn("wss://test.com:8003/join?uid=y10000",10000); //hosts 127.0.0.1 <- test.com
     conn.SetEstablishHandler([&](QWebSocket*)
     {
         qDebug() << "connected";
@@ -30,7 +30,8 @@ int main(int argc, char *argv[])
     conn.RegisterMsgHandler(3, [&](QWebSocket*, QByteArray data){
         qDebug() << data;
     });
-
+    conn.AcceptSelfSignCert("xxx.crt");
     conn.Connect();
+
     app.exec();
 }

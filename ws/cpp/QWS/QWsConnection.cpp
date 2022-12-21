@@ -14,7 +14,6 @@ QWsConnection::QWsConnection(const QString& url, uint32_t retryInterval, QObject
     m_pWs = new QWebSocket;
     m_pWs->setParent(this);
 
-
     connect(m_pWs, &QWebSocket::connected, [this]() {
         m_bConnected = true;
         if (m_establishHandler)
@@ -59,6 +58,29 @@ QWsConnection::QWsConnection(const QString& url, uint32_t retryInterval, QObject
 QWsConnection::~QWsConnection()
 {
 
+}
+
+void QWsConnection::AcceptAllSelfSignCert()
+{
+    QSslConfiguration sslConfiguration = m_pWs->sslConfiguration();
+    sslConfiguration.setPeerVerifyMode(QSslSocket::VerifyNone);
+    m_pWs->setSslConfiguration(sslConfiguration);
+    m_pWs->ignoreSslErrors();
+}
+
+void QWsConnection::AcceptSelfSignCert(const QString& caCertPath)
+{
+    QList<QSslCertificate> certs = QSslCertificate::fromPath(caCertPath);
+    QSslConfiguration sslConfiguration = m_pWs->sslConfiguration();
+    sslConfiguration.addCaCertificates(certs);
+
+    QList<QSslError> expectedSslErrors;
+    for(auto& cert : certs)
+    {
+        QSslError ignoreError(QSslError::InvalidPurpose, cert);
+        expectedSslErrors.append(ignoreError);
+    }
+    m_pWs->ignoreSslErrors(expectedSslErrors);
 }
 
 void QWsConnection::RegisterMsgHandler(uint32_t protocolId, MsgHandler handler)
