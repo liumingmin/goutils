@@ -21,16 +21,16 @@ public:
     void AcceptSelfSignCert(const QString&  caCertPath);
 
     void RegisterMsgHandler(uint32_t protocolId, MsgHandler handler);
+    void SendMsg(uint32_t protocolId, const QByteArray& data);
+
+    inline bool IsConnected() { return m_bConnected; }
+    inline void SetUrl(const QString& url) { m_strUrl = url; }
+    inline void SetRetryInterval(uint32_t retryInterval) { m_nRetryInterval = retryInterval; }
 
     inline void SetEstablishHandler(EvtHandler establishHandler) { m_establishHandler = establishHandler; }
     inline void SetCloseHandler(EvtHandler closeHandler) { m_closeHandler = closeHandler; }
     inline void SetErrHandler(ErrHandler errHandler) { m_errHandler = errHandler; }
     inline void SetDisplacedHandler(DisplacedHandler displacedHandler) { m_displacedHandler = displacedHandler; }
-
-    inline bool IsConnected() { return m_bConnected; }
-    inline void SetRetryInterval(uint32_t retryInterval) { m_nRetryInterval = retryInterval; }
-
-    void SendMsg(uint32_t protocolId, const QByteArray& data);
 
 public slots:
     void Connect();
