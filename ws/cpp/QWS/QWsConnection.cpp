@@ -36,18 +36,42 @@ QWsConnection::QWsConnection(const QString& url, uint32_t retryInterval, QObject
     connect(m_pWs, QOverload<QAbstractSocket::SocketError>::of(&QWebSocket::error), [this](QAbstractSocket::SocketError err) {
         if (m_errHandler)
         {
-            m_errHandler(m_pWs, err);
+            m_errHandler(m_pWs, err, "");
         }
     });
 
     connect(m_pWs, &QWebSocket::binaryMessageReceived, [this](const QByteArray &message) {
-        auto msgPack = _UnpackMsg(message);
-        //todo valid && errHanlder
+        const auto msgPack = _UnpackMsg(message);
+
+        if(msgPack.packetHeadFlag[0] != m_packetHeadFlag[0] || msgPack.packetHeadFlag[1] != m_packetHeadFlag[1])
+        {
+            if (m_errHandler)
+            {
+                m_errHandler(m_pWs, QAbstractSocket::SocketError::UnknownSocketError, "packetHeadFlag error");
+            }
+            return;
+        }
+
+        if (msgPack.packetLength != msgPack.dataBuffer.size()+4)
+        {
+            if (m_errHandler)
+            {
+                m_errHandler(m_pWs, QAbstractSocket::SocketError::UnknownSocketError, "packetLength error");
+            }
+            return;
+        }
 
         if(m_mapMsgHandler.contains(msgPack.protocolId))
         {
-            auto handler = m_mapMsgHandler[msgPack.protocolId];
+            const auto handler = m_mapMsgHandler[msgPack.protocolId];
             handler(m_pWs, msgPack.dataBuffer);
+        }
+        else
+        {
+            if (m_errHandler)
+            {
+                m_errHandler(m_pWs, QAbstractSocket::SocketError::UnknownSocketError, "protocolId's handler not found");
+            }
         }
     });
 
@@ -57,7 +81,7 @@ QWsConnection::QWsConnection(const QString& url, uint32_t retryInterval, QObject
 
 QWsConnection::~QWsConnection()
 {
-
+    Close();
 }
 
 void QWsConnection::AcceptAllSelfSignCert()
@@ -103,6 +127,16 @@ void QWsConnection::Connect()
     m_pWs->open(QUrl(m_strUrl));
 }
 
+void QWsConnection::Close()
+{
+    m_nRetryInterval = 0;
+
+    if (m_pWs != nullptr) {
+        m_pWs->close();
+        m_bConnected = false;
+    }
+}
+
 QByteArray QWsConnection::_PackMsg(uint32_t protocolId, const QByteArray& dataBuffer)
 {
     BYTE        packetLength[4];
@@ -136,7 +170,7 @@ QWsConnection::innerMsgPack QWsConnection::_UnpackMsg(const QByteArray& rawMsg)
     return msgPack;
 }
 
-void QWsConnection::_OnDisplaced(QWebSocket* ws, QByteArray msgData)
+void QWsConnection::_OnDisplaced(QWebSocket* ws, const QByteArray& msgData)
 {
     ws::P_DISPLACE displacedMsg;
     bool result = displacedMsg.ParseFromArray(msgData.data(), msgData.size());

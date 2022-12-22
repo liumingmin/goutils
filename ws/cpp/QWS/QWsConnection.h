@@ -10,12 +10,12 @@ class QWsConnection : public QObject
 
     using MsgHandler = std::function<void(QWebSocket*, const QByteArray&)>;
     using EvtHandler = std::function<void(QWebSocket*)>;
-    using ErrHandler = std::function<void(QWebSocket*, QAbstractSocket::SocketError)>;
+    using ErrHandler = std::function<void(QWebSocket*, QAbstractSocket::SocketError, const QString&)>;
     using DisplacedHandler = std::function<void(QWebSocket*, QString, QString, int64_t)>;
 
 public:
     explicit QWsConnection(const QString& url, uint32_t retryInterval=0, QObject* parent = nullptr);
-    ~QWsConnection();
+    virtual  ~QWsConnection();
 
     void AcceptAllSelfSignCert();
     void AcceptSelfSignCert(const QString&  caCertPath);
@@ -27,10 +27,14 @@ public:
     inline void SetErrHandler(ErrHandler errHandler) { m_errHandler = errHandler; }
     inline void SetDisplacedHandler(DisplacedHandler displacedHandler) { m_displacedHandler = displacedHandler; }
 
+    inline bool IsConnected() { return m_bConnected; }
+    inline void SetRetryInterval(uint32_t retryInterval) { m_nRetryInterval = retryInterval; }
+
     void SendMsg(uint32_t protocolId, const QByteArray& data);
 
 public slots:
     void Connect();
+    void Close();
 
 protected:
     struct innerMsgPack
@@ -48,7 +52,7 @@ protected:
 
     QByteArray _PackMsg(uint32_t protocolId, const QByteArray& dataBuffer);
     innerMsgPack _UnpackMsg(const QByteArray& rawMsg);
-    void _OnDisplaced(QWebSocket* ws, QByteArray msgData);
+    void _OnDisplaced(QWebSocket* ws, const QByteArray& msgData);
 
 private:
     QWebSocket*                 m_pWs;

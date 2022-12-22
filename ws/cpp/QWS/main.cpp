@@ -10,16 +10,16 @@ int main(int argc, char *argv[])
     conn.SetEstablishHandler([&](QWebSocket*)
     {
         qDebug() << "connected";
-        conn.SendMsg(2, QByteArray::fromStdString("js request"));
+        conn.SendMsg(2, QByteArray::fromStdString("cpp request"));
     });
 
     conn.SetCloseHandler([&](QWebSocket*)
     {
         qDebug() << "closed";
     });
-    conn.SetErrHandler([&](QWebSocket*, QAbstractSocket::SocketError err)
+    conn.SetErrHandler([&](QWebSocket*, QAbstractSocket::SocketError err, const QString& errMsg)
     {
-        qDebug() << "err:" << err;
+        qDebug() << "err:" << err << " "<< errMsg;
     });
 
     conn.SetDisplacedHandler([&](QWebSocket*, QString oldIp, QString newIp, int64_t ts)
@@ -27,7 +27,7 @@ int main(int argc, char *argv[])
         qDebug() << oldIp << " displaced by " << newIp << " at " << ts;
     });
 
-    conn.RegisterMsgHandler(3, [&](QWebSocket*, QByteArray data){
+    conn.RegisterMsgHandler(3, [](QWebSocket*, const QByteArray& data){
         qDebug() << data;
     });
     conn.AcceptSelfSignCert("xxx.crt");
