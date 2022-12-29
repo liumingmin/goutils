@@ -13,7 +13,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/axgle/mahonia"
 	"github.com/liumingmin/goutils/conf"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
@@ -33,7 +32,6 @@ var (
 	loggerLevel      zap.AtomicLevel
 	stackLogger      *zap.Logger
 	loggerHttpClient *http.Client
-	enc              = mahonia.NewEncoder(conf.Conf.Log.ContentEncoder)
 	generator        DefaultFieldsGenerator
 	generatorLock    sync.Mutex
 )
@@ -263,11 +261,6 @@ func parseArgs(c context.Context, args ...interface{}) (msg string) {
 	}
 
 	msg = ctxParams(c) + msg
-
-	if enc != nil {
-		msg = enc.ConvertString(msg)
-	}
-
 	return msg
 }
 
