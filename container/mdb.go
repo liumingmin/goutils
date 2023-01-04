@@ -110,6 +110,31 @@ func (t *DataTable) RowsBy(indexName, indexValue string) []*DataRow {
 	return indexMap[indexValue]
 }
 
+func (t *DataTable) RowsByPredicate(predicate func(*DataRow) bool) []*DataRow {
+	result := make([]*DataRow, 0)
+	for _, row := range t.rows {
+		if predicate(row) {
+			result = append(result, row)
+		}
+	}
+	return result
+}
+
+func (t *DataTable) RowsByIndexPredicate(indexName, indexValue string, predicate func(*DataRow) bool) []*DataRow {
+	rows := t.RowsBy(indexName, indexValue)
+	if len(rows) == 0 {
+		return rows
+	}
+
+	result := make([]*DataRow, 0)
+	for _, row := range rows {
+		if predicate(row) {
+			result = append(result, row)
+		}
+	}
+	return result
+}
+
 func (t *DataTable) PkString(row *DataRow) string {
 	return row.String(t.pkCol)
 }
