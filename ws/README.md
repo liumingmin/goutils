@@ -47,7 +47,7 @@ browserify dist/msg_pb.js dist/wsc.js dist/demo.js  -o dist/bundle.js
 
 ## cpp客户端
 ```shell script
-#1. unzip cpp/protobuf.zip
+#1. unzip cpp/protobuf.zip (download from https://github.com/protocolbuffers/protobuf/releases  sourcecode: protobuf-cpp-3.21.12.zip then build)
 #2. gen compatible protobuf cpp code
 cpp\protobuf\bin\protoc --cpp_out=cpp/QWS msg.proto
 
