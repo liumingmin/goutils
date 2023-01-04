@@ -5,7 +5,6 @@ go 1.16
 require (
 	github.com/BurntSushi/toml v1.2.1 // indirect
 	github.com/Shopify/sarama v1.37.2
-	github.com/axgle/mahonia v0.0.0-20180208002826-3358181d7394
 	github.com/demdxx/gocast v1.2.0
 	github.com/gin-gonic/gin v1.8.2
 	github.com/go-redis/redis/v8 v8.11.5
