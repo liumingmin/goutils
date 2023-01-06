@@ -27,8 +27,11 @@ func newHub() *Hub {
 	}
 	return h
 }
+func (h *Hub) Find(id string) (IConnection, error) {
+	return h.findById(id)
+}
 
-func (h *Hub) Find(id string) (*Connection, error) {
+func (h *Hub) findById(id string) (*Connection, error) {
 	if v, exists := h.connections.Load(id); exists {
 		if conn, ok := v.(*Connection); ok {
 			return conn, nil
@@ -40,7 +43,7 @@ func (h *Hub) Find(id string) (*Connection, error) {
 	}
 }
 
-func (h *Hub) RangeConnsByFunc(f func(string, *Connection) bool) {
+func (h *Hub) RangeConnsByFunc(f func(string, IConnection) bool) {
 	h.connections.Range(func(k, v interface{}) bool {
 		if a, ok := v.(*Connection); ok {
 			return f(k.(string), a)
@@ -83,7 +86,7 @@ func (h *Hub) processRegister(conn *Connection) {
 		return fmt.Sprintf("processRegister. error: %v", e)
 	})
 
-	if old, err := h.Find(conn.id); err == nil && old != conn {
+	if old, err := h.findById(conn.id); err == nil && old != conn {
 		// 本进程中已经存在此用户的另外一条连接，踢出老的连接
 		log.Debug(ctx, "%v Repeat register, kick out. id: %v, ptr: %p", conn.typ, conn.id, old)
 
@@ -121,7 +124,7 @@ func (h *Hub) processUnregister(conn *Connection) {
 		return fmt.Sprintf("processUnregister. error: %v", e)
 	})
 
-	if c, err := h.Find(conn.id); err == nil && c == conn {
+	if c, err := h.findById(conn.id); err == nil && c == conn {
 		log.Debug(ctx, "%v unregister start. id: %v", c.typ, c.id)
 
 		h.connections.Delete(conn.id)
@@ -213,12 +216,12 @@ type shardHub struct {
 	hubs []*Hub
 }
 
-func (h *shardHub) Find(id string) (*Connection, error) {
+func (h *shardHub) Find(id string) (IConnection, error) {
 	idx := algorithm.Crc16s(id) % uint16(len(h.hubs))
 	return h.hubs[idx].Find(id)
 }
 
-func (h *shardHub) RangeConnsByFunc(rangFunc func(string, *Connection) bool) {
+func (h *shardHub) RangeConnsByFunc(rangFunc func(string, IConnection) bool) {
 	for _, hub := range h.hubs {
 		hub.RangeConnsByFunc(rangFunc)
 	}

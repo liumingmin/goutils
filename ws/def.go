@@ -53,8 +53,9 @@ type IConnection interface {
 	RefreshDeadline()
 	SendMsg(ctx context.Context, payload IMessage, sc SendCallback) error
 
-	KickClient(displace bool) //server side invoke
-	KickServer()              //client side invoke
+	KickClient(displace bool)                                  //server side invoke
+	KickServer()                                               //client side invoke
+	DisplaceClientByIp(ctx context.Context, displaceIp string) //server side invoke
 
 	GetPullChannel(pullChannelId int) (chan struct{}, bool)
 	SendPullNotify(ctx context.Context, pullChannelId int) error
@@ -66,8 +67,8 @@ type IConnection interface {
 }
 
 type IHub interface {
-	Find(string) (*Connection, error)
-	RangeConnsByFunc(func(string, *Connection) bool)
+	Find(string) (IConnection, error)
+	RangeConnsByFunc(func(string, IConnection) bool)
 	ConnectionIds() []string
 
 	registerConn(*Connection)
