@@ -90,7 +90,7 @@ class WsConnection {
         let dataArray = new Uint8Array(buffer);
 
         let packetLength = new Uint8Array(4);
-        new DataView(packetLength.buffer).setUint32(0, buffer.byteLength+4, true /* littleEndian */);
+        new DataView(packetLength.buffer).setUint32(0, dataArray.byteLength+4, true /* littleEndian */);
 
         let protocolIdArray = new Uint8Array(4);
         new DataView(protocolIdArray.buffer).setUint32(0, protocolId, true /* littleEndian */);
