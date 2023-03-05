@@ -54,6 +54,7 @@ func TestWssRequestResponse(t *testing.T) {
 
 	//server start
 	e := gin.New()
+	e.Static("/js", "js")
 	e.GET("/join", func(ctx *gin.Context) {
 		connMeta := ConnectionMeta{
 			UserId:   ctx.DefaultQuery("uid", ""),
@@ -123,7 +124,7 @@ func TestWssRequestResponse(t *testing.T) {
 			log.Info(ctx, "client recv: sn: %v, data: %v", resp.GetSn(), string(resp.GetData()))
 		}
 	}
-	time.Sleep(time.Second * 10)
+	time.Sleep(time.Minute * 10)
 
 }
 

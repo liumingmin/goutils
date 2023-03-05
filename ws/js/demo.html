@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <title>demo ws</title>
-    <script src="msg_pb_dist.min.js?ver=3"></script>
+    <script src="msg_pb_dist.js?ver=3"></script>
     <script src="ws.js?ver=3"></script>
     <script>
         let conn = new WsConnection();
@@ -11,6 +11,10 @@
         conn.setEstablishHandler((ws) => {
             console.log("connected");
             conn.sendMsg(2, new TextEncoder("utf-8").encode("js request"));
+            conn.sendRequestMsg(2, new TextEncoder("utf-8").encode("js request rpc"), (resp) => {
+                const bytesString = new TextDecoder().decode(resp)
+                console.log(bytesString);
+            });
         });
 
         conn.setErrHandler((ws, error) => {
@@ -21,14 +25,14 @@
             console.log("closed");
         });
 
-        conn.registerMsgHandler(3, (ws, data) => {
-            const bytesString = new TextDecoder().decode(data)
-            console.log(bytesString);
-        });
+        // conn.registerMsgHandler(3, (ws, data) => {
+        //     const bytesString = new TextDecoder().decode(data)
+        //     console.log(bytesString);
+        // });
         conn.setDisplacedHandler((ws, oldIp, newIp, ts) => {
             console.log(oldIp, " displaced by ", newIp, " at ", ts);
         });
-        conn.connect("ws://127.0.0.1:8003/join?uid=x10000",2000);
+        conn.connect("ws://127.0.0.1:8003/join?uid=x10000", 2000);
     </script>
 </head>
 <body>
