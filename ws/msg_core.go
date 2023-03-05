@@ -9,6 +9,7 @@ import (
 //不能手动创建，必须使用 NewMessage() 或 GetPoolMessage()
 type Message struct {
 	protocolId uint32       // 消息协议ID
+	sn         uint32       // message sequence number
 	data       []byte       // 内容-自定义消息
 	dataMsg    IDataMessage // 当为nil时,由用户自定义t.data,当不为nil时,则是池对象 t.data => t.dataMsg
 	isPool     bool         // Message是否对象池消息
@@ -17,6 +18,10 @@ type Message struct {
 
 func (t *Message) GetProtocolId() uint32 {
 	return t.protocolId
+}
+
+func (t *Message) GetSn() uint32 {
+	return t.sn
 }
 
 func (t *Message) GetData() []byte {
@@ -31,9 +36,14 @@ func (t *Message) DataMsg() IDataMessage {
 	return t.dataMsg
 }
 
-func (t *Message) protoIdToLEBytes() [4]byte {
-	var bytes [4]byte
-	binary.LittleEndian.PutUint32(bytes[:], t.protocolId)
+func (t *Message) setSn(sn uint32) {
+	t.sn = sn
+}
+
+func (t *Message) msgHeadToLEBytes() [8]byte {
+	var bytes [8]byte
+	binary.LittleEndian.PutUint32(bytes[0:4], t.protocolId)
+	binary.LittleEndian.PutUint32(bytes[4:8], t.sn)
 	return bytes
 }
 
@@ -50,7 +60,8 @@ func (t *Message) marshal() error {
 
 func (t *Message) unmarshal(payload []byte) error {
 	t.protocolId = binary.LittleEndian.Uint32(payload[:4])
-	t.data = payload[4:]
+	t.sn = binary.LittleEndian.Uint32(payload[4:8])
+	t.data = payload[8:]
 
 	if len(t.data) == 0 {
 		return nil

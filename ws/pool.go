@@ -41,6 +41,7 @@ func putPoolMessage(msg *Message) {
 	}
 
 	msg.protocolId = 0
+	msg.sn = 0
 	msg.data = nil
 	msg.sc = nil
 	messagePool.Put(msg)
@@ -73,6 +74,8 @@ func putPoolDataMsg(protocolId uint32, dataMsg IDataMessage) {
 	dataMsg.Reset()
 	pool.Put(dataMsg)
 }
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 func getPoolConnection() *Connection {
 	conn := srvConnectionPool.Get().(*Connection)

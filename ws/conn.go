@@ -20,7 +20,7 @@ import (
 
 var (
 	msgHandlers sync.Map // map[int32]MsgHandler
-	msgHeadFlag = [2]byte{0xFE, 0xEE}
+	msgHeadFlag = [2]byte{0xFE, 0xEF}
 )
 
 type ConnType int8
@@ -52,6 +52,9 @@ type Connection struct {
 	pullChannelMap map[int]chan struct{} //pullSendNotify 拉取通知通道
 	debug          bool                  //debug日志输出
 	isPool         bool                  //poolObject 池对象
+
+	snCounter uint32   //sn counter, atomic
+	snChanMap sync.Map //sn channel store map, map[uint32]chan IMessage
 
 	connEstablishHandler  EventHandler
 	connClosingHandler    EventHandler
@@ -154,6 +157,16 @@ func (c *Connection) Reset() {
 	c.debug = false
 	c.isPool = false
 
+	c.snCounter = 0
+	var snChanMapHasVal bool
+	c.snChanMap.Range(func(key, value interface{}) bool {
+		snChanMapHasVal = true
+		return false
+	})
+	if snChanMapHasVal {
+		c.snChanMap = sync.Map{}
+	}
+
 	c.maxFailureRetry = 0
 	c.readWait = 0
 	c.writeWait = 0
@@ -219,6 +232,7 @@ func (c *Connection) SendMsg(ctx context.Context, payload IMessage, sc SendCallb
 	})
 
 	if c.IsStopped() {
+		putPoolMessage(payload.(*Message))
 		return errors.New("connect is stopped")
 	}
 
@@ -229,8 +243,45 @@ func (c *Connection) SendMsg(ctx context.Context, payload IMessage, sc SendCallb
 	return nil
 }
 
-//通知指定消息通道转发消息
+func (c *Connection) SendRequestMsg(ctx context.Context, reqMsg IMessage, sc SendCallback) (respMsg IMessage, err error) {
+	sn := atomic.AddUint32(&c.snCounter, 1)
+	(reqMsg.(*Message)).setSn(sn)
+
+	ch := make(chan IMessage)
+	c.snChanMap.Store(sn, ch)
+
+	err = c.SendMsg(ctx, reqMsg, sc)
+	if err != nil {
+		c.snChanMap.Delete(sn)
+		close(ch)
+		return nil, err
+	}
+
+	var ok bool
+	select {
+	case respMsg, ok = <-ch:
+		if !ok {
+			err = errors.New("sn channel is closed")
+		}
+	case <-ctx.Done():
+		err = errors.New("rpc cancel or timeout")
+	}
+	c.snChanMap.Delete(sn)
+
+	return respMsg, err
+}
+
+func (c *Connection) SendResponseMsg(ctx context.Context, respMsg IMessage, reqSn uint32, sc SendCallback) (err error) {
+	(respMsg.(*Message)).setSn(reqSn)
+	return c.SendMsg(ctx, respMsg, sc)
+}
+
 func (c *Connection) SendPullNotify(ctx context.Context, pullChannelId int) (err error) {
+	return c.SignalPullSend(ctx, pullChannelId)
+}
+
+//通知指定消息通道转发消息
+func (c *Connection) SignalPullSend(ctx context.Context, pullChannelId int) (err error) {
 	defer log.Recover(ctx, func(e interface{}) string {
 		err, _ = e.(error)
 		return fmt.Sprintf("%v SendPullNotify err: %v", c.typ, e)
@@ -547,7 +598,8 @@ func (c *Connection) processMsg(ctx context.Context, msgData []byte) {
 		log.Debug(ctx, "%v receive raw message. data len: %v, cid: %v", c.typ, msgData, c.id)
 	}
 
-	message := getPoolMessage()
+	//todo 区分不同类型
+	message := &Message{} //message := getPoolMessage()
 	defer putPoolMessage(message)
 
 	err := message.unmarshal(msgData)
@@ -612,7 +664,7 @@ func (c *Connection) doSendMsgToWs(ctx context.Context, message *Message) error 
 	var headBytes [6]byte
 	headBytes[0] = msgHeadFlag[0]
 	headBytes[1] = msgHeadFlag[1]
-	binary.LittleEndian.PutUint32(headBytes[2:6], uint32(len(message.data)+4))
+	binary.LittleEndian.PutUint32(headBytes[2:6], uint32(len(message.data)+8))
 
 	_, err = w.Write(headBytes[:])
 	if err != nil {
@@ -620,10 +672,11 @@ func (c *Connection) doSendMsgToWs(ctx context.Context, message *Message) error 
 		return err
 	}
 
-	protoIdToLEBytes := message.protoIdToLEBytes()
-	_, err = w.Write(protoIdToLEBytes[:])
+	msgHeadToLEBytes := message.msgHeadToLEBytes()
+	_, err = w.Write(msgHeadToLEBytes[:])
 	if err != nil {
-		log.Warn(ctx, "%v Write protocolId to writer failed. protocolId: %v, error: %v", c.typ, message.protocolId, err)
+		log.Warn(ctx, "%v Write message head to writer failed. protocolId: %v, sn: %v, error: %v",
+			c.typ, message.protocolId, message.sn, err)
 		return err
 	}
 
@@ -676,13 +729,24 @@ func (c *Connection) callback(ctx context.Context, sc SendCallback, e error) {
 
 // 消息分发器，分发器会根据消息的协议ID查找对应的Handler。
 func (c *Connection) dispatch(ctx context.Context, msg *Message) error {
+	snChan, exist := c.snChanMap.Load(msg.sn)
+	if exist && snChan != nil {
+		if ch, ok := snChan.(chan IMessage); ok {
+			select {
+			case ch <- msg:
+				return nil
+			default:
+			}
+		}
+	}
+
 	handler, exist := msgHandlers.Load(msg.protocolId)
 	if exist && handler != nil {
 		return (handler.(MsgHandler))(ctx, c, msg)
-	} else {
-		log.Debug(ctx, "%v No handler. CMD: %d, Body len: %v", c.typ, msg.protocolId, len(msg.data))
-		return errors.New("no handler")
 	}
+
+	log.Debug(ctx, "%v No handler. CMD: %d, Body len: %v", c.typ, msg.protocolId, len(msg.data))
+	return errors.New("no handler")
 }
 
 //连接数据存储结构

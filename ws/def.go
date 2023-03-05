@@ -27,6 +27,7 @@ func InitClient() {
 
 type IMessage interface {
 	GetProtocolId() uint32
+	GetSn() uint32
 	GetData() []byte
 	SetData(data []byte)
 	DataMsg() IDataMessage
@@ -52,13 +53,16 @@ type IConnection interface {
 	IsDisplaced() bool
 	RefreshDeadline()
 	SendMsg(ctx context.Context, payload IMessage, sc SendCallback) error
+	SendRequestMsg(ctx context.Context, reqMsg IMessage, sc SendCallback) (IMessage, error)
+	SendResponseMsg(ctx context.Context, respMsg IMessage, reqSn uint32, sc SendCallback) error
 
 	KickClient(displace bool)                                  //server side invoke
 	KickServer()                                               //client side invoke
 	DisplaceClientByIp(ctx context.Context, displaceIp string) //server side invoke
 
 	GetPullChannel(pullChannelId int) (chan struct{}, bool)
-	SendPullNotify(ctx context.Context, pullChannelId int) error
+	SendPullNotify(ctx context.Context, pullChannelId int) error       //deprecated, change to SignalPull
+	SignalPullSend(ctx context.Context, pullChannelId int) (err error) //signal pull msg to send, see Puller.PullSend
 
 	GetCommDataValue(key string) (interface{}, bool)
 	SetCommDataValue(key string, value interface{})

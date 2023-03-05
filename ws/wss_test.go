@@ -34,6 +34,99 @@ func TestMessage(t *testing.T) {
 	//t.Log(m.DataMsg())
 }
 
+func TestWssRequestResponse(t *testing.T) {
+	InitServerWithOpt(ServerOption{[]HubOption{HubShardOption(4)}}) //server invoke 服务端调用
+	InitClient()                                                    //client invoke 客户端调用
+	ctx := context.Background()
+
+	const (
+		C2S_REQ  = 2
+		S2C_RESP = 3
+	)
+
+	//server reg handler
+	RegisterHandler(C2S_REQ, func(ctx context.Context, connection IConnection, message IMessage) error {
+		log.Info(ctx, "server recv: %v, %v", message.GetSn(), string(message.GetData()))
+		packet := GetPoolMessage(S2C_RESP)
+		packet.SetData([]byte("server rpc resp info"))
+		return connection.SendResponseMsg(ctx, packet, message.GetSn(), nil)
+	})
+
+	//server start
+	e := gin.New()
+	e.GET("/join", func(ctx *gin.Context) {
+		connMeta := ConnectionMeta{
+			UserId:   ctx.DefaultQuery("uid", ""),
+			Typed:    0,
+			DeviceId: "",
+			Version:  0,
+			Charset:  0,
+		}
+		_, err := AcceptGin(ctx, connMeta, DebugOption(true),
+			SrvUpgraderCompressOption(true),
+			CompressionLevelOption(2),
+			ConnEstablishHandlerOption(func(ctx context.Context, conn IConnection) {
+				log.Info(ctx, "server conn establish: %v, %p", conn.Id(), conn)
+				//在集群环境下，需要检查connId是否已经连接集群，如有需踢掉在集群其他节点建立的连接，可通过redis pub sub，其他节点收到通知调用KickClient
+				//lastConnNodeId, lastConnMTs := GetClientTs(ctx, conn.Id())
+				//if lastConnNodeId != "" && lastConnNodeId != config.NodeId && lastConnMTs < util.UtcMTs() {
+				//	MqPublish(ctx, conn.Id(), conn.ClientIp())   //other node: ClientConnHub.Find(connId).DisplaceClientByIp(ctx, newIp)
+				//}
+				//RegisterConn() // save to redis
+			}),
+			ConnClosingHandlerOption(func(ctx context.Context, conn IConnection) {
+				log.Info(ctx, "server conn closing: %v, %p", conn.Id(), conn)
+			}),
+			ConnClosedHandlerOption(func(ctx context.Context, conn IConnection) {
+				log.Info(ctx, "server conn closed: %v, %p", conn.Id(), conn)
+			}),
+		)
+		if err != nil {
+			log.Error(ctx, "Accept client connection failed. error: %v", err)
+			return
+		}
+	})
+	go e.Run(":8003")
+
+	//client reg handler
+	RegisterHandler(S2C_RESP, func(ctx context.Context, connection IConnection, message IMessage) error {
+		log.Info(ctx, "client recv: %v, %v", message.GetProtocolId(), string(message.GetData()))
+		return nil
+	})
+	//client connect
+	uid := "100"
+	url := "ws://127.0.0.1:8003/join?uid=" + uid
+	conn, _ := DialConnect(context.Background(), url, http.Header{},
+		DebugOption(true),
+		ClientIdOption("server1"),
+		ClientDialWssOption(url, false),
+		ClientDialCompressOption(true),
+		CompressionLevelOption(2),
+		ConnEstablishHandlerOption(func(ctx context.Context, conn IConnection) {
+			log.Info(ctx, "client conn establish: %v, %p", conn.Id(), conn)
+		}),
+		ConnClosingHandlerOption(func(ctx context.Context, conn IConnection) {
+			log.Info(ctx, "client conn closing: %v, %p", conn.Id(), conn)
+		}),
+		ConnClosedHandlerOption(func(ctx context.Context, conn IConnection) {
+			log.Info(ctx, "client conn closed: %v, %p", conn.Id(), conn)
+		}),
+	)
+	log.Info(ctx, "%v", conn)
+	time.Sleep(time.Second * 5)
+
+	for i := 0; i < 10; i++ {
+		packet := GetPoolMessage(C2S_REQ)
+		packet.SetData([]byte("client rpc req info"))
+		resp, err := conn.SendRequestMsg(context.Background(), packet, nil)
+		if err == nil {
+			log.Info(ctx, "server response: sn: %v, data: %v", resp.GetSn(), string(resp.GetData()))
+		}
+	}
+	time.Sleep(time.Second * 10)
+
+}
+
 func TestWssRun(t *testing.T) {
 	//InitServer()
 	InitServerWithOpt(ServerOption{[]HubOption{HubShardOption(4)}}) //server invoke 服务端调用
