@@ -83,8 +83,8 @@ class WsConnection {
 
     sendRequestMsg(protocolId, data, respCallback) {
         let sn = ++this.snCounter;
-        if (sn == 0) {
-            sn = ++this.snCounter;
+        if (sn <= 0) {
+            sn = this.snCounter = 1;
         }
         this.snChanMap[sn] = respCallback;
         this.ws.send(this.packMsg(protocolId, sn, data));

@@ -11,10 +11,13 @@
         conn.setEstablishHandler((ws) => {
             console.log("connected");
             conn.sendMsg(2, new TextEncoder("utf-8").encode("js request"));
-            conn.sendRequestMsg(2, new TextEncoder("utf-8").encode("js request rpc"), (resp) => {
-                const bytesString = new TextDecoder().decode(resp)
-                console.log(bytesString);
-            });
+
+            for (let i = 0; i < 10; i++) {
+                conn.sendRequestMsg(2, new TextEncoder("utf-8").encode("js request rpc"+i), (resp) => {
+                    const bytesString = new TextDecoder().decode(resp)
+                    console.log(i, bytesString);
+                });
+            }
         });
 
         conn.setErrHandler((ws, error) => {

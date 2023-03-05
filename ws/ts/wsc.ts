@@ -13,10 +13,15 @@ export namespace wsc {
         private errHandler: EvtHandler = null;
         private closeHandler: EvtHandler = null;
         private displacedHandler: DisplacedHandler = null;
-        private static packetHeadFlag: Uint8Array = new Uint8Array([254, 238]);
+        private static packetHeadFlag: Uint8Array = new Uint8Array([254, 239]);
+
+        private snCounter: number = 0;
+        private snChanMap: Map<number, MsgHandler> = new Map();
 
         constructor() {
-            this.msgHandler.set($msg_pb.ws.P_BASE.s2c_err_displace, (ws: WebSocket, buffer: Uint8Array) => { this.onDisplaced(ws, buffer); });
+            this.msgHandler.set($msg_pb.ws.P_BASE.s2c_err_displace, (ws: WebSocket, buffer: Uint8Array) => {
+                this.onDisplaced(ws, buffer);
+            });
         }
 
         registerMsgHandler(protocolId: number, handler: MsgHandler) {
@@ -49,7 +54,7 @@ export namespace wsc {
             this.ws.onopen = (e) => {
                 this.ws.binaryType = 'arraybuffer';
                 this.connected = true;
-                
+
                 this.establishHandler?.(this.ws, e);
             };
             this.ws.onerror = (error) => {
@@ -58,6 +63,13 @@ export namespace wsc {
 
             this.ws.onmessage = (e) => {
                 let msgPack = this.unpackMsg(e.data);
+
+                if (msgPack.sn > 0) {
+                    let respCallback = this.snChanMap.get(msgPack.sn);
+                    this.snChanMap.delete(msgPack.sn);
+                    respCallback?.(this.ws, new Uint8Array(msgPack.dataBuffer));
+                }
+
                 //console.log(msgPack);
                 let handler = this.msgHandler.get(msgPack.protocolId);
                 handler?.(this.ws, new Uint8Array(msgPack.dataBuffer));
@@ -75,7 +87,16 @@ export namespace wsc {
         }
 
         sendMsg(protocolId: number, data: Uint8Array) {
-            this.ws.send(this.packMsg(protocolId, data));
+            this.ws.send(this.packMsg(protocolId, 0, data));
+        }
+
+        sendRequestMsg(protocolId: number, data: Uint8Array, respCallback: MsgHandler) {
+            let sn = ++this.snCounter;
+            if (sn <= 0) {
+                sn = this.snCounter = 1;
+            }
+            this.snChanMap.set(sn, respCallback);
+            this.ws.send(this.packMsg(protocolId, sn, data));
         }
 
         unpackMsg(buffer: ArrayBuffer) {
@@ -84,24 +105,30 @@ export namespace wsc {
             const packetLength = packetLenDv.getUint32(0, /* little endian data */ true);
             const protocolIdDv = new DataView(buffer.slice(6, 10));
             const protocolId = protocolIdDv.getUint32(0, /* little endian data */ true);
-            let dataBuffer = buffer.slice(10);
+            const snDv = new DataView(buffer.slice(10, 14));
+            const sn = snDv.getUint32(0, /* little endian data */ true);
+            let dataBuffer = buffer.slice(14);
 
             return {
                 packetHeadFlag,
                 packetLength,
                 protocolId,
+                sn,
                 dataBuffer
             };
         }
 
-        packMsg(protocolId: number, dataArray: Uint8Array): ArrayBuffer {
+        packMsg(protocolId: number, sn: number, dataArray: Uint8Array): ArrayBuffer {
             let packetLength = new Uint8Array(4);
-            new DataView(packetLength.buffer).setUint32(0, dataArray.byteLength+4, true /* littleEndian */);
+            new DataView(packetLength.buffer).setUint32(0, dataArray.byteLength + 8, true /* littleEndian */);
 
             let protocolIdArray = new Uint8Array(4);
             new DataView(protocolIdArray.buffer).setUint32(0, protocolId, true /* littleEndian */);
 
-            let packet = new Uint8Array([...Connection.packetHeadFlag, ...packetLength, ...protocolIdArray, ...dataArray]);
+            let snArray = new Uint8Array(4);
+            new DataView(snArray.buffer).setUint32(0, sn, true /* littleEndian */);
+
+            let packet = new Uint8Array([...Connection.packetHeadFlag, ...packetLength, ...protocolIdArray, ...snArray, ...dataArray]);
             return packet.buffer;
         }
 

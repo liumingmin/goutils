@@ -8,6 +8,12 @@ function initConn() {
     wscConn.setEstablishHandler((ws) => {
         console.log("connected");
         wscConn.sendMsg(2, new TextEncoder().encode("js request"));
+        for (let i = 0; i < 10; i++) {
+            wscConn.sendRequestMsg(2,new TextEncoder().encode("js request rpc"+i), (ws, resp) => {
+                const bytesString = new TextDecoder().decode(resp)
+                console.log(i, bytesString);
+            });
+        }
     });
 
     wscConn.setErrHandler((ws, error) => {
