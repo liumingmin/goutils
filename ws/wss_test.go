@@ -90,7 +90,7 @@ func TestWssRequestResponse(t *testing.T) {
 
 	//client reg handler
 	RegisterHandler(S2C_RESP, func(ctx context.Context, connection IConnection, message IMessage) error {
-		log.Info(ctx, "client recv: %v, %v", message.GetProtocolId(), string(message.GetData()))
+		log.Info(ctx, "client handler recv sn: %v, %v", message.GetSn(), string(message.GetData()))
 		return nil
 	})
 	//client connect
@@ -120,7 +120,7 @@ func TestWssRequestResponse(t *testing.T) {
 		packet.SetData([]byte("client rpc req info"))
 		resp, err := conn.SendRequestMsg(context.Background(), packet, nil)
 		if err == nil {
-			log.Info(ctx, "server response: sn: %v, data: %v", resp.GetSn(), string(resp.GetData()))
+			log.Info(ctx, "client recv: sn: %v, data: %v", resp.GetSn(), string(resp.GetData()))
 		}
 	}
 	time.Sleep(time.Second * 10)

@@ -245,6 +245,9 @@ func (c *Connection) SendMsg(ctx context.Context, payload IMessage, sc SendCallb
 
 func (c *Connection) SendRequestMsg(ctx context.Context, reqMsg IMessage, sc SendCallback) (respMsg IMessage, err error) {
 	sn := atomic.AddUint32(&c.snCounter, 1)
+	if sn == 0 {
+		sn = atomic.AddUint32(&c.snCounter, 1)
+	}
 	(reqMsg.(*Message)).setSn(sn)
 
 	ch := make(chan IMessage)
@@ -729,13 +732,14 @@ func (c *Connection) callback(ctx context.Context, sc SendCallback, e error) {
 
 // 消息分发器，分发器会根据消息的协议ID查找对应的Handler。
 func (c *Connection) dispatch(ctx context.Context, msg *Message) error {
-	snChan, exist := c.snChanMap.Load(msg.sn)
-	if exist && snChan != nil {
-		if ch, ok := snChan.(chan IMessage); ok {
-			select {
-			case ch <- msg:
-				return nil
-			default:
+	if msg.sn > 0 {
+		snChan, exist := c.snChanMap.Load(msg.sn)
+		if exist && snChan != nil {
+			if ch, ok := snChan.(chan IMessage); ok {
+				select {
+				case ch <- msg:
+				default:
+				}
 			}
 		}
 	}
