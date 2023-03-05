@@ -55,6 +55,7 @@ func TestWssRequestResponse(t *testing.T) {
 	//server start
 	e := gin.New()
 	e.Static("/js", "js")
+	e.Static("/ts", "ts")
 	e.GET("/join", func(ctx *gin.Context) {
 		connMeta := ConnectionMeta{
 			UserId:   ctx.DefaultQuery("uid", ""),

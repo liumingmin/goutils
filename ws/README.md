@@ -23,6 +23,8 @@ npm i -g browserify
 npm i -g minifier
 browserify msg_pb.js <custom_pb.js> -o  msg_pb_dist.js
 minify msg_pb_dist.js   //msg_pb_dist.min.js
+
+http://127.0.0.1:8003/js/demo.html
 ```
 
 https://www.npmjs.com/package/google-protobuf
@@ -43,6 +45,8 @@ node demo.js //const WebSocket = require("ws");
 npm i -g browserify
 
 browserify dist/msg_pb.js dist/wsc.js dist/demo.js  -o dist/bundle.js
+
+http://127.0.0.1:8003/ts/demo.html
 ```
 
 ## cpp客户端
