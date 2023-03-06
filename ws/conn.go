@@ -601,8 +601,15 @@ func (c *Connection) processMsg(ctx context.Context, msgData []byte) {
 		log.Debug(ctx, "%v receive raw message. data len: %v, cid: %v", c.typ, msgData, c.id)
 	}
 
-	//todo 区分不同类型
-	message := &Message{} //message := getPoolMessage()
+	var message *Message
+	//区分是否是rpc回包
+	sn := getMsgSnFromPayload(msgData)
+	if sn > 0 {
+		message = &Message{}
+	} else {
+		message = getPoolMessage()
+	}
+
 	defer putPoolMessage(message)
 
 	err := message.unmarshal(msgData)
@@ -664,10 +671,12 @@ func (c *Connection) doSendMsgToWs(ctx context.Context, message *Message) error 
 		return err
 	}
 
+	msgHeadToLEBytes := message.msgHeadToLEBytes()
+
 	var headBytes [6]byte
 	headBytes[0] = msgHeadFlag[0]
 	headBytes[1] = msgHeadFlag[1]
-	binary.LittleEndian.PutUint32(headBytes[2:6], uint32(len(message.data)+8))
+	binary.LittleEndian.PutUint32(headBytes[2:6], uint32(len(message.data)+len(msgHeadToLEBytes)))
 
 	_, err = w.Write(headBytes[:])
 	if err != nil {
@@ -675,7 +684,6 @@ func (c *Connection) doSendMsgToWs(ctx context.Context, message *Message) error 
 		return err
 	}
 
-	msgHeadToLEBytes := message.msgHeadToLEBytes()
 	_, err = w.Write(msgHeadToLEBytes[:])
 	if err != nil {
 		log.Warn(ctx, "%v Write message head to writer failed. protocolId: %v, sn: %v, error: %v",

@@ -78,3 +78,7 @@ func (t *Message) unmarshal(payload []byte) error {
 
 	return proto.Unmarshal(t.data, t.dataMsg)
 }
+
+func getMsgSnFromPayload(payload []byte) uint32 {
+	return binary.LittleEndian.Uint32(payload[4:8])
+}
