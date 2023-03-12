@@ -26,15 +26,17 @@ int main(int argc, char* argv[])
         bRetCode = conn.SendMsg(C2S_REQ, QByteArray::fromStdString("cpp request"));
         qDebug() << "SendMsg retCode: " << bRetCode;
 
-        QByteArray response;
-        bRetCode = conn.SendRequestMsg(C2S_REQ, QByteArray::fromStdString("cpp rpc request"), 2000, response);
-        qDebug() << "SendRequestMsg retCode: " << bRetCode << " resp:" << QString(response);
-        
+        for (int i = 0; i < 3; i++)
+        {
+            QByteArray response;
+            bRetCode = conn.SendRequestMsg(C2S_REQ, QByteArray::fromStdString("cpp rpc request"), 2000, response);
+            qDebug() << "SendRequestMsg retCode: " << bRetCode << " resp:" << QString(response);
+        }
 
         QByteArray responseTimout;
-        bRetCode = conn.SendRequestMsg(C2S_REQ_TIMEOUT, QByteArray::fromStdString("cpp rpc  request timeout response"), 2000, responseTimout);
+        bRetCode = conn.SendRequestMsg(C2S_REQ_TIMEOUT, QByteArray::fromStdString("cpp rpc  request timeout response"),
+                                       2000, responseTimout);
         qDebug() << "SendRequestMsgTimeout retCode: " << bRetCode << " resp:" << QString(responseTimout);
-
     });
 
     conn.SetCloseHandler([&](QWebSocket*)

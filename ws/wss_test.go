@@ -45,6 +45,9 @@ func TestWssRequestResponse(t *testing.T) {
 
 		C2S_REQ_TIMEOUT  = 4
 		S2C_RESP_TIMEOUT = 5
+
+		S2C_REQ  = 6
+		C2S_RESP = 7
 	)
 
 	//server reg handler
@@ -113,6 +116,14 @@ func TestWssRequestResponse(t *testing.T) {
 		return nil
 	})
 
+	RegisterHandler(S2C_REQ, func(ctx context.Context, connection IConnection, message IMessage) error {
+		log.Info(ctx, "client recv server request sn: %v, %v", message.GetSn(), string(message.GetData()))
+
+		packet := GetPoolMessage(C2S_RESP)
+		packet.SetData([]byte("client rpc response info"))
+		return connection.SendResponseMsg(ctx, packet, message.GetSn(), nil)
+	})
+
 	//client connect
 	uid := "100"
 	url := "ws://127.0.0.1:8003/join?uid=" + uid
@@ -152,6 +163,18 @@ func TestWssRequestResponse(t *testing.T) {
 		log.Info(ctx, "client recv: sn: %v, data: %v", resp.GetSn(), string(resp.GetData()))
 	} else {
 		log.Error(ctx, "client recv err: %v", err)
+	}
+
+	time.Sleep(time.Second * 5)
+
+	connFromClient, _ := ClientConnHub.Find("100-0-")
+	for i := 0; i < 10; i++ {
+		packet := GetPoolMessage(S2C_REQ)
+		packet.SetData([]byte("server rpc req info"))
+		resp, err := connFromClient.SendRequestMsg(context.Background(), packet, nil)
+		if err == nil {
+			log.Debug(ctx, "server recv: sn: %v, data: %v", resp.GetSn(), string(resp.GetData()))
+		}
 	}
 
 	time.Sleep(time.Minute * 10)
