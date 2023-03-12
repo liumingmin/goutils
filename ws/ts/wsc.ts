@@ -49,6 +49,7 @@ export namespace wsc {
                 this.ws.close();
                 this.connected = false;
             }
+            this.snCounter = 0;
 
             this.ws = new WebSocket(url);
             this.ws.onopen = (e) => {
