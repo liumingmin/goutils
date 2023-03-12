@@ -37,6 +37,9 @@
     <QtMoc Include="QWsConnection.h">
       <Filter>Header Files</Filter>
     </QtMoc>
+    <QtMoc Include="QWsSignal.h">
+      <Filter>Header Files</Filter>
+    </QtMoc>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="msg.pb.h">

@@ -2,15 +2,39 @@
 #include <QtCore>
 #include <QtGui>
 
-int main(int argc, char *argv[])
+enum ProtocolEnum
+{
+    C2S_REQ = 2,
+    S2C_RESP = 3,
+
+    C2S_REQ_TIMEOUT = 4,
+    S2C_RESP_TIMEOUT = 5
+};
+
+int main(int argc, char* argv[])
 {
     QCoreApplication app(argc, argv);
 
-    QWsConnection conn("wss://test.com:8003/join?uid=y10000",10000); //hosts 127.0.0.1 <- test.com
+    std::future<void> asyncFuture;
+
+    QWsConnection conn("ws://127.0.0.1:8003/join?uid=y10000", 10000); //hosts 127.0.0.1 <- test.com
     conn.SetEstablishHandler([&](QWebSocket*)
     {
         qDebug() << "connected";
-        conn.SendMsg(2, QByteArray::fromStdString("cpp request"));
+
+        int bRetCode = 0;
+        bRetCode = conn.SendMsg(C2S_REQ, QByteArray::fromStdString("cpp request"));
+        qDebug() << "SendMsg retCode: " << bRetCode;
+
+        QByteArray response;
+        bRetCode = conn.SendRequestMsg(C2S_REQ, QByteArray::fromStdString("cpp rpc request"), 2000, response);
+        qDebug() << "SendRequestMsg retCode: " << bRetCode << " resp:" << QString(response);
+        
+
+        QByteArray responseTimout;
+        bRetCode = conn.SendRequestMsg(C2S_REQ_TIMEOUT, QByteArray::fromStdString("cpp rpc  request timeout response"), 2000, responseTimout);
+        qDebug() << "SendRequestMsgTimeout retCode: " << bRetCode << " resp:" << QString(responseTimout);
+
     });
 
     conn.SetCloseHandler([&](QWebSocket*)
@@ -19,7 +43,7 @@ int main(int argc, char *argv[])
     });
     conn.SetErrHandler([&](QWebSocket*, QAbstractSocket::SocketError err, const QString& errMsg)
     {
-        qDebug() << "err:" << err << " "<< errMsg;
+        qDebug() << "err:" << err << " " << errMsg;
     });
 
     conn.SetDisplacedHandler([&](QWebSocket*, QString oldIp, QString newIp, int64_t ts)
@@ -27,10 +51,12 @@ int main(int argc, char *argv[])
         qDebug() << oldIp << " displaced by " << newIp << " at " << ts;
     });
 
-    conn.RegisterMsgHandler(3, [](QWebSocket*, const QByteArray& data){
+    conn.RegisterMsgHandler(3, [](QWebSocket*, const QByteArray& data)
+    {
         qDebug() << data;
     });
     conn.AcceptSelfSignCert("xxx.crt");
+    conn.AcceptAllSelfSignCert();
     conn.Connect();
 
     app.exec();

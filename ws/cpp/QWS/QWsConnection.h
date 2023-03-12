@@ -14,6 +14,14 @@ class QWsConnection : public QObject
     using DisplacedHandler = std::function<void(QWebSocket*, QString, QString, int64_t)>;
 
 public:
+    enum State
+    {
+        STATE_OK = 1,
+        STATE_SEND_FAILED = -1,
+        STATE_RESP_TIMEOUT = -2
+    };
+
+public:
     explicit QWsConnection(const QString& url, uint32_t retryInterval=0, QObject* parent = nullptr);
     virtual  ~QWsConnection();
 
@@ -21,7 +29,9 @@ public:
     void AcceptSelfSignCert(const QString&  caCertPath);
 
     void RegisterMsgHandler(uint32_t protocolId, MsgHandler handler);
-    void SendMsg(uint32_t protocolId, const QByteArray& data);
+    State SendMsg(uint32_t protocolId, const QByteArray& data);
+    State SendRequestMsg(uint32_t protocolId, const QByteArray& request, uint32_t nTimeoutMs, QByteArray& response);
+    State SendResponseMsg(uint32_t protocolId, uint32_t reqSn, const QByteArray& data);
 
     inline bool IsConnected() { return m_bConnected; }
     inline void SetUrl(const QString& url) { m_strUrl = url; }
@@ -42,30 +52,38 @@ protected:
         BYTE        packetHeadFlag[2];
         uint32_t    packetLength;
         uint32_t    protocolId;
+        uint32_t    sn;
         QByteArray  dataBuffer;
 
-        innerMsgPack():packetLength(0), protocolId(0)
+        innerMsgPack():packetLength(0), protocolId(0), sn(0)
         {
             packetHeadFlag[2] = { 0 };
         }
     };
 
-    QByteArray _PackMsg(uint32_t protocolId, const QByteArray& dataBuffer);
+    QByteArray _PackMsg(uint32_t protocolId, uint32_t sn, const QByteArray& dataBuffer);
     innerMsgPack _UnpackMsg(const QByteArray& rawMsg);
     void _OnDisplaced(QWebSocket* ws, const QByteArray& msgData);
+    bool _CheckMsgPackErr(const innerMsgPack& msgPack);
+    void _Reset();
+    uint32_t _GetNextSn();
 
 private:
-    QWebSocket*                 m_pWs;
-    bool                        m_bConnected;
-    QString                     m_strUrl;
-    uint32_t                    m_nRetryInterval;
+    QWebSocket*                                     m_pWs;
+    bool                                            m_bConnected;
+    QString                                         m_strUrl;
+    uint32_t                                        m_nRetryInterval;
 
-    QHash<uint32_t, MsgHandler> m_mapMsgHandler;
-    EvtHandler                  m_establishHandler;
-    EvtHandler                  m_closeHandler;
-    ErrHandler                  m_errHandler;
-    DisplacedHandler            m_displacedHandler;
+    QHash<uint32_t, MsgHandler>                     m_mapMsgHandler;
+    EvtHandler                                      m_establishHandler;
+    EvtHandler                                      m_closeHandler;
+    ErrHandler                                      m_errHandler;
+    DisplacedHandler                                m_displacedHandler;
 
-    static BYTE                 m_packetHeadFlag[2];
+    std::atomic_uint32_t                            m_nSnCounter;       //sn counter, atomic
+    std::map<uint32_t, std::promise<QByteArray>>    m_mapSnPromise;     //sn channel store map
+    std::mutex                                      m_mapSnPromiseMutex;//sn channel store map lock
+
+    static BYTE                                     m_packetHeadFlag[2];
 };
 

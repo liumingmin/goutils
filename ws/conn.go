@@ -754,11 +754,13 @@ func (c *Connection) dispatch(ctx context.Context, msg *Message) error {
 
 	handler, exist := msgHandlers.Load(msg.protocolId)
 	if exist && handler != nil {
-		return (handler.(MsgHandler))(ctx, c, msg)
+		(handler.(MsgHandler))(ctx, c, msg)
 	}
 
-	log.Debug(ctx, "%v No handler. CMD: %d, Body len: %v", c.typ, msg.protocolId, len(msg.data))
-	return errors.New("no handler")
+	if msg.sn == 0 && !exist {
+		log.Debug(ctx, "%v No handler. CMD: %d, Body len: %v", c.typ, msg.protocolId, len(msg.data))
+	}
+	return nil
 }
 
 //连接数据存储结构
