@@ -74,9 +74,9 @@ var wsc;
             this.ws.send(this.packMsg(protocolId, 0, data));
         }
         sendRequestMsg(protocolId, data, respCallback) {
-            let sn = ++this.snCounter;
+            let sn = this.snCounter += 2;
             if (sn <= 0) {
-                sn = this.snCounter = 1;
+                sn = this.snCounter = 2;
             }
             this.snChanMap.set(sn, respCallback);
             this.ws.send(this.packMsg(protocolId, sn, data));
