@@ -53,7 +53,7 @@ type Connection struct {
 	debug          bool                  //debug日志输出
 	isPool         bool                  //poolObject 池对象
 
-	snCounter uint32   //sn counter, atomic
+	snCounter uint32   //sn counter, atomic add(2), server_start=1 client_start=0
 	snChanMap sync.Map //sn channel store map, map[uint32]chan IMessage
 
 	connEstablishHandler  EventHandler
@@ -244,9 +244,9 @@ func (c *Connection) SendMsg(ctx context.Context, payload IMessage, sc SendCallb
 }
 
 func (c *Connection) SendRequestMsg(ctx context.Context, reqMsg IMessage, sc SendCallback) (respMsg IMessage, err error) {
-	sn := atomic.AddUint32(&c.snCounter, 1)
+	sn := atomic.AddUint32(&c.snCounter, 2)
 	if sn == 0 {
-		sn = atomic.AddUint32(&c.snCounter, 1)
+		sn = atomic.AddUint32(&c.snCounter, 2)
 	}
 	(reqMsg.(*Message)).setSn(sn)
 

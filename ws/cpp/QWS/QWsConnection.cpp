@@ -71,7 +71,7 @@ QWsConnection::QWsConnection(const QString& url, uint32_t retryInterval, QObject
                 }
             }
 
-            if(exists)
+            if (exists)
                 promise.set_value(msgPack.dataBuffer);
         }
 
@@ -180,7 +180,7 @@ QWsConnection::State QWsConnection::SendMsg(uint32_t protocolId, const QByteArra
 // }
 
 QWsConnection::State QWsConnection::SendRequestMsg(uint32_t protocolId, const QByteArray& request,
-                                                            uint32_t nTimeoutMs, QByteArray& response)
+                                                   uint32_t nTimeoutMs, QByteArray& response)
 {
     State nRetCode = STATE_SEND_FAILED;
 
@@ -269,11 +269,11 @@ void QWsConnection::_Reset()
 
 uint32_t QWsConnection::_GetNextSn()
 {
-    ++m_nSnCounter;
+    m_nSnCounter += 2;
     uint32_t sn = m_nSnCounter.load(std::memory_order_consume);
     if (sn == 0)
     {
-        ++m_nSnCounter;
+        m_nSnCounter += 2;
         sn = m_nSnCounter.load(std::memory_order_consume);
     }
 

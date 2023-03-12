@@ -91,9 +91,9 @@ export namespace wsc {
         }
 
         sendRequestMsg(protocolId: number, data: Uint8Array, respCallback: MsgHandler) {
-            let sn = ++this.snCounter;
+            let sn = this.snCounter += 2;
             if (sn <= 0) {
-                sn = this.snCounter = 1;
+                sn = this.snCounter = 2;
             }
             this.snChanMap.set(sn, respCallback);
             this.ws.send(this.packMsg(protocolId, sn, data));

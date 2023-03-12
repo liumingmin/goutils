@@ -56,6 +56,7 @@ func Accept(ctx context.Context, w http.ResponseWriter, r *http.Request, meta Co
 	connection.upgrader = defaultUpgrader
 	connection.compressionLevel = 1
 	connection.maxMessageBytesSize = defaultMaxMessageBytesSize
+	connection.snCounter = 1
 
 	defaultNetParamsOption()(connection)
 
