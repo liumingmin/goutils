@@ -269,12 +269,10 @@ void QWsConnection::_Reset()
 
 uint32_t QWsConnection::_GetNextSn()
 {
-    m_nSnCounter += 2;
-    uint32_t sn = m_nSnCounter.load(std::memory_order_consume);
+    uint32_t sn = m_nSnCounter.fetch_add(2);
     if (sn == 0)
     {
-        m_nSnCounter += 2;
-        sn = m_nSnCounter.load(std::memory_order_consume);
+        sn = m_nSnCounter.fetch_add(2);
     }
 
     return sn;
