@@ -12,6 +12,7 @@ class QWsConnection : public QObject
     using EvtHandler = std::function<void(QWebSocket*)>;
     using ErrHandler = std::function<void(QWebSocket*, QAbstractSocket::SocketError, const QString&)>;
     using DisplacedHandler = std::function<void(QWebSocket*, QString, QString, int64_t)>;
+    using HttpHeaders = std::map<std::string, std::string>;
 
 public:
     enum State
@@ -22,7 +23,7 @@ public:
     };
 
 public:
-    explicit QWsConnection(const QString& url, uint32_t retryInterval=0, QObject* parent = nullptr);
+    explicit QWsConnection(const QString& url, const HttpHeaders& mapHeaders = {}, uint32_t retryInterval=0, QObject* parent = nullptr);
     virtual  ~QWsConnection();
 
     void AcceptAllSelfSignCert();
@@ -73,6 +74,7 @@ private:
     bool                                            m_bConnected;
     QString                                         m_strUrl;
     uint32_t                                        m_nRetryInterval;
+    HttpHeaders                                     m_mapHeaders;
 
     QHash<uint32_t, MsgHandler>                     m_mapMsgHandler;
     EvtHandler                                      m_establishHandler;

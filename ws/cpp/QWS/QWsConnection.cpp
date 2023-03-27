@@ -6,13 +6,14 @@
 
 BYTE QWsConnection::m_packetHeadFlag[2] = {254, 239};
 
-QWsConnection::QWsConnection(const QString& url, uint32_t retryInterval, QObject* parent)
+QWsConnection::QWsConnection(const QString& url, const HttpHeaders& mapHeaders, uint32_t retryInterval, QObject* parent)
     : QObject(parent)
       , m_pWs(nullptr)
       , m_bConnected(false)
       , m_strUrl(url)
       , m_nRetryInterval(retryInterval)
       , m_nSnCounter(0)
+      , m_mapHeaders(mapHeaders)
 {
     m_pWs = new QWebSocket;
     m_pWs->setParent(this);
@@ -138,47 +139,6 @@ QWsConnection::State QWsConnection::SendMsg(uint32_t protocolId, const QByteArra
     return STATE_SEND_FAILED;
 }
 
-// QWsConnection::State QWsConnection::SendRequestMsg(uint32_t protocolId, const QByteArray& request, uint32_t nTimeoutMs,
-//                                                    QByteArray& response)
-// {
-//     State nRetCode = STATE_SEND_FAILED;
-//
-//     uint32_t sn = _GetNextSn();
-//
-//     std::promise<QByteArray> promise;
-//     std::future<QByteArray> future = promise.get_future();
-//
-//     {
-//         std::lock_guard<std::mutex> lk(m_mapSnPromiseMutex);
-//         m_mapSnPromise.emplace(sn, std::move(promise));
-//     }
-//
-//     auto sent = m_pWs->sendBinaryMessage(_PackMsg(protocolId, sn, request));
-//     if (sent <= 0)
-//     {
-//         nRetCode = STATE_SEND_FAILED;
-//         goto Exit0;
-//     }
-//
-//     auto status = future.wait_for(std::chrono::milliseconds(nTimeoutMs));
-//     if (status == std::future_status::timeout)
-//     {
-//         nRetCode = STATE_RESP_TIMEOUT;
-//     }
-//     else if (status == std::future_status::ready)
-//     {
-//         nRetCode = STATE_OK;
-//         response = future.get();
-//     }
-//
-// Exit0:
-//     {
-//         std::lock_guard<std::mutex> lk(m_mapSnPromiseMutex);
-//         m_mapSnPromise.erase(sn);
-//     }
-//     return nRetCode;
-// }
-
 QWsConnection::State QWsConnection::SendRequestMsg(uint32_t protocolId, const QByteArray& request,
                                                    uint32_t nTimeoutMs, QByteArray& response)
 {
@@ -221,6 +181,7 @@ QWsConnection::State QWsConnection::SendRequestMsg(uint32_t protocolId, const QB
 
         QWS_WAIT_SIGNAL(signal);
     }
+
 Exit0:
     {
         std::lock_guard<std::mutex> lk(m_mapSnPromiseMutex);
@@ -243,7 +204,14 @@ void QWsConnection::Connect()
 {
     _Reset();
 
-    m_pWs->open(QUrl(m_strUrl));
+    QNetworkRequest request(m_strUrl);
+
+    for (auto iter = m_mapHeaders.begin(); iter != m_mapHeaders.end(); ++iter)
+    {
+        request.setRawHeader(QByteArray::fromStdString(iter->first), QByteArray::fromStdString(iter->second));
+    }
+
+    m_pWs->open(request);
 }
 
 void QWsConnection::Close()

@@ -17,7 +17,7 @@ int main(int argc, char* argv[])
 
     std::future<void> asyncFuture;
 
-    QWsConnection conn("ws://127.0.0.1:8003/join?uid=y10000", 10000); //hosts 127.0.0.1 <- test.com
+    QWsConnection conn("ws://127.0.0.1:8003/join?", { {"uid" , "y10000"} }, 10000); //hosts 127.0.0.1 <- test.com
     conn.SetEstablishHandler([&](QWebSocket*)
     {
         qDebug() << "connected";
