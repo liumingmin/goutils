@@ -3,14 +3,20 @@
 ## 开箱即用
 使用GO编写一个简单的服务端步骤:
 
-1.注册一个服务端连接接收路由
+0. 在服务端和客户端定义请求和响应包协议ID
+```go
+const C2S_REQ  = 2
+const S2C_RESP = 3
+```
+
+1. 注册一个服务端连接接收路由
 ```go
 ws.InitServerWithOpt(ServerOption{[]HubOption{HubShardOption(4)}}) 
 ```
 
-2.注册一个服务端接收消息的处理器,处理完毕后发送回包
+2. 注册一个服务端接收消息的处理器,处理完毕后发送回包
 ```go
-ws.RegisterHandler(1, func(ctx context.Context, connection IConnection, message IMessage) error {
+ws.RegisterHandler(C2S_REQ, func(ctx context.Context, connection IConnection, message IMessage) error {
     log.Info(ctx, "server recv: %v, %v", message.GetProtocolId(), string(message.GetData()))
     packet := GetPoolMessage(S2C_RESP)
     packet.SetData([]byte("server response"))
@@ -19,7 +25,7 @@ ws.RegisterHandler(1, func(ctx context.Context, connection IConnection, message 
 })
 ```
 
-3.创建一个监听服务并启动
+3. 创建一个监听服务并启动
 
 ```go
 wsServer := gin.New()
@@ -47,12 +53,12 @@ go wsServer.Run(":8003")
 
 ## 使用GO编写一个简单的客户端步骤:
 
-1.注册一个客户端连接接收路由
+1. 注册一个客户端连接接收路由
 ```go
 ws.InitClient()
 ```
 
-2.注册一个客户端接收消息的处理器
+2. 注册一个客户端接收服务端消息的处理器
 ```go
 ws.RegisterHandler(S2C_RESP, func(ctx context.Context, connection IConnection, message IMessage) error {
     log.Info(ctx, "client recv: %v, %v", message.GetProtocolId(), string(message.GetData()))
@@ -60,7 +66,7 @@ ws.RegisterHandler(S2C_RESP, func(ctx context.Context, connection IConnection, m
 })
 ```
 
-3.连接到已经创建好的服务器
+3. 连接到已经创建好的服务器
 ```go
 url := "ws://127.0.0.1:8003/join?uid=100"
 conn, _ := ws.DialConnect(context.Background(), url, http.Header{},
@@ -78,11 +84,34 @@ conn, _ := ws.DialConnect(context.Background(), url, http.Header{},
 log.Info(ctx, "%v", conn)
 ```
 
-4.连接建立后的回调中ConnEstablishHandlerOption可以向服务端发送消息
+4. 连接建立后的回调中ConnEstablishHandlerOption可以向服务端发送消息
 ```go
 packet := ws.GetPoolMessage(C2S_REQ)
 packet.SetData([]byte("client request"))
 conn.SendMsg(context.Background(), packet, nil)
+```
+
+5. 基于ws发送请求响应rpc调用案例
+```go
+packet := GetPoolMessage(C2S_REQ)
+packet.SetData([]byte("client rpc req info"))
+resp, err := conn.SendRequestMsg(context.Background(), packet, nil)
+if err == nil {
+    log.Info(ctx, "client recv: sn: %v, data: %v", resp.GetSn(), string(resp.GetData()))
+}
+```
+
+6. 基于ws发送带超时的请求响应rpc调用案例
+```go
+timeoutCtx, _ := context.WithTimeout(ctx, time.Second*5)
+packet := GetPoolMessage(C2S_REQ)
+packet.SetData([]byte("client rpc req info timeout"))
+resp, err := conn.SendRequestMsg(timeoutCtx, packet, nil)
+if err == nil {
+    log.Info(ctx, "client recv: sn: %v, data: %v", resp.GetSn(), string(resp.GetData()))
+} else {
+    log.Error(ctx, "client recv err: %v", err)
+}
 ```
 
 ## 进阶使用
