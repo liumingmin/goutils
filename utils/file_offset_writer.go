@@ -8,19 +8,21 @@ import (
 
 // FileOffsetWriter is a writer that writes data to a file at a given file offset.
 type FileOffsetWriter struct {
-	writer *os.File
-	mutex  *sync.Mutex
-	offset int64
-	end    int64
+	writer       *os.File
+	mutex        *sync.Mutex
+	offset       int64
+	end          int64
+	originOffset int64
 }
 
 // NewOffsetWriter creates a new FileOffsetWriter instance to write at the given offset to the file.
 func NewOffsetWriter(file *os.File, mutex *sync.Mutex, offset, end int64) *FileOffsetWriter {
 	return &FileOffsetWriter{
-		writer: file,
-		mutex:  mutex,
-		offset: offset,
-		end:    end,
+		writer:       file,
+		mutex:        mutex,
+		offset:       offset,
+		end:          end,
+		originOffset: offset,
 	}
 }
 
@@ -47,4 +49,11 @@ func (w *FileOffsetWriter) Write(p []byte) (n int, err error) {
 	}
 
 	return n, nil
+}
+
+func (w *FileOffsetWriter) ResetOffset() {
+	w.mutex.Lock()
+	defer w.mutex.Unlock()
+
+	w.offset = w.originOffset
 }
