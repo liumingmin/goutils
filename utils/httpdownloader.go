@@ -8,6 +8,8 @@ import (
 	"os"
 	"strconv"
 	"sync"
+
+	"github.com/liumingmin/goutils/log"
 )
 
 type HttpDownloader struct {
@@ -92,6 +94,8 @@ func (t *HttpDownloader) Download(ctx context.Context, url string, header http.H
 				if err == nil {
 					break
 				}
+
+				log.Error(ctx, "downloadBlock failed, retry download, url: %v, range: %v, err: %v, retry: %v", url, rangeHeader, err, j)
 				writer.ResetOffset()
 			}
 		}(min, max)
