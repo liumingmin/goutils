@@ -123,18 +123,22 @@ func (t *HttpDownloader) createRequest(ctx context.Context, method, url string, 
 		return nil, err
 	}
 
-	var reqHeader http.Header
+	reqHeader := http.Header{}
 
-	for key, value := range t.Headers {
-		value2 := make([]string, len(value))
-		copy(value2, value)
-		reqHeader[key] = value2
+	if t.Headers != nil {
+		for key, value := range t.Headers {
+			value2 := make([]string, len(value))
+			copy(value2, value)
+			reqHeader[key] = value2
+		}
 	}
 
-	for key, value := range header {
-		value2 := make([]string, len(value))
-		copy(value2, value)
-		reqHeader[key] = value2
+	if header != nil {
+		for key, value := range header {
+			value2 := make([]string, len(value))
+			copy(value2, value)
+			reqHeader[key] = value2
+		}
 	}
 
 	req.Header = reqHeader
