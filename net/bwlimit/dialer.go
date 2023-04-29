@@ -17,13 +17,13 @@ type Dialer struct {
 
 // NewDialer creates a Dialer structure with Timeout, Keepalive
 // bandwidth limit rx: read, tx write
-func NewDialer(ctx context.Context, rx, tx *BwLimit, timeout time.Duration) *Dialer {
+func NewDialer() *Dialer {
 	dialer := &Dialer{
 		Dialer:    net.Dialer{},
-		rxBwLimit: rx,
-		txBwLimit: tx,
+		rxBwLimit: &BwLimit{},
+		txBwLimit: &BwLimit{},
 
-		Timeout: timeout,
+		Timeout: time.Minute * 10,
 	}
 	return dialer
 }
@@ -47,6 +47,14 @@ func (d *Dialer) DialContext(ctx context.Context, network, address string) (net.
 		txBwLimit: d.txBwLimit,
 	}
 	return con, con.nudgeDeadline()
+}
+
+func (d *Dialer) RxBwLimit() *BwLimit {
+	return d.rxBwLimit
+}
+
+func (d *Dialer) TxBwLimit() *BwLimit {
+	return d.txBwLimit
 }
 
 // A net.Conn that sets deadline for every Read/Write operation
