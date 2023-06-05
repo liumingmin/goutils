@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/liumingmin/goutils/log"
-	"github.com/robfig/go-cache"
 )
 
 func TestMemCacheFunc(t *testing.T) {
@@ -14,14 +13,14 @@ func TestMemCacheFunc(t *testing.T) {
 
 	const cacheKey = "UT:%v:%v"
 
-	var lCache = cache.New(5*time.Minute, 5*time.Minute)
+	var lCache = New(5*time.Minute, 5*time.Minute)
 	result, err := MemCacheFunc(ctx, lCache, 60*time.Second, rawGetFunc0, cacheKey, "p1", "p2")
 	log.Info(ctx, "%v %v %v", result, err, printKind(result))
 
 	_memCacheFuncTestMore(ctx, lCache, cacheKey)
 }
 
-func _memCacheFuncTestMore(ctx context.Context, lCache *cache.Cache, cacheKey string) {
+func _memCacheFuncTestMore(ctx context.Context, lCache *Cache, cacheKey string) {
 	var result interface{}
 	var err error
 	result, err = MemCacheFunc(ctx, lCache, 60*time.Second, rawGetFunc0, cacheKey, "p1", "p2")

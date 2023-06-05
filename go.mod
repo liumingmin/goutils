@@ -13,7 +13,6 @@ require (
 	github.com/hashicorp/consul/api v1.18.0
 	github.com/olivere/elastic v6.2.37+incompatible
 	github.com/olivere/elastic/v7 v7.0.32
-	github.com/robfig/go-cache v0.0.0-20130306151617-9fc39e0dbf62
 	github.com/rogpeppe/go-internal v1.8.0 // indirect
 	go.mongodb.org/mongo-driver v1.10.5
 	go.uber.org/zap v1.24.0
