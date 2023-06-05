@@ -73,7 +73,7 @@ func TestWssRequestResponse(t *testing.T) {
 	e.Static("/ts", "ts")
 	e.GET("/join", func(ctx *gin.Context) {
 		connMeta := ConnectionMeta{
-			UserId:   ctx.GetHeader("uid"),
+			UserId:   ctx.Query("uid"),
 			Typed:    0,
 			DeviceId: "",
 			Version:  0,
@@ -167,15 +167,15 @@ func TestWssRequestResponse(t *testing.T) {
 
 	time.Sleep(time.Second * 5)
 
-	//connFromClient, _ := ClientConnHub.Find("100-0-")
-	//for i := 0; i < 10; i++ {
-	//	packet := GetPoolMessage(S2C_REQ)
-	//	packet.SetData([]byte("server rpc req info"))
-	//	resp, err := connFromClient.SendRequestMsg(context.Background(), packet, nil)
-	//	if err == nil {
-	//		log.Debug(ctx, "server recv: sn: %v, data: %v", resp.GetSn(), string(resp.GetData()))
-	//	}
-	//}
+	connFromClient, _ := ClientConnHub.Find("100-0-")
+	for i := 0; i < 10; i++ {
+		packet := GetPoolMessage(S2C_REQ)
+		packet.SetData([]byte("server rpc req info"))
+		resp, err := connFromClient.SendRequestMsg(context.Background(), packet, nil)
+		if err == nil {
+			log.Debug(ctx, "server recv: sn: %v, data: %v", resp.GetSn(), string(resp.GetData()))
+		}
+	}
 
 	time.Sleep(time.Minute * 10)
 
