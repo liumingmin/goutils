@@ -5,6 +5,7 @@
 - [log zap日志库](#log-zap%E6%97%A5%E5%BF%97%E5%BA%93)
   * [zap_test.go](#zap_testgo)
     + [TestZap](#testzap)
+    + [TestErrorStack](#testerrorstack)
     + [TestPanicLog](#testpaniclog)
     + [TestLevelChange](#testlevelchange)
 
@@ -21,6 +22,11 @@ ctx.Set(LOG_TRADE_ID, "aaabbbbbcccc")
 Info(ctx, "我是日志2")
 Error(ctx, "我是日志4: %v,%v", "管理员", "eee")
 ```
+### TestErrorStack
+```go
+
+ErrorStack(context.Background(), "panic error")
+```
 ### TestPanicLog
 ```go
 
@@ -31,7 +37,7 @@ Info(context.Background(), "catch panic")
 ### TestLevelChange
 ```go
 
-traceId := strings.Replace(uuid.New().String(), "-", "", -1)
+traceId := time.Now().Unix()
 ctx := context.WithValue(context.Background(), LOG_TRADE_ID, traceId)
 Error(ctx, LogLess())
 Error(ctx, LogLess())

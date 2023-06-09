@@ -47,8 +47,19 @@ func FileCopy(src, dst string) error {
 	if _, err = io.Copy(dstfd, srcfd); err != nil {
 		return err
 	}
+
 	if srcinfo, err = os.Stat(src); err != nil {
 		return err
 	}
-	return os.Chmod(dst, srcinfo.Mode())
+
+	// Set destination file attributes
+	if err := os.Chmod(dst, srcinfo.Mode()); err != nil {
+		return err
+	}
+
+	if err := os.Chtimes(dst, srcinfo.ModTime(), srcinfo.ModTime()); err != nil {
+		return err
+	}
+
+	return nil
 }
