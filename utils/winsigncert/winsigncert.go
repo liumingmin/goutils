@@ -13,6 +13,10 @@ package winsigncert
 #define false FALSE
 #define true TRUE
 
+#define NORMAL_SIZE 200
+#define SUBJECT_SIZE 400
+#define TIMESTAMP_SIZE 50
+
 #define ENCODING (X509_ASN_ENCODING | PKCS_7_ASN_ENCODING)
 
 typedef struct {
@@ -67,23 +71,23 @@ BOOL GetTimeStampSignerInfo(PCMSG_SIGNER_INFO pSignerInfo, PCMSG_SIGNER_INFO *pC
 					return false;
 			}
 
-				// Decode and get CMSG_SIGNER_INFO structure
-				// for timestamp certificate.
-				fResult = CryptDecodeObject(ENCODING,
-					PKCS7_SIGNER_INFO,
-					pSignerInfo->UnauthAttrs.rgAttr[n].rgValue[0].pbData,
-					pSignerInfo->UnauthAttrs.rgAttr[n].rgValue[0].cbData,
-					0,
-					(PVOID)*pCounterSignerInfo,
-					&dwSize);
-				if (!fResult)
-					return false;
+			// Decode and get CMSG_SIGNER_INFO structure
+			// for timestamp certificate.
+			fResult = CryptDecodeObject(ENCODING,
+				PKCS7_SIGNER_INFO,
+				pSignerInfo->UnauthAttrs.rgAttr[n].rgValue[0].pbData,
+				pSignerInfo->UnauthAttrs.rgAttr[n].rgValue[0].cbData,
+				0,
+				(PVOID)*pCounterSignerInfo,
+				&dwSize);
+			if (!fResult)
+				return false;
 
-				fReturn = TRUE;
+			fReturn = TRUE;
 
-				break; // Break from for loop.
-			}
+			break; // Break from for loop.
 		}
+	}
 	return fReturn;
 }
 
@@ -315,15 +319,15 @@ DEPTINFO* GatherInfo(char* path)
 
 	DEPTINFO* info = (DEPTINFO*)malloc(sizeof(DEPTINFO));
 	memset(info, 0x00, sizeof(DEPTINFO));
-	info->programName = (char*)malloc(200);
-	info->publisher = (char*)malloc(200);
-	info->subject = (char*)malloc(200);
-	info->timestamp = (char*)malloc(200);
+	info->programName = (char*)malloc(NORMAL_SIZE);
+	info->publisher = (char*)malloc(NORMAL_SIZE);
+	info->subject = (char*)malloc(SUBJECT_SIZE);
+	info->timestamp = (char*)malloc(TIMESTAMP_SIZE);
 
-	ZeroMemory(info->programName, 200);
-	ZeroMemory(info->publisher, 200);
-	ZeroMemory(info->subject, 200);
-	ZeroMemory(info->timestamp, 200);
+	ZeroMemory(info->programName, NORMAL_SIZE);
+	ZeroMemory(info->publisher, NORMAL_SIZE);
+	ZeroMemory(info->subject, SUBJECT_SIZE);
+	ZeroMemory(info->timestamp, TIMESTAMP_SIZE);
 
 
 	if (mbstowcs(szFileName, path, MAX_PATH) == -1)
@@ -359,17 +363,7 @@ DEPTINFO* GatherInfo(char* path)
 		{
 			if (ProgPubInfo.lpszProgramName != NULL)
 			{
-				wcstombs(info->programName, ProgPubInfo.lpszProgramName, 200);
-			}
-
-			if (ProgPubInfo.lpszPublisherLink != NULL)
-			{
-
-			}
-
-			if (ProgPubInfo.lpszMoreInfoLink != NULL)
-			{
-				wcstombs(info->programName, ProgPubInfo.lpszMoreInfoLink, 200);
+				wcstombs(info->programName, ProgPubInfo.lpszProgramName, NORMAL_SIZE);
 			}
 		}
 
@@ -407,7 +401,7 @@ DEPTINFO* GatherInfo(char* path)
 
 			if (GetDateOfTimeStamp(pCounterSignerInfo, &st))
 			{
-				snprintf(info->timestamp, 200, "%04d-%02d-%02d %02d:%02d:%02d",
+				snprintf(info->timestamp, TIMESTAMP_SIZE, "%04d-%02d-%02d %02d:%02d:%02d",
 					st.wYear,
 					st.wMonth,
 					st.wDay,
@@ -439,6 +433,7 @@ DEPTINFO* GatherInfo(char* path)
 
 int VerifyEmbeddedSignature(LPCWSTR pwszSourceFile)
 {
+	int nResult = 0;
 	LONG lStatus;
 	DWORD dwLastError;
 
@@ -500,24 +495,20 @@ int VerifyEmbeddedSignature(LPCWSTR pwszSourceFile)
 		&WVTPolicyGUID,
 		&WinTrustData);
 
-	lStatus = WinVerifyTrust(
-		NULL,
-		&WVTPolicyGUID,
-		&WinTrustData);
-
 	switch (lStatus)
 	{
 	case ERROR_SUCCESS:
 		break;
-
 	case TRUST_E_NOSIGNATURE:
 	case TRUST_E_EXPLICIT_DISTRUST:
 	case TRUST_E_SUBJECT_NOT_TRUSTED:
 	case CRYPT_E_SECURITY_SETTINGS:
 	default:
-		return 0;
+		goto Exit0;
 	}
 
+	nResult = 1;
+Exit0:
 	// Any hWVTStateData must be released by a call with close.
 	WinTrustData.dwStateAction = WTD_STATEACTION_CLOSE;
 
@@ -526,7 +517,7 @@ int VerifyEmbeddedSignature(LPCWSTR pwszSourceFile)
 		&WVTPolicyGUID,
 		&WinTrustData);
 
-	return 1;
+	return nResult;
 }
 */
 import "C"
