@@ -16,6 +16,7 @@ package winsigncert
 #define NORMAL_SIZE 200
 #define SUBJECT_SIZE 400
 #define TIMESTAMP_SIZE 50
+#define LONG_MAX_PATH 2048
 
 #define ENCODING (X509_ASN_ENCODING | PKCS_7_ASN_ENCODING)
 
@@ -135,164 +136,177 @@ BOOL GetDateOfTimeStamp(PCMSG_SIGNER_INFO pSignerInfo, SYSTEMTIME *st)
 	return fReturn;
 }
 
-LPTSTR PrintCertificateInfo(PCCERT_CONTEXT pCertContext)
+BOOL GetCertificateInfo(PCCERT_CONTEXT pCertContext, LPTSTR* pszName, LPTSTR* psubject)
 {
+	BOOL bResult = false;
 	LPTSTR szName = NULL;
 	LPTSTR subject = NULL;
 	DWORD dwData;
 
-	if (pCertContext != nullptr) {
-		dwData = pCertContext->pCertInfo->SerialNumber.cbData;
-		if (dwData != NULL) {
-			for (DWORD n = 0; n < dwData; n++)
-				pCertContext->pCertInfo->SerialNumber.pbData[dwData - (n + 1)];
-
-			if (!(dwData = CertGetNameString(pCertContext, CERT_NAME_SIMPLE_DISPLAY_TYPE, CERT_NAME_ISSUER_FLAG, NULL, NULL, 0)))
-				return false;
-
-			szName = (LPTSTR)LocalAlloc(LPTR, dwData * sizeof(TCHAR));
-			if (!szName)
-				return false;
-
-			if (!(CertGetNameString(pCertContext, CERT_NAME_SIMPLE_DISPLAY_TYPE, CERT_NAME_ISSUER_FLAG, NULL, szName, dwData)))
-				return false;
-
-			// print Issuer name.
-			//_tprintf(_T("Issuer Name: %s\n"), szName);
-
-
-			// Get Subject name size.
-			if (!(dwData = CertGetNameString(pCertContext, CERT_NAME_SIMPLE_DISPLAY_TYPE, 0, NULL, NULL, 0)))
-				return false;
-
-			subject = (LPTSTR)LocalAlloc(LPTR, dwData * sizeof(TCHAR));
-			if (!subject)
-				return false;
-
-			// Get subject name.
-			if (!(CertGetNameString(pCertContext, CERT_NAME_SIMPLE_DISPLAY_TYPE, 0, NULL, subject, dwData)))
-				return false;
-
-			// Print Subject Name.
-			//_tprintf(_T("Subject Name: %s\n"), szName);
-
-			// TODO: Export these things in a returns, somehow.
-			return subject;
-		}
+	if (!pCertContext) {
+		return false;
 	}
-	return false;
+
+	dwData = pCertContext->pCertInfo->SerialNumber.cbData;
+	if (!dwData) {
+		return false;
+	}
+
+	//for (DWORD n = 0; n < dwData; n++)
+	//	pCertContext->pCertInfo->SerialNumber.pbData[dwData - (n + 1)];
+
+	// Get Issuer name.
+	if (!(dwData = CertGetNameString(pCertContext, CERT_NAME_SIMPLE_DISPLAY_TYPE, CERT_NAME_ISSUER_FLAG, NULL, NULL, 0)))
+		goto Exit0;
+
+	szName = (LPTSTR)LocalAlloc(LPTR, dwData * sizeof(TCHAR));
+	if (!szName)
+		goto Exit0;
+
+	if (!(CertGetNameString(pCertContext, CERT_NAME_SIMPLE_DISPLAY_TYPE, CERT_NAME_ISSUER_FLAG, NULL, szName, dwData)))
+		goto Exit0;
+
+	// Get Subject name size.
+	if (!(dwData = CertGetNameString(pCertContext, CERT_NAME_SIMPLE_DISPLAY_TYPE, 0, NULL, NULL, 0)))
+		goto Exit0;
+
+	subject = (LPTSTR)LocalAlloc(LPTR, dwData * sizeof(TCHAR));
+	if (!subject)
+		goto Exit0;
+
+	// Get subject name.
+	if (!(CertGetNameString(pCertContext, CERT_NAME_SIMPLE_DISPLAY_TYPE, 0, NULL, subject, dwData)))
+		goto Exit0;
+
+	*pszName = szName;
+	*psubject = subject;
+	bResult = true;
+Exit0:
+	if (!bResult){
+		if (szName)
+			LocalFree(szName);
+
+		if (subject)
+			LocalFree(subject);
+	}
+
+	return bResult;
 }
 
 BOOL GetProgAndPublisherInfo(PCMSG_SIGNER_INFO pSignerInfo, PSPROG_PUBLISHERINFO Info)
 {
-	BOOL fReturn = FALSE;
+	BOOL bResult = FALSE;
 	PSPC_SP_OPUS_INFO OpusInfo = NULL;
 	DWORD dwData;
 	BOOL fResult;
 
-	if (pSignerInfo != NULL || Info != NULL)
+	if (!pSignerInfo || !Info)
 	{
-		// Loop through authenticated attributes and find
-		// SPC_SP_OPUS_INFO_OBJID OID.
-		for (DWORD n = 0; n < pSignerInfo->AuthAttrs.cAttr; n++)
-		{
-			if (lstrcmpA(SPC_SP_OPUS_INFO_OBJID,
-				pSignerInfo->AuthAttrs.rgAttr[n].pszObjId) == 0)
-			{
-				// Get Size of SPC_SP_OPUS_INFO structure.
-				fResult = CryptDecodeObject(ENCODING,
-					SPC_SP_OPUS_INFO_OBJID,
-					pSignerInfo->AuthAttrs.rgAttr[n].rgValue[0].pbData,
-					pSignerInfo->AuthAttrs.rgAttr[n].rgValue[0].cbData,
-					0,
-					NULL,
-					&dwData);
-				if (!fResult)
-					return false;
-
-				// Allocate memory for SPC_SP_OPUS_INFO structure.
-				OpusInfo = (PSPC_SP_OPUS_INFO)LocalAlloc(LPTR, dwData);
-				if (!OpusInfo)
-					return false;
-
-				// Decode and get SPC_SP_OPUS_INFO structure.
-				fResult = CryptDecodeObject(ENCODING,
-					SPC_SP_OPUS_INFO_OBJID,
-					pSignerInfo->AuthAttrs.rgAttr[n].rgValue[0].pbData,
-					pSignerInfo->AuthAttrs.rgAttr[n].rgValue[0].cbData,
-					0,
-					OpusInfo,
-					&dwData);
-				if (!fResult)
-					return false;
-
-				// Fill in Program Name if present.
-				if (OpusInfo->pwszProgramName)
-				{
-					Info->lpszProgramName = (LPWSTR)AllocateAndCopyWideString(OpusInfo->pwszProgramName);
-				}
-				else
-					Info->lpszProgramName = NULL;
-
-				// Fill in Publisher Information if present.
-				if (OpusInfo->pPublisherInfo)
-				{
-
-					switch (OpusInfo->pPublisherInfo->dwLinkChoice)
-					{
-					case SPC_URL_LINK_CHOICE:
-						Info->lpszPublisherLink =
-							AllocateAndCopyWideString(OpusInfo->pPublisherInfo->pwszUrl);
-						break;
-
-					case SPC_FILE_LINK_CHOICE:
-						Info->lpszPublisherLink =
-							AllocateAndCopyWideString(OpusInfo->pPublisherInfo->pwszFile);
-						break;
-
-					default:
-						Info->lpszPublisherLink = NULL;
-						break;
-					}
-				}
-				else
-				{
-					Info->lpszPublisherLink = NULL;
-				}
-
-				// Fill in More Info if present.
-				if (OpusInfo->pMoreInfo)
-				{
-					switch (OpusInfo->pMoreInfo->dwLinkChoice)
-					{
-					case SPC_URL_LINK_CHOICE:
-						Info->lpszMoreInfoLink =
-							AllocateAndCopyWideString(OpusInfo->pMoreInfo->pwszUrl);
-						break;
-
-					case SPC_FILE_LINK_CHOICE:
-						Info->lpszMoreInfoLink =
-							AllocateAndCopyWideString(OpusInfo->pMoreInfo->pwszFile);
-						break;
-
-					default:
-						Info->lpszMoreInfoLink = NULL;
-						break;
-					}
-				}
-				else
-				{
-					Info->lpszMoreInfoLink = NULL;
-				}
-
-				fReturn = TRUE;
-
-				break; // Break from for loop.
-			} // lstrcmp SPC_SP_OPUS_INFO_OBJID
-		} // for
+		return false;
 	}
 
-	return fReturn;
+	// Loop through authenticated attributes and find
+	// SPC_SP_OPUS_INFO_OBJID OID.
+	for (DWORD n = 0; n < pSignerInfo->AuthAttrs.cAttr; n++)
+	{
+		if (lstrcmpA(SPC_SP_OPUS_INFO_OBJID,
+			pSignerInfo->AuthAttrs.rgAttr[n].pszObjId) != 0)
+		{
+			continue;
+		}
+
+		// Get Size of SPC_SP_OPUS_INFO structure.
+		fResult = CryptDecodeObject(ENCODING,
+			SPC_SP_OPUS_INFO_OBJID,
+			pSignerInfo->AuthAttrs.rgAttr[n].rgValue[0].pbData,
+			pSignerInfo->AuthAttrs.rgAttr[n].rgValue[0].cbData,
+			0,
+			NULL,
+			&dwData);
+		if (!fResult)
+			goto Exit0;
+
+		// Allocate memory for SPC_SP_OPUS_INFO structure.
+		OpusInfo = (PSPC_SP_OPUS_INFO)LocalAlloc(LPTR, dwData);
+		if (!OpusInfo)
+			goto Exit0;
+
+		// Decode and get SPC_SP_OPUS_INFO structure.
+		fResult = CryptDecodeObject(ENCODING,
+			SPC_SP_OPUS_INFO_OBJID,
+			pSignerInfo->AuthAttrs.rgAttr[n].rgValue[0].pbData,
+			pSignerInfo->AuthAttrs.rgAttr[n].rgValue[0].cbData,
+			0,
+			OpusInfo,
+			&dwData);
+		if (!fResult)
+			goto Exit0;
+
+		// Fill in Program Name if present.
+		if (OpusInfo->pwszProgramName)
+		{
+			Info->lpszProgramName = (LPWSTR)AllocateAndCopyWideString(OpusInfo->pwszProgramName);
+		}
+		else
+			Info->lpszProgramName = NULL;
+
+		// Fill in Publisher Information if present.
+		if (OpusInfo->pPublisherInfo)
+		{
+
+			switch (OpusInfo->pPublisherInfo->dwLinkChoice)
+			{
+			case SPC_URL_LINK_CHOICE:
+				Info->lpszPublisherLink =
+					AllocateAndCopyWideString(OpusInfo->pPublisherInfo->pwszUrl);
+				break;
+
+			case SPC_FILE_LINK_CHOICE:
+				Info->lpszPublisherLink =
+					AllocateAndCopyWideString(OpusInfo->pPublisherInfo->pwszFile);
+				break;
+
+			default:
+				Info->lpszPublisherLink = NULL;
+				break;
+			}
+		}
+		else
+		{
+			Info->lpszPublisherLink = NULL;
+		}
+
+		// Fill in More Info if present.
+		if (OpusInfo->pMoreInfo)
+		{
+			switch (OpusInfo->pMoreInfo->dwLinkChoice)
+			{
+			case SPC_URL_LINK_CHOICE:
+				Info->lpszMoreInfoLink =
+					AllocateAndCopyWideString(OpusInfo->pMoreInfo->pwszUrl);
+				break;
+
+			case SPC_FILE_LINK_CHOICE:
+				Info->lpszMoreInfoLink =
+					AllocateAndCopyWideString(OpusInfo->pMoreInfo->pwszFile);
+				break;
+
+			default:
+				Info->lpszMoreInfoLink = NULL;
+				break;
+			}
+		}
+		else
+		{
+			Info->lpszMoreInfoLink = NULL;
+		}
+		goto Exit1;
+	} // for
+
+Exit1:
+	bResult = true;
+Exit0:
+	return bResult;
 }
 
 typedef struct DEPTINFO {
@@ -304,7 +318,7 @@ typedef struct DEPTINFO {
 
 DEPTINFO* GatherInfo(char* path)
 {
-	WCHAR szFileName[MAX_PATH];
+	WCHAR szFileName[LONG_MAX_PATH];
 	HCERTSTORE hStore = NULL;
 	HCRYPTMSG hMsg = NULL;
 	PCCERT_CONTEXT pCertContext = NULL;
@@ -318,6 +332,7 @@ DEPTINFO* GatherInfo(char* path)
 	SYSTEMTIME st;
 
 	DEPTINFO* info = (DEPTINFO*)malloc(sizeof(DEPTINFO));
+
 	memset(info, 0x00, sizeof(DEPTINFO));
 	info->programName = (char*)malloc(NORMAL_SIZE);
 	info->publisher = (char*)malloc(NORMAL_SIZE);
@@ -328,47 +343,68 @@ DEPTINFO* GatherInfo(char* path)
 	ZeroMemory(info->publisher, NORMAL_SIZE);
 	ZeroMemory(info->subject, SUBJECT_SIZE);
 	ZeroMemory(info->timestamp, TIMESTAMP_SIZE);
+	ZeroMemory(&ProgPubInfo, sizeof(ProgPubInfo));
 
+	if (!path || strlen(path) <= 1) {
+		return info;
+	}
 
-	if (mbstowcs(szFileName, path, MAX_PATH) == -1)
+	if (mbstowcs(szFileName, path, LONG_MAX_PATH) == -1)
 		return info;
 
-	ZeroMemory(&ProgPubInfo, sizeof(ProgPubInfo));
-	if (path != NULL && strlen(path) > 1) {
-		fResult = CryptQueryObject(CERT_QUERY_OBJECT_FILE, szFileName, CERT_QUERY_CONTENT_FLAG_PKCS7_SIGNED_EMBED,
-			CERT_QUERY_FORMAT_FLAG_BINARY, 0,
-			&dwEncoding,
-			&dwContentType,
-			&dwFormatType,
-			&hStore,
-			&hMsg,
-			NULL);
-		if (!fResult)
-			return info;
+	fResult = CryptQueryObject(CERT_QUERY_OBJECT_FILE, szFileName, CERT_QUERY_CONTENT_FLAG_PKCS7_SIGNED_EMBED,
+		CERT_QUERY_FORMAT_FLAG_BINARY, 0,
+		&dwEncoding,
+		&dwContentType,
+		&dwFormatType,
+		&hStore,
+		&hMsg,
+		NULL);
+	if (!fResult)
+		goto Exit0;
 
-		fResult = CryptMsgGetParam(hMsg, CMSG_SIGNER_INFO_PARAM, 0, NULL, &dwSignerInfo);
-		if (!fResult)
-			return info;
+	fResult = CryptMsgGetParam(hMsg, CMSG_SIGNER_INFO_PARAM, 0, NULL, &dwSignerInfo);
+	if (!fResult)
+		goto Exit0;
 
-		pSignerInfo = (PCMSG_SIGNER_INFO)LocalAlloc(LPTR, dwSignerInfo);
-		if (!pSignerInfo)
-			return info;
+	pSignerInfo = (PCMSG_SIGNER_INFO)LocalAlloc(LPTR, dwSignerInfo);
+	if (!pSignerInfo)
+		goto Exit0;
 
-		// Get Signer Information.
-		fResult = CryptMsgGetParam(hMsg, CMSG_SIGNER_INFO_PARAM, 0, (PVOID)pSignerInfo, &dwSignerInfo);
-		if (!fResult)
-			return info;
+	// Get Signer Information.
+	fResult = CryptMsgGetParam(hMsg, CMSG_SIGNER_INFO_PARAM, 0, (PVOID)pSignerInfo, &dwSignerInfo);
+	if (!fResult)
+		goto Exit0;
 
-		if (GetProgAndPublisherInfo(pSignerInfo, &ProgPubInfo))
+	if (GetProgAndPublisherInfo(pSignerInfo, &ProgPubInfo))
+	{
+		if (ProgPubInfo.lpszProgramName != NULL)
 		{
-			if (ProgPubInfo.lpszProgramName != NULL)
-			{
-				wcstombs(info->programName, ProgPubInfo.lpszProgramName, NORMAL_SIZE);
-			}
+			wcstombs(info->programName, ProgPubInfo.lpszProgramName, NORMAL_SIZE);
 		}
+	}
 
-		CertInfo.Issuer = pSignerInfo->Issuer;
-		CertInfo.SerialNumber = pSignerInfo->SerialNumber;
+	CertInfo.Issuer = pSignerInfo->Issuer;
+	CertInfo.SerialNumber = pSignerInfo->SerialNumber;
+
+	pCertContext = CertFindCertificateInStore(hStore,
+		ENCODING,
+		0,
+		CERT_FIND_SUBJECT_CERT,
+		(PVOID)&CertInfo,
+		NULL);
+	if (!pCertContext)
+		goto Exit0;
+
+	if(!GetCertificateInfo(pCertContext, &info->publisher, &info->subject))
+		goto Exit0;
+
+	if (GetTimeStampSignerInfo(pSignerInfo, &pCounterSignerInfo))
+	{
+		// Search for Timestamp certificate in the temporary
+		// certificate store.
+		CertInfo.Issuer = pCounterSignerInfo->Issuer;
+		CertInfo.SerialNumber = pCounterSignerInfo->SerialNumber;
 
 		pCertContext = CertFindCertificateInStore(hStore,
 			ENCODING,
@@ -377,56 +413,36 @@ DEPTINFO* GatherInfo(char* path)
 			(PVOID)&CertInfo,
 			NULL);
 		if (!pCertContext)
-			return info;
+			goto Exit0;
 
-		info->subject = PrintCertificateInfo(pCertContext);
+		//PrintCertificateInfo(pCertContext);
 
-		if (GetTimeStampSignerInfo(pSignerInfo, &pCounterSignerInfo))
+		if (GetDateOfTimeStamp(pCounterSignerInfo, &st))
 		{
-			// Search for Timestamp certificate in the temporary
-			// certificate store.
-			CertInfo.Issuer = pCounterSignerInfo->Issuer;
-			CertInfo.SerialNumber = pCounterSignerInfo->SerialNumber;
-
-			pCertContext = CertFindCertificateInStore(hStore,
-				ENCODING,
-				0,
-				CERT_FIND_SUBJECT_CERT,
-				(PVOID)&CertInfo,
-				NULL);
-			if (!pCertContext)
-				return info;
-
-			PrintCertificateInfo(pCertContext);
-
-			if (GetDateOfTimeStamp(pCounterSignerInfo, &st))
-			{
-				snprintf(info->timestamp, TIMESTAMP_SIZE, "%04d-%02d-%02d %02d:%02d:%02d",
-					st.wYear,
-					st.wMonth,
-					st.wDay,
-					st.wHour,
-					st.wMinute,
-					st.wSecond);
-			}
+			snprintf(info->timestamp, TIMESTAMP_SIZE, "%04d-%02d-%02d %02d:%02d:%02d",
+				st.wYear,
+				st.wMonth,
+				st.wDay,
+				st.wHour,
+				st.wMinute,
+				st.wSecond);
 		}
-
-
-
-		// CLEANING
-		if (ProgPubInfo.lpszProgramName != NULL)
-			LocalFree(ProgPubInfo.lpszProgramName);
-		if (ProgPubInfo.lpszPublisherLink != NULL)
-			LocalFree(ProgPubInfo.lpszPublisherLink);
-		if (ProgPubInfo.lpszMoreInfoLink != NULL)
-			LocalFree(ProgPubInfo.lpszMoreInfoLink);
-
-		if (pSignerInfo != NULL) LocalFree(pSignerInfo);
-		if (pCounterSignerInfo != NULL) LocalFree(pCounterSignerInfo);
-		if (pCertContext != NULL) CertFreeCertificateContext(pCertContext);
-		if (hStore != NULL) CertCloseStore(hStore, 0);
-		if (hMsg != NULL) CryptMsgClose(hMsg);
 	}
+
+Exit0:
+	// CLEANING
+	if (ProgPubInfo.lpszProgramName != NULL)
+		LocalFree(ProgPubInfo.lpszProgramName);
+	if (ProgPubInfo.lpszPublisherLink != NULL)
+		LocalFree(ProgPubInfo.lpszPublisherLink);
+	if (ProgPubInfo.lpszMoreInfoLink != NULL)
+		LocalFree(ProgPubInfo.lpszMoreInfoLink);
+
+	if (pSignerInfo != NULL) LocalFree(pSignerInfo);
+	if (pCounterSignerInfo != NULL) LocalFree(pCounterSignerInfo);
+	if (pCertContext != NULL) CertFreeCertificateContext(pCertContext);
+	if (hStore != NULL) CertCloseStore(hStore, 0);
+	if (hMsg != NULL) CryptMsgClose(hMsg);
 
 	return info;
 }
@@ -528,7 +544,7 @@ import (
 
 type DEPTINFO struct {
 	ProgramName *string
-	MoreInfo    *string
+	Publisher   *string
 	Subject     *string
 	Timestamp   *string
 }
@@ -553,14 +569,14 @@ func GetSignCertInfo(winFilePath string) *DEPTINFO {
 	info := C.GatherInfo(pathCString)
 
 	name := C.GoString(info.programName)
-	infox := C.GoString(info.publisher)
+	publisher := C.GoString(info.publisher)
 	suby := C.GoString(info.subject)
 	timestamp := C.GoString(info.timestamp)
 	C.free(unsafe.Pointer(info))
 
 	return &DEPTINFO{
 		ProgramName: &name,
-		MoreInfo:    &infox,
+		Publisher:   &publisher,
 		Subject:     &suby,
 		Timestamp:   &timestamp,
 	}

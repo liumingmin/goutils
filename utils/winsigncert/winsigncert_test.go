@@ -9,7 +9,7 @@ func TestValidateSignCert(t *testing.T) {
 	result := ValidateSignCert("xxxx")
 	fmt.Println(result)
 
-	result = ValidateSignCert("xxxx")
+	result = ValidateSignCert("xxx")
 	fmt.Println(result)
 
 	result = ValidateSignCert("D:\\7-Zip-19\\7z.dll")
@@ -17,17 +17,18 @@ func TestValidateSignCert(t *testing.T) {
 }
 
 func TestGetSignCertInfo(t *testing.T) {
-	info := GetSignCertInfo("xxxxx")
+	info := GetSignCertInfo("xxxx")
 
 	fmt.Println("ProgramName:", *info.ProgramName)
 	fmt.Println("Subject:", *info.Subject)
-	fmt.Println("MoreInfo:", *info.MoreInfo)
+	fmt.Println("Publisher:", *info.Publisher)
 	fmt.Println("Timestamp:", *info.Timestamp)
 
 	info = GetSignCertInfo("xxxxx")
 
 	fmt.Println("ProgramName:", *info.ProgramName)
 	fmt.Println("Subject:", *info.Subject)
+	fmt.Println("Publisher:", *info.Publisher)
 	fmt.Println("Timestamp:", *info.Timestamp)
 
 }
