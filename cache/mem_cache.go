@@ -8,10 +8,9 @@ import (
 
 	"github.com/liumingmin/goutils/log"
 	"github.com/liumingmin/goutils/utils"
-	"github.com/robfig/go-cache"
 )
 
-func MemCacheFunc(ctx context.Context, cc *cache.Cache, expire time.Duration, f interface{}, keyFmt string, args ...interface{}) (interface{}, error) {
+func MemCacheFunc(ctx context.Context, cc *Cache, expire time.Duration, f interface{}, keyFmt string, args ...interface{}) (interface{}, error) {
 	defer log.Recover(ctx, func(e interface{}) string {
 		return fmt.Sprintf("MemCacheFunc err: %v", e)
 	})
@@ -38,7 +37,7 @@ func MemCacheFunc(ctx context.Context, cc *cache.Cache, expire time.Duration, f 
 	return data, err
 }
 
-func memCacheCallFunc(ctx context.Context, cc *cache.Cache, expire time.Duration, f interface{}, keyFmt string, args ...interface{}) (interface{}, error) {
+func memCacheCallFunc(ctx context.Context, cc *Cache, expire time.Duration, f interface{}, keyFmt string, args ...interface{}) (interface{}, error) {
 	argValues := make([]reflect.Value, 0)
 
 	ft := reflect.TypeOf(f)
@@ -74,7 +73,7 @@ func memCacheCallFunc(ctx context.Context, cc *cache.Cache, expire time.Duration
 	return result, retErr
 }
 
-func MemCacheDelete(ctx context.Context, cc *cache.Cache, keyFmt string, args ...interface{}) bool {
+func MemCacheDelete(ctx context.Context, cc *Cache, keyFmt string, args ...interface{}) bool {
 	key := fmt.Sprintf(keyFmt, args...)
 	return cc.Delete(key)
 }

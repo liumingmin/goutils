@@ -29,6 +29,22 @@
 
 <!-- tocstop -->
 
+## 常用工具库
+
+|文件  |说明    |
+|----------|--------|
+|async.go|带超时异步调用|
+|crc16.go |查表法crc16|
+|crc16-kermit.go|算法实现crc16|
+|csv_parse.go|csv解析封装|
+|httputils.go|httpClient工具|
+|math.go|数学库|
+|models.go|反射创建对象|
+|stringutils.go|字符串处理|
+|struct.go|结构体工具(拷贝、合并)|
+|tags.go|结构体tag工具 |                     
+|utils.go|其他工具类 |  
+
 # utils 通用工具库
 ## cbk 熔断器
 ### cbk_test.go
@@ -93,14 +109,14 @@ t.Log(checksumMd5Path)
 ```go
 
 dirMap := make(map[string][]string)
-dirMap["fullClient"] = []string{"E:\\game\\dev_test_01", "E:\\game\\dev_test_01\\fullClient"}
+dirMap["jsex"] = []string{"E:\\game\\jsex\\base"}
 for code, dirs := range dirMap {
 	t.Log("game: ", code)
 	for _, dir := range dirs {
 		t.Log("dir: ", dir)
 		start := time.Now() // 获取当前时间
-		checksumName := fmt.Sprintf("%v-62e204c376d4be7b1458d077", code)
-		checksumMd5Path, err := GenerateChecksumFileWithIgnore(context.Background(), dir, checksumName, []string{fmt.Sprintf("%v-62e204c376d4be7b1458d077.checksum", code)})
+		checksumName := fmt.Sprintf("%v", code)
+		checksumMd5Path, err := GenerateChecksumFileWithIgnore(context.Background(), dir, checksumName, []string{fmt.Sprintf("%v.checksum", code), "pak", "locales\\pak"})
 		if err != nil {
 			t.Error(err)
 			return
@@ -122,6 +138,22 @@ if !valid {
 	return
 }
 t.Log(valid)
+```
+#### TestRelPath
+```go
+
+repos := []string{"", "a", "b", "a\\b", "a/c", "a\\b/c", "a/d/c", "d/a", "d/c"}
+
+for _, repo1 := range repos {
+	t.Log(">>>", repo1)
+	for _, repo2 := range repos {
+		rel, _ := filepath.Rel(repo1, repo2)
+		if !strings.Contains(rel, ".") {
+			t.Log(repo2, ":", rel)
+		}
+	}
+}
+
 ```
 #### TestCompareChecksumFiles
 ```go
