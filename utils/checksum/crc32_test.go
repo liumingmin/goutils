@@ -87,3 +87,49 @@ func TestCompareChecksumFiles(t *testing.T) {
 		return
 	}
 }
+
+func TestGenerateChecksumFileWithIgnore1(t *testing.T) {
+	ignoreGitPaths := make([]string, 0)
+	ignoreGitPaths = append(ignoreGitPaths, fmt.Sprintf("%s.checksum", "SSGTEST"))
+	ignoreGitPaths = append(ignoreGitPaths, fmt.Sprintf("%s.checksum.md5", "SSGTEST"))
+	ignoreGitPaths = append(ignoreGitPaths, "ssg.lock")
+	ignoreGitPaths = append(ignoreGitPaths, ".git")
+	ignoreGitPaths = append(ignoreGitPaths, ".gitignore")
+	ignoreGitPaths = append(ignoreGitPaths, ".gitattributes")
+	type args struct {
+		ctx          context.Context
+		folder       string
+		checksumName string
+		ignores      []string
+	}
+	tests := []struct {
+		name             string
+		args             args
+		wantCheckSumPath string
+		wantErr          bool
+	}{
+		{
+			name: "",
+			args: args{
+				ctx:          context.Background(),
+				folder:       "E:\\game\\642294b4804e9df14ee54fd0",
+				checksumName: "SSGTEST",
+				ignores:      ignoreGitPaths,
+			},
+			wantCheckSumPath: "",
+			wantErr:          false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			gotCheckSumPath, err := GenerateChecksumFileWithIgnore(tt.args.ctx, tt.args.folder, tt.args.checksumName, tt.args.ignores)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("GenerateChecksumFileWithIgnore() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if gotCheckSumPath != tt.wantCheckSumPath {
+				t.Errorf("GenerateChecksumFileWithIgnore() gotCheckSumPath = %v, want %v", gotCheckSumPath, tt.wantCheckSumPath)
+			}
+		})
+	}
+}
