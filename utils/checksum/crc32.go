@@ -211,15 +211,18 @@ func PopulateFilePathsRecursively(ctx context.Context, folder string, ignores []
 			log.Error(ctx, "folder [%v] scan meet some err: %v, should skip", folder, err)
 			return err
 		}
+		// 相对路径不包括ignores中的内容
 		relPath, _ := filepath.Rel(folder, path)
 		isContain, _ := utils.StringsInArray(ignores, relPath)
+		// 文件名不包括ignores的内容
+		fileName := filepath.Base(path)
+		isContain, _ = utils.StringsInArray(ignores, fileName)
 		if info.IsDir() && isContain {
 			return filepath.SkipDir
 		}
 		if info.IsDir() || isContain {
 			return nil
 		}
-
 		paths = append(paths, relPath)
 		log.Debug(ctx, "folder: %v", info.Name())
 		return nil
