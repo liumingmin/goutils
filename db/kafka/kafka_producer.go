@@ -6,7 +6,7 @@ import (
 
 	"github.com/liumingmin/goutils/conf"
 
-	"github.com/Shopify/sarama"
+	"github.com/IBM/sarama"
 )
 
 type saramaAsyncProducer struct {

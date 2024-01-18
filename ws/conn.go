@@ -35,7 +35,7 @@ func (t ConnType) String() string {
 	return ""
 }
 
-//websocket连接封装
+// websocket连接封装
 type Connection struct {
 	id             string
 	typ            ConnType
@@ -283,7 +283,7 @@ func (c *Connection) SendPullNotify(ctx context.Context, pullChannelId int) (err
 	return c.SignalPullSend(ctx, pullChannelId)
 }
 
-//通知指定消息通道转发消息
+// 通知指定消息通道转发消息
 func (c *Connection) SignalPullSend(ctx context.Context, pullChannelId int) (err error) {
 	defer log.Recover(ctx, func(e interface{}) string {
 		err, _ = e.(error)
@@ -563,9 +563,14 @@ func (c *Connection) isErrEOF(err error) bool {
 	return false
 }
 
-func (c *Connection) readMessageData() (int, []byte, error) {
+func (c *Connection) readMessageData() (messageType int, dataBuffer []byte, err error) {
+	defer log.Recover(context.Background(), func(e interface{}) string {
+		err = fmt.Errorf("%v readMessageData failed, error: %v", c.typ, e)
+		return err.Error()
+	})
+
 	var reader io.Reader
-	messageType, reader, err := c.conn.NextReader()
+	messageType, reader, err = c.conn.NextReader()
 	if err != nil && !c.isErrEOF(err) {
 		return messageType, nil, err
 	}
@@ -588,7 +593,7 @@ func (c *Connection) readMessageData() (int, []byte, error) {
 		return messageType, nil, errors.New("packet size exceed max")
 	}
 
-	dataBuffer := make([]byte, length)
+	dataBuffer = make([]byte, length)
 	_, err = io.ReadAtLeast(reader, dataBuffer, int(length))
 	if err != nil && !c.isErrEOF(err) {
 		return messageType, nil, err
@@ -763,7 +768,7 @@ func (c *Connection) dispatch(ctx context.Context, msg *Message) error {
 	return nil
 }
 
-//连接数据存储结构
+// 连接数据存储结构
 func (c *Connection) GetCommDataValue(key string) (interface{}, bool) {
 	c.commonDataLock.RLock()
 	defer c.commonDataLock.RUnlock()

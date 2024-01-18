@@ -88,7 +88,7 @@ var moduleCnName = map[string]string{
 	"snowflake_test.go":       "雪花ID生成器",
 }
 
-//dir := filepath.Dir(filePath)
+// dir := filepath.Dir(filePath)
 func genDocByTestFile(dir string, level int, sb *strings.Builder) map[string]string {
 	files, _ := ioutil.ReadDir(dir)
 
