@@ -3,6 +3,7 @@
 <!-- toc -->
 
 - [net 网络库](#net-%E7%BD%91%E7%BB%9C%E5%BA%93)
+  * [bwlimit](#bwlimit)
   * [httpx 兼容http1.x和2.0的httpclient](#httpx-%E5%85%BC%E5%AE%B9http1x%E5%92%8C20%E7%9A%84httpclient)
     + [httpclientx_test.go](#httpclientx_testgo)
   * [ip](#ip)
@@ -14,6 +15,7 @@
 <!-- tocstop -->
 
 # net 网络库
+## bwlimit
 ## httpx 兼容http1.x和2.0的httpclient
 ### httpclientx_test.go
 #### TestHttpXGet

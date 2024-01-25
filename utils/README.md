@@ -7,7 +7,6 @@
     + [cbk_test.go](#cbk_testgo)
   * [checksum](#checksum)
     + [crc32_test.go](#crc32_testgo)
-    + [testdir](#testdir)
   * [csv CSV文件解析为MDB内存表](#csv-csv%E6%96%87%E4%BB%B6%E8%A7%A3%E6%9E%90%E4%B8%BAmdb%E5%86%85%E5%AD%98%E8%A1%A8)
     + [csv_parse_test.go](#csv_parse_testgo)
   * [distlock 分布式锁](#distlock-%E5%88%86%E5%B8%83%E5%BC%8F%E9%94%81)
@@ -19,6 +18,8 @@
     + [docgen_test.go](#docgen_testgo)
   * [fsm 有限状态机](#fsm-%E6%9C%89%E9%99%90%E7%8A%B6%E6%80%81%E6%9C%BA)
   * [hc httpclient工具](#hc-httpclient%E5%B7%A5%E5%85%B7)
+  * [httpdownloader_test.go](#httpdownloader_testgo)
+    + [TestHttpDownloaderDownload](#testhttpdownloaderdownload)
   * [ismtp 邮件工具](#ismtp-%E9%82%AE%E4%BB%B6%E5%B7%A5%E5%85%B7)
     + [ismtp_test.go](#ismtp_testgo)
   * [safego 安全的go协程](#safego-%E5%AE%89%E5%85%A8%E7%9A%84go%E5%8D%8F%E7%A8%8B)
@@ -28,22 +29,6 @@
     + [TestAutoGenTags](#testautogentags)
 
 <!-- tocstop -->
-
-## 常用工具库
-
-|文件  |说明    |
-|----------|--------|
-|async.go|带超时异步调用|
-|crc16.go |查表法crc16|
-|crc16-kermit.go|算法实现crc16|
-|csv_parse.go|csv解析封装|
-|httputils.go|httpClient工具|
-|math.go|数学库|
-|models.go|反射创建对象|
-|stringutils.go|字符串处理|
-|struct.go|结构体工具(拷贝、合并)|
-|tags.go|结构体tag工具 |                     
-|utils.go|其他工具类 |  
 
 # utils 通用工具库
 ## cbk 熔断器
@@ -142,11 +127,12 @@ t.Log(valid)
 #### TestRelPath
 ```go
 
-repos := []string{"", "a", "b", "a\\b", "a/c", "a\\b/c", "a/d/c", "d/a", "d/c"}
+repos := []string{"", "a", "b", "a\\b", "a/c", "a\\b/c", "a/d/c", "d/a", "d/c", "/a", "\\a", "/a\\b\\", "\\a/b/b\\"}
 
 for _, repo1 := range repos {
 	t.Log(">>>", repo1)
 	for _, repo2 := range repos {
+		repo2 = strings.Trim(repo2, "/\\")
 		rel, _ := filepath.Rel(repo1, repo2)
 		if !strings.Contains(rel, ".") {
 			t.Log(repo2, ":", rel)
@@ -166,7 +152,6 @@ if err != nil {
 	return
 }
 ```
-### testdir
 ## csv CSV文件解析为MDB内存表
 ### csv_parse_test.go
 #### TestReadCsvToDataTable
@@ -279,6 +264,36 @@ GenDoc(context.Background(), "用户管理", "doc/testuser.md", 2, sb.String())
 ```
 ## fsm 有限状态机
 ## hc httpclient工具
+## httpdownloader_test.go
+### TestHttpDownloaderDownload
+```go
+
+dialer := bwlimit.NewDialer()
+dialer.RxBwLimit().SetBwLimit(1024 * 1024)
+hc := &http.Client{
+	Transport: &http.Transport{
+		Proxy:                 http.ProxyFromEnvironment,
+		DialContext:           dialer.DialContext,
+		ForceAttemptHTTP2:     true,
+		MaxIdleConns:          100,
+		IdleConnTimeout:       90 * time.Second,
+		TLSHandshakeTimeout:   10 * time.Second,
+		ExpectContinueTimeout: 1 * time.Second,
+	},
+}
+
+downloader := &HttpDownloader{
+	HttpClient:    hc,
+	GoroutinesCnt: 1,
+	RetryCnt:      1,
+}
+
+err := downloader.Download(context.Background(), "xxxxx", http.Header{
+	"User-Agent": []string{"Mozilla/5.0 (Linux; Android 10; Pixel 4) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/86.0.4240.183 Mobile Safari/537.36"},
+}, "xxxx")
+
+t.Log(err)
+```
 ## ismtp 邮件工具
 ### ismtp_test.go
 #### TestSendEmail
