@@ -21,6 +21,10 @@
     + [TestCrc16s](#testcrc16s)
   * [descartes_test.go 笛卡尔组合](#descartes_testgo-%E7%AC%9B%E5%8D%A1%E5%B0%94%E7%BB%84%E5%90%88)
     + [TestDescartes](#testdescartes)
+  * [xor_io_test.go](#xor_io_testgo)
+    + [TestXorIO](#testxorio)
+    + [TestCipherXor](#testcipherxor)
+    + [TestDeCipherXor](#testdecipherxor)
 
 <!-- tocstop -->
 
@@ -205,5 +209,88 @@ t.Log(Crc16s("abcdefg汉字") == Crc16([]byte("abcdefg汉字")))
 result := DescartesCombine([][]string{{"A", "B"}, {"1", "2", "3"}, {"a", "b", "c", "d"}})
 for _, item := range result {
 	t.Log(item)
+}
+```
+## xor_io_test.go
+### TestXorIO
+```go
+
+key := []byte("goutils_is_great")
+data := []byte("1234567890abcdefhijklmn")
+
+w := &bytes.Buffer{}
+
+xw := NewXORWriter(w, key)
+_, err := io.Copy(xw, bytes.NewReader(data))
+if err != nil {
+	t.Fatal(err)
+}
+
+cipherBs := w.Bytes()
+xr := NewXORReader(bytes.NewReader(cipherBs), key)
+rdata, err := ioutil.ReadAll(xr)
+if err != nil {
+	t.Fatal(err)
+}
+
+if bytes.Compare(data, rdata) != 0 {
+	t.Fail()
+}
+```
+### TestCipherXor
+```go
+
+key := []byte("goutils_is_great")
+writerIndex := uint64(0)
+
+f, err := os.Open("testxor")
+if err != nil {
+	t.Fatal(err)
+}
+defer f.Close()
+
+cf, err := os.OpenFile("testxor.cipher", os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0666)
+if err != nil {
+	t.Fatal(err)
+}
+defer cf.Close()
+
+w := NewXORWriterWithOffset(cf, key, &writerIndex)
+
+_, err = io.Copy(w, f)
+if err != nil {
+	t.Fatal(err)
+}
+```
+### TestDeCipherXor
+```go
+
+key := []byte("goutils_is_great")
+readerIndex := uint64(0)
+
+f, err := os.Open("testxor.cipher")
+if err != nil {
+	t.Fatal(err)
+}
+defer f.Close()
+
+r := NewXORReaderWithOffset(f, key, &readerIndex)
+
+rf, err := os.OpenFile("testxor.recover", os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0666)
+if err != nil {
+	t.Fatal(err)
+}
+defer rf.Close()
+
+_, err = io.Copy(rf, r)
+if err != nil {
+	t.Fatal(err)
+}
+
+bs1, _ := ioutil.ReadFile("testxor")
+bs2, _ := ioutil.ReadFile("testxor.recover")
+
+if bytes.Compare(bs1, bs2) != 0 {
+	t.Fail()
 }
 ```
