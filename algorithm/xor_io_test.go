@@ -1,9 +1,10 @@
-package algorithm
+package common
 
 import (
 	"bytes"
 	"io"
 	"io/ioutil"
+	"math/rand"
 	"os"
 	"testing"
 )
@@ -60,29 +61,76 @@ func TestDeCipherXor(t *testing.T) {
 	key := []byte("goutils_is_great")
 	readerIndex := uint64(0)
 
-	f, err := os.Open("testxor.cipher")
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer f.Close()
+	func() {
+		f, err := os.Open("testxor.cipher")
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer f.Close()
 
-	r := NewXORReaderWithOffset(f, key, &readerIndex)
+		r := NewXORReaderWithOffset(f, key, &readerIndex)
 
-	rf, err := os.OpenFile("testxor.recover", os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0666)
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer rf.Close()
+		rf, err := os.OpenFile("testxor.recover", os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0666)
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer rf.Close()
 
-	_, err = io.Copy(rf, r)
-	if err != nil {
-		t.Fatal(err)
-	}
+		_, err = io.Copy(rf, r)
+		if err != nil {
+			t.Fatal(err)
+		}
+	}()
 
 	bs1, _ := ioutil.ReadFile("testxor")
 	bs2, _ := ioutil.ReadFile("testxor.recover")
 
 	if bytes.Compare(bs1, bs2) != 0 {
-		t.Fail()
+		t.Fatal("not eq")
+	}
+}
+
+func TestXORReaderAt(t *testing.T) {
+	key := []byte("goutils_is_great")
+
+	func() {
+
+		f, err := os.Open("testxor.cipher")
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer f.Close()
+
+		rf, err := os.OpenFile("testxor.recover", os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0666)
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer rf.Close()
+
+		size := GetFileSize("testxor.cipher")
+
+		for offset := int64(0); offset < size; {
+			rdsize := int64(rand.Intn(int(size) / 2))
+			if offset+rdsize > size {
+				rdsize = size - offset
+			}
+
+			t.Logf("read section offset: %v, size: %v\n", offset, rdsize)
+			sr := io.NewSectionReader(NewXORReaderAt(f, key), offset, rdsize)
+
+			_, err = io.Copy(rf, sr)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			offset += rdsize
+		}
+	}()
+
+	bs1, _ := ioutil.ReadFile("testxor")
+	bs2, _ := ioutil.ReadFile("testxor.recover")
+
+	if bytes.Compare(bs1, bs2) != 0 {
+		t.Fatal("not eq")
 	}
 }

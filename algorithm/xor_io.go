@@ -1,4 +1,4 @@
-package algorithm
+package common
 
 import (
 	"errors"
@@ -81,4 +81,31 @@ func (w *XORWriter) Write(p []byte) (int, error) {
 
 	*w.pIndex = *w.pIndex + uint64(writeN)
 	return writeN, err
+}
+
+type XORReaderAt struct {
+	src    io.ReaderAt
+	key    []byte
+	keyLen uint64
+}
+
+func NewXORReaderAt(src io.ReaderAt, key []byte) io.ReaderAt {
+	return &XORReaderAt{
+		src:    src,
+		key:    key,
+		keyLen: uint64(len(key)),
+	}
+}
+
+func (r *XORReaderAt) ReadAt(p []byte, off int64) (int, error) {
+	n, err := r.src.ReadAt(p, off)
+	if err != nil && err != io.EOF && err != io.ErrUnexpectedEOF {
+		return n, err
+	}
+
+	for i := 0; i < n; i++ {
+		p[i] = p[i] ^ r.key[(uint64(off)+uint64(i))%r.keyLen]
+	}
+
+	return n, err
 }
