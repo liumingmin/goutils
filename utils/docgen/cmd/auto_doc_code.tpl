@@ -5,7 +5,6 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/liumingmin/goutils/middleware"
 	"github.com/liumingmin/goutils/utils/docgen"
 )
 
@@ -134,7 +133,7 @@ func genDoc{{.moduleName}}Delete() string {
 		UserId: "1",
 	}
 
-	respCase := middleware.DefaultServiceResponse{
+	respCase := DefaultServiceResponse{
 		Code: -1,
 		Msg:  "删除失败，记录不存在",
 	}

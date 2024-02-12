@@ -11,11 +11,35 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/liumingmin/goutils/middleware"
 	"github.com/liumingmin/goutils/utils"
 )
 
-//optional
+type ServiceResponse interface {
+	GetCode() int
+	GetMsg() string
+	SetRequrieUri(string)
+}
+
+type DefaultServiceResponse struct {
+	Code int         `json:"code"`
+	Msg  string      `json:"msg"`
+	Uri  string      `json:"uri,omitempty"`
+	Data interface{} `json:"data"`
+}
+
+func (r *DefaultServiceResponse) GetCode() int {
+	return r.Code
+}
+
+func (r *DefaultServiceResponse) GetMsg() string {
+	return r.Msg
+}
+
+func (r *DefaultServiceResponse) SetRequrieUri(uri string) {
+	r.Uri = uri
+}
+
+// optional
 const (
 	PARAM_MODULE_METHOD   = "moduleMethod"  // POST:application/json
 	PARAM_REQ_MODEL_PATH  = "reqModelPath"  // request model file path
@@ -122,39 +146,22 @@ func genRespDoc(ctx context.Context, moduleName, moduleUri string, paramMap map[
 
 	for _, resp := range resps {
 		if resp != nil {
-			var respModel interface{}
-			code := 0
-			if commonRespPtr, ok := resp.(*middleware.DefaultServiceResponse); ok && commonRespPtr != nil {
-				commonRespPtr.Tag = moduleUri
-				respModel = commonRespPtr
-				code = commonRespPtr.Code
-			} else if commonResp, ok := resp.(middleware.DefaultServiceResponse); ok {
-				commonResp.Tag = moduleUri
-				respModel = commonResp
-				code = commonResp.Code
-			} else if commonResp, ok := resp.(middleware.ServiceResponse); ok {
-				respModel = commonResp
-				code = commonResp.GetCode()
-			}
+			if svcResp, ok := resp.(ServiceResponse); ok && svcResp != nil {
+				svcResp.SetRequrieUri(moduleUri)
 
-			if respModel != nil {
-				msg := "成功响应样例"
-				if code != 0 {
-					msg = "失败响应样例"
-				}
-				sb.WriteString(fmt.Sprintf("### %v(code:%v)\n", msg, code))
-				sb.WriteString(genJson(ctx, respModel) + "\n")
+				sb.WriteString(fmt.Sprintf("### %v(code:%v)\n", svcResp.GetMsg(), svcResp.GetCode()))
+				sb.WriteString(genJson(ctx, svcResp) + "\n")
 				continue
 			}
 		}
 
-		respModel := middleware.DefaultServiceResponse{
+		respModel := DefaultServiceResponse{
 			Code: 0,
 			Msg:  "success",
-			Tag:  moduleUri,
+			Uri:  moduleUri,
 			Data: resp,
 		}
-		sb.WriteString("### 成功响应样例\n")
+		sb.WriteString("### success\n")
 		sb.WriteString(genJson(ctx, respModel) + "\n")
 	}
 

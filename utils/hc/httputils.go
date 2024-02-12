@@ -8,11 +8,8 @@ import (
 	"io/ioutil"
 	"net"
 	"net/http"
-	"net/http/httptest"
 	"net/url"
 	"time"
-
-	"github.com/gin-gonic/gin"
 )
 
 var gTransport *http.Client
@@ -58,12 +55,12 @@ func DumpBodyAsBytes(req *http.Request) (copy []byte, err error) {
 	return
 }
 
-func PerformTestRequest(method, target string, router *gin.Engine) *httptest.ResponseRecorder {
-	r := httptest.NewRequest(method, target, nil)
-	w := httptest.NewRecorder()
-	router.ServeHTTP(w, r)
-	return w
-}
+// func PerformTestRequest(method, target string, router *gin.Engine) *httptest.ResponseRecorder {
+// 	r := httptest.NewRequest(method, target, nil)
+// 	w := httptest.NewRecorder()
+// 	router.ServeHTTP(w, r)
+// 	return w
+// }
 
 func DefaultPooledClient() *http.Client {
 	return gTransport

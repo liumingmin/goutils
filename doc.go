@@ -56,7 +56,6 @@ var moduleCnName = map[string]string{
 	"mongo":                   "mongo数据库",
 	"redis":                   "go-redis",
 	"log":                     "zap日志库",
-	"middleware":              "中间件",
 	"captcha_test.go":         "验证码模块",
 	"limit_conn_test.go":      "限连接模块",
 	"limit_req_test.go":       "限流模块",

@@ -4,8 +4,6 @@ import (
 	"context"
 	"strings"
 	"testing"
-
-	"github.com/liumingmin/goutils/middleware"
 )
 
 type testUser struct {
@@ -133,7 +131,7 @@ func genDocTestUserDelete() string {
 		UserId: "1",
 	}
 
-	respCase := middleware.DefaultServiceResponse{
+	respCase := DefaultServiceResponse{
 		Code: -1,
 		Msg:  "删除失败，记录不存在",
 	}

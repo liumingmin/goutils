@@ -11,7 +11,6 @@ gotuils目标是快速搭建应用的辅助代码库
 - [容器模块](container/README.md)
 - [数据库](db/README.md)
 - [zap日志库](log/README.md)
-- [中间件](middleware/README.md)
 - [网络库](net/README.md)
 - [通用工具库](utils/README.md)
 - [websocket客户端和服务端库](ws/README.md)

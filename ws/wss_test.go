@@ -10,7 +10,6 @@ import (
 
 	"github.com/liumingmin/goutils/utils/safego"
 
-	"github.com/gin-gonic/gin"
 	"github.com/liumingmin/goutils/log"
 )
 
@@ -53,18 +52,19 @@ func TestWssRequestResponse(t *testing.T) {
 	})
 
 	//server start
-	e := gin.New()
-	e.Static("/js", "js")
-	e.Static("/ts", "ts")
-	e.GET("/join", func(ctx *gin.Context) {
+	// e := gin.New()
+	// e.Static("/js", "js")
+	// e.Static("/ts", "ts")
+
+	http.HandleFunc("/join", func(w http.ResponseWriter, r *http.Request) {
 		connMeta := ConnectionMeta{
-			UserId:   ctx.Query("uid"),
+			UserId:   r.URL.Query().Get("uid"),
 			Typed:    0,
 			DeviceId: "",
 			Version:  0,
 			Charset:  0,
 		}
-		_, err := AcceptGin(ctx, connMeta, DebugOption(true),
+		_, err := Accept(ctx, w, r, connMeta, DebugOption(true),
 			SrvUpgraderCompressOption(true),
 			CompressionLevelOption(2),
 			ConnEstablishHandlerOption(func(ctx context.Context, conn IConnection) {
@@ -82,7 +82,8 @@ func TestWssRequestResponse(t *testing.T) {
 			return
 		}
 	})
-	go e.Run(":8003")
+
+	go http.ListenAndServe(":8003", nil)
 
 	//client reg handler
 	RegisterHandler(S2C_RESP, func(ctx context.Context, connection IConnection, message IMessage) error {
@@ -145,16 +146,15 @@ func TestWssRequestResponseWithTimeout(t *testing.T) {
 	})
 
 	//server start
-	e := gin.New()
-	e.GET("/join", func(ctx *gin.Context) {
+	http.HandleFunc("/join", func(w http.ResponseWriter, r *http.Request) {
 		connMeta := ConnectionMeta{
-			UserId:   ctx.Query("uid"),
+			UserId:   r.URL.Query().Get("uid"),
 			Typed:    0,
 			DeviceId: "",
 			Version:  0,
 			Charset:  0,
 		}
-		_, err := AcceptGin(ctx, connMeta, DebugOption(true),
+		_, err := Accept(ctx, w, r, connMeta, DebugOption(true),
 			SrvUpgraderCompressOption(true),
 			CompressionLevelOption(2),
 			ConnEstablishHandlerOption(func(ctx context.Context, conn IConnection) {
@@ -172,7 +172,7 @@ func TestWssRequestResponseWithTimeout(t *testing.T) {
 			return
 		}
 	})
-	go e.Run(":8003")
+	go http.ListenAndServe(":8003", nil)
 
 	//client reg handler
 	RegisterHandler(S2C_RESP_TIMEOUT, func(ctx context.Context, connection IConnection, message IMessage) error {
@@ -260,16 +260,16 @@ func TestWssSendMessage(t *testing.T) {
 		})
 	}
 
-	e := gin.New()
-	e.GET("/join", func(ctx *gin.Context) {
+	//e := gin.New()
+	http.HandleFunc("/join", func(w http.ResponseWriter, r *http.Request) {
 		connMeta := ConnectionMeta{
-			UserId:   ctx.DefaultQuery("uid", ""),
+			UserId:   r.URL.Query().Get("uid"),
 			Typed:    0,
 			DeviceId: "",
 			Version:  0,
 			Charset:  0,
 		}
-		_, err := AcceptGin(ctx, connMeta, DebugOption(true),
+		_, err := Accept(ctx, w, r, connMeta, DebugOption(true),
 			SrvUpgraderCompressOption(true),
 			CompressionLevelOption(2),
 			ConnEstablishHandlerOption(func(ctx context.Context, conn IConnection) {
@@ -300,7 +300,7 @@ func TestWssSendMessage(t *testing.T) {
 			return
 		}
 	})
-	go e.Run(":8003")
+	go http.ListenAndServe(":8003", nil)
 
 	//client reg handler
 	RegisterHandler(S2C_RESP, func(ctx context.Context, connection IConnection, message IMessage) error {
@@ -361,19 +361,19 @@ func TestWssSendMessage(t *testing.T) {
 func TestWssDialConnect(t *testing.T) {
 	InitServerWithOpt(ServerOption{[]HubOption{HubShardOption(4)}}) //server invoke
 	InitClient()                                                    //client invoke
-	//ctx := context.Background()
+	ctx := context.Background()
 
 	//server start
-	e := gin.New()
-	e.GET("/join", func(ctx *gin.Context) {
+	//e := gin.New()
+	http.HandleFunc("/join", func(w http.ResponseWriter, r *http.Request) {
 		connMeta := ConnectionMeta{
-			UserId:   ctx.DefaultQuery("uid", ""),
+			UserId:   r.URL.Query().Get("uid"),
 			Typed:    0,
 			DeviceId: "",
 			Version:  0,
 			Charset:  0,
 		}
-		_, err := AcceptGin(ctx, connMeta, DebugOption(true),
+		_, err := Accept(ctx, w, r, connMeta, DebugOption(true),
 			SrvUpgraderCompressOption(true),
 			CompressionLevelOption(2),
 			ConnEstablishHandlerOption(func(ctx context.Context, conn IConnection) {
@@ -399,7 +399,7 @@ func TestWssDialConnect(t *testing.T) {
 			return
 		}
 	})
-	go e.Run(":8003")
+	go http.ListenAndServe(":8003", nil)
 
 	//client connect
 	for i := 0; i < 100; i++ {

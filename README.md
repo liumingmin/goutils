@@ -12,7 +12,6 @@ gotuils goal is to quickly build application-related auxiliary code libraries.
 - [Container Module](container/README.md)
 - [Database Module](db/README.md)
 - [Zap Logging Library](log/README.md)
-- [Middleware](middleware/README.md)
 - [Network Library](net/README.md)
 - [General Utility Library](utils/README.md)
 - [WebSocket Client and Server Library](ws/README.md)

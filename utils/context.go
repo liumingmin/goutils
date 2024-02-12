@@ -10,9 +10,9 @@ import (
 
 func ContextWithTrace() context.Context {
 	traceId := strings.Replace(uuid.New().String(), "-", "", -1)
-	return context.WithValue(context.Background(), log.LOG_TRADE_ID, traceId)
+	return context.WithValue(context.Background(), log.LOG_TRACE_ID, traceId)
 }
 
 func ContextWithTsTrace() context.Context {
-	return context.WithValue(context.Background(), log.LOG_TRADE_ID, NanoTsBase36()+RandBase36())
+	return context.WithValue(context.Background(), log.LOG_TRACE_ID, NanoTsBase36()+RandBase36())
 }

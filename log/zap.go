@@ -20,7 +20,7 @@ import (
 )
 
 const (
-	LOG_TRADE_ID            = "__GTraceId__"
+	LOG_TRACE_ID            = "__GTraceId__"
 	LOG_JSON_FIELD_TRACE_ID = "traceId"
 
 	LOGGER_ENCODER_JSON    = "json"
@@ -269,7 +269,7 @@ func ctxParams(c context.Context) string {
 		return ""
 	}
 
-	traceId := c.Value(LOG_TRADE_ID)
+	traceId := c.Value(LOG_TRACE_ID)
 	if traceId != nil {
 		return "<" + fmt.Sprint(traceId) + "> "
 	}
@@ -282,7 +282,7 @@ func SupplementFields(ctx context.Context) []zap.Field {
 		return generator.GetDefaultFields()
 	}
 
-	traceId := ctx.Value(LOG_TRADE_ID)
+	traceId := ctx.Value(LOG_TRACE_ID)
 	if traceId != nil {
 		return append(generator.GetDefaultFields(), zap.String(LOG_JSON_FIELD_TRACE_ID, fmt.Sprint(traceId)))
 	}
