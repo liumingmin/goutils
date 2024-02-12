@@ -25,14 +25,15 @@ func TestHttpDownloaderDownload(t *testing.T) {
 	}
 
 	downloader := &HttpDownloader{
-		HttpClient:    hc,
-		GoroutinesCnt: 1,
-		RetryCnt:      1,
+		HttpClient:   hc,
+		ConBlockChan: make(chan struct{}, 10),
+		BlockSize:    1024 * 1024,
+		RetryCnt:     1,
 	}
 
-	err := downloader.Download(context.Background(), "xxxxx", http.Header{
+	err := downloader.Download(context.Background(), "https://golang.google.cn/dl/go1.21.7.windows-amd64.zip", http.Header{
 		"User-Agent": []string{"Mozilla/5.0 (Linux; Android 10; Pixel 4) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/86.0.4240.183 Mobile Safari/537.36"},
-	}, "xxxx")
+	}, "./go1.21.7.windows-amd64.zip")
 
 	t.Log(err)
 }

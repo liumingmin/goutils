@@ -13,10 +13,11 @@ import (
 )
 
 type HttpDownloader struct {
-	HttpClient    *http.Client
-	Headers       http.Header
-	GoroutinesCnt int
-	RetryCnt      int
+	HttpClient   *http.Client
+	Headers      http.Header
+	ConBlockChan chan struct{}
+	BlockSize    int
+	RetryCnt     int
 }
 
 func (t *HttpDownloader) getContentLength(ctx context.Context, url string, header http.Header) (int64, error) {
@@ -39,20 +40,18 @@ func (t *HttpDownloader) getContentLength(ctx context.Context, url string, heade
 }
 
 func (t *HttpDownloader) Download(ctx context.Context, url string, header http.Header, savePath string) error {
-	var wg sync.WaitGroup
+	var err error
 
 	length, err := t.getContentLength(ctx, url, header)
 	if err != nil {
 		return err
 	}
 
-	goroutinesCnt := t.GoroutinesCnt
-	if length < int64(goroutinesCnt) {
-		goroutinesCnt = int(length)
-	}
+	blockCount := length / int64(t.BlockSize)
 
-	lenSub := length / int64(goroutinesCnt) // Bytes for each Go-routine
-	diff := length % int64(goroutinesCnt)   // Get the remaining for the last request
+	if length%int64(t.BlockSize) > 0 {
+		blockCount += 1
+	}
 
 	file, err := os.OpenFile(savePath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0666)
 	if err != nil {
@@ -61,51 +60,73 @@ func (t *HttpDownloader) Download(ctx context.Context, url string, header http.H
 	defer file.Close()
 
 	var mutex sync.Mutex
+	var wg sync.WaitGroup
 
-	// Make up a temporary array to hold the data to be written to the file
-	for i := 0; i < goroutinesCnt; i++ {
-		wg.Add(1)
+	for i := int64(0); i < blockCount; i++ {
+		min := int64(t.BlockSize) * int64(i)   // Min range
+		max := int64(t.BlockSize) * int64(i+1) // Max range
 
-		min := lenSub * int64(i)   // Min range
-		max := lenSub * int64(i+1) // Max range
-
-		if i == goroutinesCnt-1 {
-			max += diff // Add the remaining bytes in the last request
+		if max > length {
+			max = length
 		}
 
 		writer := NewOffsetWriter(file, &mutex, min, max)
+
+		select {
+		case <-ctx.Done():
+			err = context.Canceled
+			goto ExitFor
+		case t.ConBlockChan <- struct{}{}:
+		}
+
+		wg.Add(1)
 
 		go func(min int64, max int64) {
 			defer func() {
 				recover()
 			}()
+
+			defer func() {
+				select {
+				case <-t.ConBlockChan:
+				default:
+				}
+			}()
+
 			defer wg.Done()
 
-			req, err := t.createRequest(ctx, "GET", url, header)
-			if err != nil {
-				return
-			}
-
-			rangeHeader := fmt.Sprintf("bytes=%d-%d", min, max-1) // Add the data for the Range header of the form "bytes=0-100"
-			req.Header.Add("Range", rangeHeader)
-
-			for j := 0; j < t.RetryCnt; j++ {
-				err := t.downloadBlock(req, writer)
-				if err == nil {
-					break
-				}
-
-				log.Error(ctx, "downloadBlock failed, retry download, url: %v, range: %v, err: %v, retry: %v", url, rangeHeader, err, j)
-				writer.ResetOffset()
-			}
+			err = t.downloadBlock(ctx, url, header, min, max, writer)
 		}(min, max)
 	}
+ExitFor:
 	wg.Wait()
 
-	return nil
+	return err
 }
 
-func (t *HttpDownloader) downloadBlock(req *http.Request, writer *FileOffsetWriter) error {
+func (t *HttpDownloader) downloadBlock(ctx context.Context, url string, header http.Header, min, max int64, writer *FileOffsetWriter) error {
+	req, err := t.createRequest(ctx, "GET", url, header)
+	if err != nil {
+		return err
+	}
+
+	rangeHeader := fmt.Sprintf("bytes=%d-%d", min, max-1)
+	req.Header.Set("Range", rangeHeader)
+
+	for j := 0; j < t.RetryCnt; j++ {
+		err := t.downloadToWriter(req, writer)
+		if err == nil {
+			break
+		}
+
+		log.Error(ctx, "downloadBlock failed, retry download, url: %v, range: %v, err: %v, retry: %v", url, rangeHeader, err, j)
+		writer.ResetOffset()
+	}
+
+	return err
+}
+
+func (t *HttpDownloader) downloadToWriter(req *http.Request, writer *FileOffsetWriter) error {
 	resp, err := t.HttpClient.Do(req)
 	if err != nil {
 		return err
