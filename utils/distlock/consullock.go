@@ -1,5 +1,6 @@
 package distlock
 
+/*
 import (
 	"context"
 	"fmt"
@@ -69,3 +70,4 @@ func InitConsul(centerAddr string) {
 		panic(e)
 	}
 }
+*/

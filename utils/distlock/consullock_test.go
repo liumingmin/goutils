@@ -1,5 +1,6 @@
 package distlock
 
+/*
 import (
 	"context"
 	"fmt"
@@ -30,3 +31,4 @@ func TestAquireConsulLock(t *testing.T) {
 
 	time.Sleep(time.Minute)
 }
+*/

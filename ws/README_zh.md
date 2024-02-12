@@ -1,31 +1,32 @@
-**Read this in other languages: [English](README.md), [中文](README_zh.md).**
+**其他语言版本: [English](README.md), [中文](README_zh.md).**
 
 
-# Introduction to the ws Module
-* Interface-oriented programming, automatic connection management
-* Built-in support for multiple platforms, devices, versions, and character sets
-* Supports asynchronous messaging and synchronous RPC calls
-* Extremely efficient binary-level protocol for minimal data transfer
-* Message body object pool
-* Zero-copy message data
-* Multi-language support (Go/JavaScript/TypeScript/C++)
+# ws模块简介
 
-# Module Usage
-## plug and play
-Using GoLang to write a simple server:
+* 面向接口编程、连接自动化管理
+* 多平台、多设备、多版本、多字符集内建支持
+* 支持异步消息和同步RPC调用
+* 二进制底层协议极限省流
+* 消息包体对象池
+* 消息数据零拷贝
+* 多语言支持(go/js/ts/cpp)
 
-0. Define request and response packet protocol IDs for the server and client.
+# ws模块用法
+## 开箱即用
+使用GO编写一个简单的服务端步骤:
+
+0. 在服务端和客户端定义请求和响应包协议ID
 ```go
 const C2S_REQ  = 2
 const S2C_RESP = 3
 ```
 
-1. Register a server-side connection reception route.
+1. 注册一个服务端连接接收路由
 ```go
 ws.InitServerWithOpt(ServerOption{[]HubOption{HubShardOption(4)}}) 
 ```
 
-2. Register a server-side message reception handler, which sends a response packet after processing.
+2. 注册一个服务端接收消息的处理器,处理完毕后发送回包
 ```go
 ws.RegisterHandler(C2S_REQ, func(ctx context.Context, connection IConnection, message IMessage) error {
     log.Info(ctx, "server recv: %v, %v", message.GetProtocolId(), string(message.GetData()))
@@ -36,7 +37,7 @@ ws.RegisterHandler(C2S_REQ, func(ctx context.Context, connection IConnection, me
 })
 ```
 
-3. Create a listening service and start it.
+3. 创建一个监听服务并启动
 
 ```go
 wsServer := gin.New()
@@ -62,14 +63,14 @@ e.GET("/join", func(ctx *gin.Context) {
 go wsServer.Run(":8003")
 ```
 
-## Using GoLang to write a simple client:
+## 使用GO编写一个简单的客户端步骤:
 
-1. Register a client-side connection reception route.
+1. 注册一个客户端连接接收路由
 ```go
 ws.InitClient()
 ```
 
-2. Register a client-side message reception handler for receiving messages from the server.
+2. 注册一个客户端接收服务端消息的处理器
 ```go
 ws.RegisterHandler(S2C_RESP, func(ctx context.Context, connection IConnection, message IMessage) error {
     log.Info(ctx, "client recv: %v, %v", message.GetProtocolId(), string(message.GetData()))
@@ -77,7 +78,7 @@ ws.RegisterHandler(S2C_RESP, func(ctx context.Context, connection IConnection, m
 })
 ```
 
-3. Connect to the established server.
+3. 连接到已经创建好的服务器
 ```go
 url := "ws://127.0.0.1:8003/join?uid=100"
 conn, _ := ws.DialConnect(context.Background(), url, http.Header{},
@@ -95,14 +96,14 @@ conn, _ := ws.DialConnect(context.Background(), url, http.Header{},
 log.Info(ctx, "%v", conn)
 ```
 
-4. In the callback after the connection is established, use ConnEstablishHandlerOption to send messages to the server.
+4. 连接建立后的回调中ConnEstablishHandlerOption可以向服务端发送消息
 ```go
 packet := ws.GetPoolMessage(C2S_REQ)
 packet.SetData([]byte("client request"))
 conn.SendMsg(context.Background(), packet, nil)
 ```
 
-5. Example of sending request-response RPC calls based on WebSocket (ws).
+5. 基于ws发送请求响应rpc调用案例
 ```go
 packet := GetPoolMessage(C2S_REQ)
 packet.SetData([]byte("client rpc req info"))
@@ -112,7 +113,7 @@ if err == nil {
 }
 ```
 
-6. Example of sending request-response RPC calls with a timeout based on WebSocket (ws).
+6. 基于ws发送带超时的请求响应rpc调用案例
 ```go
 timeoutCtx, _ := context.WithTimeout(ctx, time.Second*5)
 packet := GetPoolMessage(C2S_REQ)
@@ -125,27 +126,23 @@ if err == nil {
 }
 ```
 
-## Advanced Usage
-### About protobuf
-Protobuf definitions generate corresponding source code. The Git repository already includes the generated results, so this step can be skipped.
+## 进阶使用
+### 关于protobuf
+protobuf定义生成对应的源码，Git仓库已经包含生成的结果，可跳过该步骤。
 
+pb的文件中仅定义了顶号相关的结构定义，框架通讯的协议并不使用pb实现，业务的消息结构可选择使用pb或json来实现
 
-The .pb files only define top-level related structure definitions; the framework communication protocol does not use protobuf implementation. Business message structures can choose to be implemented using protobuf or JSON.
-
-
-If protobuf is used, the framework can support object pool functionality.
-
-
+如果使用pb，框架可以支持对象池功能
 ```shell script
 protoc --go_out=. ws/msg.proto
 ```
 
-### Available Callable Interfaces
-Following the principle of interface-oriented design, implementation is separated from definition. The def.go file contains all the functions and interfaces that users need to use.
+### 有哪些可调用接口
+根据面向接口设计原则，实现与定义分离，def.go文件包含用户需要使用的所有函数和接口。
 
-## Other Language Clients
-### JavaScript Client Usage
-Supports lib mode and CommonJS mode.
+## 其他语言客户端
+### js客户端使用
+lib模式和commonjs模式
 
 https://www.npmjs.com/package/google-protobuf
 
@@ -168,7 +165,7 @@ minify msg_pb_dist.js   //msg_pb_dist.min.js
 http://127.0.0.1:8003/js/demo.html
 ```
 
-### TypeScript Client Usage in CommonJS Mode
+### ts客户端使用commonjs模式
 ```shell script
 npm i protobufjs
 npm i -g protobufjs-cli
@@ -188,7 +185,7 @@ browserify dist/msg_pb.js dist/wsc.js dist/demo.js  -o dist/bundle.js
 http://127.0.0.1:8003/ts/demo.html
 ```
 
-### C++ Client
+### cpp客户端
 ```shell script
 #1. unzip cpp/protobuf.zip (download from https://github.com/protocolbuffers/protobuf/releases  sourcecode: protobuf-cpp-3.21.12.zip then build)
 #2. gen compatible protobuf cpp code
@@ -197,9 +194,9 @@ cpp\protobuf\bin\protoc --cpp_out=cpp/QWS msg.proto
 #build sln
 ```
 
-## More Comprehensive Demo Examples
+## 更加丰富的案例demo
 ```go
-InitServerWithOpt(ServerOption{[]HubOption{HubShardOption(4)}}) //server invoke 
+InitServerWithOpt(ServerOption{[]HubOption{HubShardOption(4)}}) //server invoke 服务端调用
 ctx := context.Background()
 
 const (
@@ -245,10 +242,10 @@ e.GET("/join", func(ctx *gin.Context) {
 go e.Run(":8003")
 ```
 
-## GoLang client-side Demo Examples
+## go客户端demo
 ```go
 InitClient()        
-                                            //client invoke 
+                                            //client invoke 客户端调用
 const (
     C2S_REQ  = 2
     S2C_RESP = 3
