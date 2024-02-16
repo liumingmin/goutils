@@ -19,8 +19,6 @@
     + [docgen_test.go](#docgen_testgo)
   * [fsm 有限状态机](#fsm-%E6%9C%89%E9%99%90%E7%8A%B6%E6%80%81%E6%9C%BA)
   * [hc httpclient工具](#hc-httpclient%E5%B7%A5%E5%85%B7)
-  * [httpdownloader_test.go](#httpdownloader_testgo)
-    + [TestHttpDownloaderDownload](#testhttpdownloaderdownload)
   * [ismtp 邮件工具](#ismtp-%E9%82%AE%E4%BB%B6%E5%B7%A5%E5%85%B7)
     + [ismtp_test.go](#ismtp_testgo)
   * [safego 安全的go协程](#safego-%E5%AE%89%E5%85%A8%E7%9A%84go%E5%8D%8F%E7%A8%8B)
@@ -266,37 +264,6 @@ GenDoc(context.Background(), "用户管理", "doc/testuser.md", 2, sb.String())
 ```
 ## fsm 有限状态机
 ## hc httpclient工具
-## httpdownloader_test.go
-### TestHttpDownloaderDownload
-```go
-
-dialer := bwlimit.NewDialer()
-dialer.RxBwLimit().SetBwLimit(1024 * 1024)
-hc := &http.Client{
-	Transport: &http.Transport{
-		Proxy:                 http.ProxyFromEnvironment,
-		DialContext:           dialer.DialContext,
-		ForceAttemptHTTP2:     true,
-		MaxIdleConns:          100,
-		IdleConnTimeout:       90 * time.Second,
-		TLSHandshakeTimeout:   10 * time.Second,
-		ExpectContinueTimeout: 1 * time.Second,
-	},
-}
-
-downloader := &HttpDownloader{
-	HttpClient:   hc,
-	ConBlockChan: make(chan struct{}, 10),
-	BlockSize:    1024 * 1024,
-	RetryCnt:     1,
-}
-
-err := downloader.Download(context.Background(), "https://golang.google.cn/dl/go1.21.7.windows-amd64.zip", http.Header{
-	"User-Agent": []string{"Mozilla/5.0 (Linux; Android 10; Pixel 4) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/86.0.4240.183 Mobile Safari/537.36"},
-}, "./go1.21.7.windows-amd64.zip")
-
-t.Log(err)
-```
 ## ismtp 邮件工具
 ### ismtp_test.go
 #### TestSendEmail

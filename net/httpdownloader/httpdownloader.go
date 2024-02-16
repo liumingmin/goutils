@@ -1,4 +1,4 @@
-package utils
+package httpdownloader
 
 import (
 	"context"
@@ -104,7 +104,7 @@ ExitFor:
 	return err
 }
 
-func (t *HttpDownloader) downloadBlock(ctx context.Context, url string, header http.Header, min, max int64, writer *FileOffsetWriter) error {
+func (t *HttpDownloader) downloadBlock(ctx context.Context, url string, header http.Header, min, max int64, writer *HttpFileOffsetWriter) error {
 	req, err := t.createRequest(ctx, "GET", url, header)
 	if err != nil {
 		return err
@@ -126,7 +126,7 @@ func (t *HttpDownloader) downloadBlock(ctx context.Context, url string, header h
 	return err
 }
 
-func (t *HttpDownloader) downloadToWriter(req *http.Request, writer *FileOffsetWriter) error {
+func (t *HttpDownloader) downloadToWriter(req *http.Request, writer *HttpFileOffsetWriter) error {
 	resp, err := t.HttpClient.Do(req)
 	if err != nil {
 		return err

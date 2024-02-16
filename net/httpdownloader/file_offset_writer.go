@@ -1,4 +1,4 @@
-package utils
+package httpdownloader
 
 import (
 	"errors"
@@ -6,8 +6,8 @@ import (
 	"sync"
 )
 
-// FileOffsetWriter is a writer that writes data to a file at a given file offset.
-type FileOffsetWriter struct {
+// HttpFileOffsetWriter is a writer that writes data to a file at a given file offset.
+type HttpFileOffsetWriter struct {
 	writer       *os.File
 	mutex        *sync.Mutex
 	offset       int64
@@ -16,8 +16,8 @@ type FileOffsetWriter struct {
 }
 
 // NewOffsetWriter creates a new FileOffsetWriter instance to write at the given offset to the file.
-func NewOffsetWriter(file *os.File, mutex *sync.Mutex, offset, end int64) *FileOffsetWriter {
-	return &FileOffsetWriter{
+func NewOffsetWriter(file *os.File, mutex *sync.Mutex, offset, end int64) *HttpFileOffsetWriter {
+	return &HttpFileOffsetWriter{
 		writer:       file,
 		mutex:        mutex,
 		offset:       offset,
@@ -27,7 +27,7 @@ func NewOffsetWriter(file *os.File, mutex *sync.Mutex, offset, end int64) *FileO
 }
 
 // Write writes data to the file at the given offset.
-func (w *FileOffsetWriter) Write(p []byte) (n int, err error) {
+func (w *HttpFileOffsetWriter) Write(p []byte) (n int, err error) {
 	w.mutex.Lock()
 	defer w.mutex.Unlock()
 
@@ -51,7 +51,7 @@ func (w *FileOffsetWriter) Write(p []byte) (n int, err error) {
 	return n, nil
 }
 
-func (w *FileOffsetWriter) ResetOffset() {
+func (w *HttpFileOffsetWriter) ResetOffset() {
 	w.mutex.Lock()
 	defer w.mutex.Unlock()
 
