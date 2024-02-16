@@ -42,7 +42,7 @@ ws.RegisterHandler(C2S_REQ, func(ctx context.Context, connection IConnection, me
 ```go
 http.HandleFunc("/join", func(w http.ResponseWriter, r *http.Request) {
     connMeta := ws.ConnectionMeta{
-        UserId:   ctx.DefaultQuery("uid", ""),
+        UserId:   r.URL.Query().Get("uid"),
     }
     _, err := ws.Accept(ctx, w, r, connMeta, 
         ws.ConnEstablishHandlerOption(func(ctx context.Context, conn IConnection) {
