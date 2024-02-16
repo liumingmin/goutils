@@ -6,36 +6,13 @@ import (
 	"os/exec"
 	"path/filepath"
 	"regexp"
-	"sort"
 	"strings"
 
 	"github.com/liumingmin/goutils/utils"
 )
 
 func main() {
-	var sb strings.Builder
-
-	prefix, _ := ioutil.ReadFile(filepath.Join(utils.GetCurrPath(), "BASE-README.MD"))
-	sb.WriteString(string(prefix))
-
-	outlines := genDocByTestFile(utils.GetCurrPath(), 1, &strings.Builder{})
-	outlineEns := make([]string, 0)
-	for outlineEn := range outlines {
-		outlineEns = append(outlineEns, outlineEn)
-	}
-	sort.Strings(outlineEns)
-
-	for _, outlineEn := range outlineEns {
-		outlineCn := moduleCnName[outlineEn]
-		url := outlines[outlineEn]
-
-		sb.WriteString(fmt.Sprintf("- [%v](%v)\n", outlineCn, url))
-	}
-	ioutil.WriteFile("README.md", []byte(sb.String()), 0666)
-	//
-	//if err := exec.Command("cmd", "/c", "markdown-toc --maxdepth 3 -i README.md").Run(); err != nil {
-	//	fmt.Println(err)
-	//}
+	genDocByTestFile(utils.GetCurrPath(), 1, &strings.Builder{})
 }
 
 var moduleCnName = map[string]string{

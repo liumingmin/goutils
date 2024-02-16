@@ -15,6 +15,7 @@
     + [rdslock_test.go](#rdslock_testgo)
   * [docgen 文档自动生成](#docgen-%E6%96%87%E6%A1%A3%E8%87%AA%E5%8A%A8%E7%94%9F%E6%88%90)
     + [cmd](#cmd)
+    + [doc](#doc)
     + [docgen_test.go](#docgen_testgo)
   * [fsm 有限状态机](#fsm-%E6%9C%89%E9%99%90%E7%8A%B6%E6%80%81%E6%9C%BA)
   * [hc httpclient工具](#hc-httpclient%E5%B7%A5%E5%85%B7)
@@ -250,6 +251,7 @@ time.Sleep(time.Second * 15)
 ```
 ## docgen 文档自动生成
 ### cmd
+### doc
 ### docgen_test.go
 #### TestGenDocTestUser
 ```go
@@ -283,14 +285,15 @@ hc := &http.Client{
 }
 
 downloader := &HttpDownloader{
-	HttpClient:    hc,
-	GoroutinesCnt: 1,
-	RetryCnt:      1,
+	HttpClient:   hc,
+	ConBlockChan: make(chan struct{}, 10),
+	BlockSize:    1024 * 1024,
+	RetryCnt:     1,
 }
 
-err := downloader.Download(context.Background(), "xxxxx", http.Header{
+err := downloader.Download(context.Background(), "https://golang.google.cn/dl/go1.21.7.windows-amd64.zip", http.Header{
 	"User-Agent": []string{"Mozilla/5.0 (Linux; Android 10; Pixel 4) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/86.0.4240.183 Mobile Safari/537.36"},
-}, "xxxx")
+}, "./go1.21.7.windows-amd64.zip")
 
 t.Log(err)
 ```

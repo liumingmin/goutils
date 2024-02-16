@@ -16,9 +16,7 @@
 ### TestZap
 ```go
 
-ctx := &gin.Context{}
-ctx.Set(LOG_TRADE_ID, "aaabbbbbcccc")
-
+ctx := context.WithValue(context.Background(), LOG_TRACE_ID, "zap_trace_id")
 Info(ctx, "我是日志2")
 SetDefaultGenerator(new(GameDefaultFieldGenerator))
 Error(ctx, "我是日志4: %v,%v", "管理员", "eee")
@@ -43,7 +41,7 @@ Info(context.Background(), "catch panic")
 ```go
 
 traceId := time.Now().Unix()
-ctx := context.WithValue(context.Background(), LOG_TRADE_ID, traceId)
+ctx := context.WithValue(context.Background(), LOG_TRACE_ID, traceId)
 Error(ctx, LogLess())
 Error(ctx, LogLess())
 Error(ctx, LogLess())
