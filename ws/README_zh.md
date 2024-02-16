@@ -40,12 +40,11 @@ ws.RegisterHandler(C2S_REQ, func(ctx context.Context, connection IConnection, me
 3. 创建一个监听服务并启动
 
 ```go
-wsServer := gin.New()
-e.GET("/join", func(ctx *gin.Context) {
+http.HandleFunc("/join", func(w http.ResponseWriter, r *http.Request) {
     connMeta := ws.ConnectionMeta{
         UserId:   ctx.DefaultQuery("uid", ""),
     }
-    _, err := ws.AcceptGin(ctx, connMeta, 
+    _, err := ws.Accept(ctx, w, r, connMeta, 
         ws.ConnEstablishHandlerOption(func(ctx context.Context, conn IConnection) {
             log.Info(ctx, "server conn establish: %v, %p", conn.Id(), conn)
         }),
@@ -60,7 +59,7 @@ e.GET("/join", func(ctx *gin.Context) {
         return
     }
 })
-go wsServer.Run(":8003")
+http.ListenAndServe(":8003", nil)
 ```
 
 ## 使用GO编写一个简单的客户端步骤:
@@ -213,16 +212,15 @@ RegisterHandler(C2S_REQ, func(ctx context.Context, connection IConnection, messa
     return nil
 })
 
-e := gin.New()
-e.GET("/join", func(ctx *gin.Context) {
+http.HandleFunc("/join", func(w http.ResponseWriter, r *http.Request) {
     connMeta := ConnectionMeta{
-        UserId:   ctx.DefaultQuery("uid", ""),
+        UserId:   r.URL.Query().Get("uid"),
         Typed:    0,
         DeviceId: "",
         Version:  0,
         Charset:  0,
     }
-    _, err := AcceptGin(ctx, connMeta, DebugOption(true),
+    _, err := Accept(ctx, w, r, connMeta, DebugOption(true),
         SrvUpgraderCompressOption(true),
         CompressionLevelOption(2),
         ConnEstablishHandlerOption(func(ctx context.Context, conn IConnection) {
@@ -239,7 +237,7 @@ e.GET("/join", func(ctx *gin.Context) {
         return
     }
 })
-go e.Run(":8003")
+http.ListenAndServe(":8003", nil)
 ```
 
 ## go客户端demo
