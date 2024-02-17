@@ -4,28 +4,9 @@
 
 - [algorithm 算法模块](#algorithm-%E7%AE%97%E6%B3%95%E6%A8%A1%E5%9D%97)
   * [circ2buffer_test.go](#circ2buffer_testgo)
-    + [TestCreateC2Buffer](#testcreatec2buffer)
-    + [TestWriteBlock](#testwriteblock)
-    + [TestWritingUnderCapacityGivesEmptyEvicted](#testwritingundercapacitygivesemptyevicted)
-    + [TestWritingMultipleBytesWhenBufferIsNotFull](#testwritingmultiplebyteswhenbufferisnotfull)
-    + [TestEvictedRegession1](#testevictedregession1)
-    + [TestGetBlock](#testgetblock)
-    + [TestWriteTwoBlocksGet](#testwritetwoblocksget)
-    + [TestWriteSingleByteGetSingleByte](#testwritesinglebytegetsinglebyte)
-    + [TestWriteTwoBlocksGetEvicted](#testwritetwoblocksgetevicted)
-    + [TestWriteSingleByteReturnsSingleEvictedByte](#testwritesinglebytereturnssingleevictedbyte)
-    + [TestTruncatingAfterWriting](#testtruncatingafterwriting)
-    + [TestWritingAfterTruncating](#testwritingaftertruncating)
   * [crc16_test.go crc16算法](#crc16_testgo-crc16%E7%AE%97%E6%B3%95)
-    + [TestCrc16](#testcrc16)
-    + [TestCrc16s](#testcrc16s)
   * [descartes_test.go 笛卡尔组合](#descartes_testgo-%E7%AC%9B%E5%8D%A1%E5%B0%94%E7%BB%84%E5%90%88)
-    + [TestDescartes](#testdescartes)
   * [xor_io_test.go](#xor_io_testgo)
-    + [TestXorIO](#testxorio)
-    + [TestCipherXor](#testcipherxor)
-    + [TestDeCipherXor](#testdecipherxor)
-    + [TestXORReaderAt](#testxorreaderat)
 
 <!-- tocstop -->
 

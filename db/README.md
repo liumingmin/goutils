@@ -4,18 +4,9 @@
 
 - [db 数据库](#db-%E6%95%B0%E6%8D%AE%E5%BA%93)
   * [elasticsearch ES搜索引擎](#elasticsearch-es%E6%90%9C%E7%B4%A2%E5%BC%95%E6%93%8E)
-    + [es6 ES6版本API](#es6-es6%E7%89%88%E6%9C%ACapi)
-    + [es7 ES7版本API](#es7-es7%E7%89%88%E6%9C%ACapi)
   * [kafka kafka消息队列](#kafka-kafka%E6%B6%88%E6%81%AF%E9%98%9F%E5%88%97)
-    + [kafka_test.go](#kafka_testgo)
   * [mongo mongo数据库](#mongo-mongo%E6%95%B0%E6%8D%AE%E5%BA%93)
-    + [collection_test.go](#collection_testgo)
   * [redis go-redis](#redis-go-redis)
-    + [list_test.go Redis List工具库](#list_testgo-redis-list%E5%B7%A5%E5%85%B7%E5%BA%93)
-    + [lock_test.go Redis 锁工具库](#lock_testgo-redis-%E9%94%81%E5%B7%A5%E5%85%B7%E5%BA%93)
-    + [mq_test.go Redis PubSub工具库](#mq_testgo-redis-pubsub%E5%B7%A5%E5%85%B7%E5%BA%93)
-    + [redis_test.go](#redis_testgo)
-    + [zset_test.go Redis ZSet工具库](#zset_testgo-redis-zset%E5%B7%A5%E5%85%B7%E5%BA%93)
 
 <!-- tocstop -->
 

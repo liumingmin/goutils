@@ -4,28 +4,16 @@
 
 - [utils 通用工具库](#utils-%E9%80%9A%E7%94%A8%E5%B7%A5%E5%85%B7%E5%BA%93)
   * [cbk 熔断器](#cbk-%E7%86%94%E6%96%AD%E5%99%A8)
-    + [cbk_test.go](#cbk_testgo)
   * [checksum](#checksum)
-    + [crc32_test.go](#crc32_testgo)
   * [csv CSV文件解析为MDB内存表](#csv-csv%E6%96%87%E4%BB%B6%E8%A7%A3%E6%9E%90%E4%B8%BAmdb%E5%86%85%E5%AD%98%E8%A1%A8)
-    + [csv_parse_test.go](#csv_parse_testgo)
   * [distlock 分布式锁](#distlock-%E5%88%86%E5%B8%83%E5%BC%8F%E9%94%81)
-    + [consullock_test.go](#consullock_testgo)
-    + [filelock_test.go](#filelock_testgo)
-    + [rdslock_test.go](#rdslock_testgo)
   * [docgen 文档自动生成](#docgen-%E6%96%87%E6%A1%A3%E8%87%AA%E5%8A%A8%E7%94%9F%E6%88%90)
-    + [cmd](#cmd)
-    + [doc](#doc)
-    + [docgen_test.go](#docgen_testgo)
   * [fsm 有限状态机](#fsm-%E6%9C%89%E9%99%90%E7%8A%B6%E6%80%81%E6%9C%BA)
   * [hc httpclient工具](#hc-httpclient%E5%B7%A5%E5%85%B7)
   * [ismtp 邮件工具](#ismtp-%E9%82%AE%E4%BB%B6%E5%B7%A5%E5%85%B7)
-    + [ismtp_test.go](#ismtp_testgo)
   * [safego 安全的go协程](#safego-%E5%AE%89%E5%85%A8%E7%9A%84go%E5%8D%8F%E7%A8%8B)
   * [snowflake](#snowflake)
-    + [snowflake_test.go 雪花ID生成器](#snowflake_testgo-%E9%9B%AA%E8%8A%B1id%E7%94%9F%E6%88%90%E5%99%A8)
   * [tags_test.go 结构体TAG生成器](#tags_testgo-%E7%BB%93%E6%9E%84%E4%BD%93tag%E7%94%9F%E6%88%90%E5%99%A8)
-    + [TestAutoGenTags](#testautogentags)
 
 <!-- tocstop -->
 
