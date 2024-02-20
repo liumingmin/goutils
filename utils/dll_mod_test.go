@@ -7,19 +7,24 @@ import (
 	"unsafe"
 )
 
-// func TestDllCall(t *testing.T) {
-// 	mod := NewDllMod("test.dll")
+func TestDllCall(t *testing.T) {
+	mod := NewDllMod("machineinfo.dll")
 
-// 	result := int32(0)
-// 	fmt.Println(unsafe.Pointer(&result))
-// 	retCode, err := mod.Call("test", "", &result)
-// 	if err != nil {
-// 		t.Fatal(err)
-// 	}
+	result := int32(0)
 
-// 	t.Log(retCode)
-// 	t.Log(result)
-// }
+	retCode, err := mod.Call("GetDiskType", "C:", &result)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if retCode != 0 {
+		t.FailNow()
+	}
+
+	if result != 4 {
+		t.FailNow()
+	}
+}
 
 func TestDllConvertString(t *testing.T) {
 	mod := NewDllMod("test.dll")
@@ -57,13 +62,23 @@ func TestDllConvertInt(t *testing.T) {
 		t.FailNow()
 	}
 
-	intptr := 1080
+	intptr := int(1080)
 	arg, err = mod.convertArg(&intptr)
 	if err != nil {
 		t.FailNow()
 	}
 
 	if *(*int)(unsafe.Pointer(arg)) != intptr {
+		t.FailNow()
+	}
+
+	uintptr1 := uintptr(11080)
+	arg, err = mod.convertArg(&uintptr1)
+	if err != nil {
+		t.FailNow()
+	}
+
+	if *(*uintptr)(unsafe.Pointer(arg)) != uintptr1 {
 		t.FailNow()
 	}
 }

@@ -65,8 +65,8 @@ func (d *DllMod) Call(funcName string, args ...any) (retCode uintptr, err error)
 }
 
 func (d *DllMod) convertArg(arg any) (uintptr, error) {
-	typ := reflect.TypeOf(arg)
-	kind := typ.Kind()
+	argValue := reflect.ValueOf(arg)
+	kind := argValue.Kind()
 	switch kind {
 	case reflect.Bool:
 		b := arg.(bool)
@@ -98,7 +98,7 @@ func (d *DllMod) convertArg(arg any) (uintptr, error) {
 	case reflect.Uintptr:
 		return uintptr(arg.(uintptr)), nil
 	case reflect.Pointer:
-		return d.convertArgPtr(arg, typ)
+		return d.convertArgPtr(argValue)
 	case reflect.UnsafePointer:
 		return uintptr(arg.(unsafe.Pointer)), nil
 	case reflect.String:
@@ -114,9 +114,8 @@ func (d *DllMod) convertArg(arg any) (uintptr, error) {
 		}
 		return 0, ErrUnsupportArg
 	case reflect.Struct, reflect.Interface:
-		val := reflect.ValueOf(arg)
-		if val.CanAddr() {
-			return val.UnsafeAddr(), nil
+		if argValue.CanAddr() {
+			return argValue.Pointer(), nil
 		}
 		return 0, ErrUnsupportArg
 	case reflect.Func:
@@ -132,33 +131,22 @@ func (d *DllMod) convertArg(arg any) (uintptr, error) {
 	return 0, ErrUnsupportArg
 }
 
-func (d *DllMod) convertArgPtr(arg any, ptrType reflect.Type) (uintptr, error) {
-	kind := ptrType.Elem().Kind()
+func (d *DllMod) convertArgPtr(argValue reflect.Value) (uintptr, error) {
+	kind := argValue.Elem().Kind()
 	switch kind {
-	case reflect.Int:
-		return uintptr(unsafe.Pointer(arg.(*int))), nil
-	case reflect.Int8:
-		return uintptr(unsafe.Pointer(arg.(*int8))), nil
-	case reflect.Int16:
-		return uintptr(unsafe.Pointer(arg.(*int16))), nil
-	case reflect.Int32:
-		return uintptr(unsafe.Pointer(arg.(*int32))), nil
-	case reflect.Int64:
-		return uintptr(unsafe.Pointer(arg.(*int64))), nil
-	case reflect.Uint:
-		return uintptr(unsafe.Pointer(arg.(*uint))), nil
-	case reflect.Uint8:
-		return uintptr(unsafe.Pointer(arg.(*uint8))), nil
-	case reflect.Uint16:
-		return uintptr(unsafe.Pointer(arg.(*uint16))), nil
-	case reflect.Uint32:
-		return uintptr(unsafe.Pointer(arg.(*uint32))), nil
-	case reflect.Uint64:
-		return uintptr(unsafe.Pointer(arg.(*uint64))), nil
-	case reflect.Uintptr:
-		return uintptr(unsafe.Pointer(arg.(*uintptr))), nil
-	case reflect.Struct:
-		return reflect.ValueOf(arg).Pointer(), nil
+	case reflect.Int,
+		reflect.Int8,
+		reflect.Int16,
+		reflect.Int32,
+		reflect.Int64,
+		reflect.Uint,
+		reflect.Uint8,
+		reflect.Uint16,
+		reflect.Uint32,
+		reflect.Uint64,
+		reflect.Uintptr,
+		reflect.Struct:
+		return argValue.Pointer(), nil
 	}
 	return 0, ErrUnsupportArg
 }
