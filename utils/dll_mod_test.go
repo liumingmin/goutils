@@ -145,6 +145,24 @@ func TestDllConvertStructPtr(t *testing.T) {
 	}
 }
 
+func TestGetCStrFromUintptr(t *testing.T) {
+	mod := NewDllMod("test.dll")
+
+	testStr := "abcde很棒"
+	var arg uintptr
+	var err error
+	arg, err = mod.convertArg(testStr)
+	if err != nil {
+		t.FailNow()
+	}
+
+	origStr := mod.GetCStrFromUintptr(arg)
+
+	if testStr != origStr {
+		t.FailNow()
+	}
+}
+
 func TestDllConvertFunc(t *testing.T) {
 	//cannot convert back
 	// mod := NewDllMod("test.dll")

@@ -150,3 +150,16 @@ func (d *DllMod) convertArgPtr(argValue reflect.Value) (uintptr, error) {
 	}
 	return 0, ErrUnsupportArg
 }
+
+func (d *DllMod) GetCStrFromUintptr(sPtr uintptr) string {
+	bytes := make([]byte, 0)
+	for {
+		b := *(*uint8)(unsafe.Pointer(sPtr))
+		if b == 0 {
+			break
+		}
+		bytes = append(bytes, b)
+		sPtr += unsafe.Sizeof(b)
+	}
+	return string(bytes)
+}
