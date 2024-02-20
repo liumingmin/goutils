@@ -5,8 +5,10 @@
 - [utils 通用工具库](#utils-%E9%80%9A%E7%94%A8%E5%B7%A5%E5%85%B7%E5%BA%93)
   * [cbk 熔断器](#cbk-%E7%86%94%E6%96%AD%E5%99%A8)
   * [checksum](#checksum)
+  * [context_test.go](#context_testgo)
   * [csv CSV文件解析为MDB内存表](#csv-csv%E6%96%87%E4%BB%B6%E8%A7%A3%E6%9E%90%E4%B8%BAmdb%E5%86%85%E5%AD%98%E8%A1%A8)
   * [distlock 分布式锁](#distlock-%E5%88%86%E5%B8%83%E5%BC%8F%E9%94%81)
+  * [dll_mod_test.go](#dll_mod_testgo)
   * [docgen 文档自动生成](#docgen-%E6%96%87%E6%A1%A3%E8%87%AA%E5%8A%A8%E7%94%9F%E6%88%90)
   * [fsm 有限状态机](#fsm-%E6%9C%89%E9%99%90%E7%8A%B6%E6%80%81%E6%9C%BA)
   * [hc httpclient工具](#hc-httpclient%E5%B7%A5%E5%85%B7)
@@ -139,6 +141,20 @@ if err != nil {
 	return
 }
 ```
+## context_test.go
+### TestContextWithTsTrace
+```go
+
+t.Log(ContextWithTrace())
+
+t.Log(time.Now().UnixNano())
+time.Sleep(time.Second)
+t.Log(time.Now().UnixNano())
+t.Log(NanoTsBase32())
+t.Log(ContextWithTsTrace())
+t.Log(ContextWithTsTrace())
+t.Log(ContextWithTsTrace())
+```
 ## csv CSV文件解析为MDB内存表
 ### csv_parse_test.go
 #### TestReadCsvToDataTable
@@ -235,9 +251,153 @@ time.Sleep(time.Second * 15)
 
 //t.Log(l2.Lock(5))
 ```
+## dll_mod_test.go
+### TestDllCall
+```go
+
+// 	mod := NewDllMod("test.dll")
+
+// 	result := int32(0)
+// 	fmt.Println(unsafe.Pointer(&result))
+// 	retCode, err := mod.Call("test", "", &result)
+// 	if err != nil {
+// 		t.Fatal(err)
+// 	}
+
+// 	t.Log(retCode)
+// 	t.Log(result)
+// }
+
+func TestDllConvertString(t *testing.T) {
+mod := NewDllMod("test.dll")
+
+testStr := "abcde很棒"
+var arg uintptr
+var err error
+arg, err = mod.convertArg(testStr)
+if err != nil {
+	t.FailNow()
+}
+
+var slice []byte
+header := (*reflect.SliceHeader)(unsafe.Pointer(&slice))
+header.Data = arg
+header.Len = len(testStr)
+header.Cap = header.Len
+
+if string(slice) != testStr {
+	t.FailNow()
+}
+```
+### TestDllConvertInt
+```go
+
+mod := NewDllMod("test.dll")
+
+var arg uintptr
+var err error
+arg, err = mod.convertArg(12345)
+if err != nil {
+	t.FailNow()
+}
+
+if arg != 12345 {
+	t.FailNow()
+}
+
+intptr := 1080
+arg, err = mod.convertArg(&intptr)
+if err != nil {
+	t.FailNow()
+}
+
+if *(*int)(unsafe.Pointer(arg)) != intptr {
+	t.FailNow()
+}
+```
+### TestDllConvertBool
+```go
+
+mod := NewDllMod("test.dll")
+
+var arg uintptr
+var err error
+arg, err = mod.convertArg(true)
+if err != nil {
+	t.FailNow()
+}
+
+if arg != 1 {
+	t.FailNow()
+}
+```
+### TestDllConvertSlice
+```go
+
+mod := NewDllMod("test.dll")
+
+origSlice := []byte("testslicecvt")
+
+var arg uintptr
+var err error
+arg, err = mod.convertArg(origSlice)
+if err != nil {
+	t.FailNow()
+}
+
+var slice []byte
+header := (*reflect.SliceHeader)(unsafe.Pointer(&slice))
+header.Data = arg
+header.Len = len(origSlice)
+header.Cap = header.Len
+
+if bytes.Compare(origSlice, slice) != 0 {
+	t.FailNow()
+}
+```
+### TestDllConvertStructPtr
+```go
+
+mod := NewDllMod("test.dll")
+
+s := testDllModStruct{100, 200, 300}
+
+var arg uintptr
+var err error
+arg, err = mod.convertArg(&s)
+if err != nil {
+	t.FailNow()
+}
+
+s2 := *(*testDllModStruct)(unsafe.Pointer(arg))
+if s2.x1 != s.x1 || s2.x2 != s.x2 || s2.x4 != s.x4 {
+	t.FailNow()
+}
+```
+### TestDllConvertFunc
+```go
+
+//cannot convert back
+// mod := NewDllMod("test.dll")
+
+// var testCallback = func(s uintptr) uintptr {
+// 	fmt.Println("test callback")
+// 	return s + 900000
+// }
+
+// var arg uintptr
+// var err error
+// arg, err = mod.convertArg(testCallback)
+// if err != nil {
+// 	t.FailNow()
+// }
+
+// callback := *(*(func(s uintptr) uintptr))(unsafe.Pointer(arg))
+
+// t.Log(callback(12345))
+```
 ## docgen 文档自动生成
 ### cmd
-### doc
 ### docgen_test.go
 #### TestGenDocTestUser
 ```go
