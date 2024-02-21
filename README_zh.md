@@ -2,6 +2,11 @@
 gotuils目标是快速搭建应用的辅助代码库
 ​
 
+[![Go Report Card](https://goreportcard.com/badge/github.com/liumingmin/goutils)](https://goreportcard.com/report/github.com/liumingmin/goutils)
+![GitHub last commit](https://img.shields.io/github/last-commit/liumingmin/goutils)
+![GitHub Tag](https://img.shields.io/github/v/tag/liumingmin/goutils)
+![GitHub License](https://img.shields.io/github/license/liumingmin/goutils)
+
 **其他语言版本: [English](README.md), [中文](README_zh.md).**
 
 ## 目录
