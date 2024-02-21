@@ -26,7 +26,7 @@ func CopyStructsDefault(src, dest interface{}) error {
 	return CopyStructs(src, dest, BaseConvert)
 }
 
-//dest 必须是指针
+// dest 必须是指针
 func CopyStruct(src, dest interface{}, f StructConvFunc) error {
 	ptrDestType := reflect.TypeOf(dest)
 	if ptrDestType.Kind() != reflect.Ptr {
@@ -64,7 +64,7 @@ func CopyStruct(src, dest interface{}, f StructConvFunc) error {
 	return nil
 }
 
-//dest 必须是数组的指针
+// dest 必须是数组的指针
 func CopyStructs(src, dest interface{}, f StructConvFunc) error {
 	srcType := reflect.TypeOf(src)
 	if srcType.Kind() != reflect.Ptr && srcType.Kind() != reflect.Slice {
@@ -172,17 +172,7 @@ func MergeStructs(src, dest interface{}, f StructConvFunc, keyField string, fiel
 
 	tupleInts := fieldMappingToIndex(srcElemType, destElemType, fieldMapping...)
 
-	srcMap := make(map[interface{}]interface{})
-	for i := 0; i < srcValue.Len(); i++ {
-		srcElemValueRaw := srcValue.Index(i)
-		srcElemField := reflect.Indirect(srcElemValueRaw).FieldByIndex(srcKeyFieldType.Index)
-		if !srcElemField.IsValid() {
-			continue
-		}
-
-		srcMap[srcElemField.Interface()] = srcElemValueRaw.Interface()
-	}
-
+	srcMap := genMergeStructSrcMap(srcValue, srcKeyFieldType)
 	for i := 0; i < destValue.Len(); i++ {
 		dstElemValuePtr := destValue.Index(i)
 		dstElemField := reflect.Indirect(dstElemValuePtr).FieldByIndex(destKeyFieldType.Index)
@@ -205,6 +195,20 @@ func MergeStructs(src, dest interface{}, f StructConvFunc, keyField string, fiel
 	}
 
 	return nil
+}
+
+func genMergeStructSrcMap(srcValue reflect.Value, srcKeyFieldType reflect.StructField) map[interface{}]interface{} {
+	srcMap := make(map[interface{}]interface{})
+	for i := 0; i < srcValue.Len(); i++ {
+		srcElemValueRaw := srcValue.Index(i)
+		srcElemField := reflect.Indirect(srcElemValueRaw).FieldByIndex(srcKeyFieldType.Index)
+		if !srcElemField.IsValid() {
+			continue
+		}
+
+		srcMap[srcElemField.Interface()] = srcElemValueRaw.Interface()
+	}
+	return srcMap
 }
 
 func fieldMappingToIndex(srcElemType, destElemType reflect.Type, fieldMapping ...string) []structTupleInts {

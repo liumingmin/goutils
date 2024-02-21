@@ -25,20 +25,26 @@ func TestInsert(t *testing.T) {
 	c, _ := MgoClient(dbKey)
 
 	op := NewCompCollectionOp(c, dbName, collectionName)
-	op.Insert(ctx, testUser{
+	err := op.Insert(ctx, testUser{
 		UserId:   "1",
 		Nickname: "超级棒",
 		Status:   "valid",
 		Type:     "normal",
 	})
+	log.Info(context.Background(), err)
 
-	var result interface{}
-	op.FindOne(ctx, FindModel{
+	var result []bson.M
+	err = op.Find(ctx, FindModel{
 		Query:   bson.M{"user_id": "1"},
 		Results: &result,
 	})
-
-	log.Info(ctx, "result: %v", result)
+	if err != nil {
+		log.Error(ctx, "Mgo find err: %v", err)
+		return
+	}
+	for _, item := range result {
+		t.Log(item)
+	}
 }
 
 func TestUpdate(t *testing.T) {
@@ -86,7 +92,8 @@ func TestDelete(t *testing.T) {
 	c, _ := MgoClient(dbKey)
 
 	op := NewCompCollectionOp(c, dbName, collectionName)
-	op.Delete(ctx, bson.M{"user_id": "1"})
+	err := op.Delete(ctx, bson.M{"user_id": "1"})
+	log.Info(context.Background(), err)
 
 	var result interface{}
 	op.FindOne(ctx, FindModel{

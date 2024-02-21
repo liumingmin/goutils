@@ -86,7 +86,7 @@ func (r Ruleset) Permitted(subject Stater, goal State) bool {
 	return false // No rule found for the transition
 }
 
-// Stater can be passed into the FSM. The Stater is reponsible for setting
+// Stater can be passed into the FSM. The Stater is responsible for setting
 // its own default state. Behavior of a Stater without a State is undefined.
 type Stater interface {
 	CurrentState() State

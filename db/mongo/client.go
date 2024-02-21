@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"net"
-	"reflect"
 	"strings"
 	"time"
 
@@ -15,8 +14,6 @@ import (
 	"github.com/liumingmin/goutils/net/proxy"
 
 	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/bson/bsoncodec"
-	"go.mongodb.org/mongo-driver/bson/bsonoptions"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -60,48 +57,16 @@ func initClient(dbconf *conf.Mongo) (ret *Client, err error) {
 	opts := options.Client()
 	opts.SetHosts(dbconf.Addrs)
 	if dbconf.User != "" {
-		var auth options.Credential
-		auth.Username = dbconf.User
-		auth.Password = dbconf.Password
-		auth.PasswordSet = true
-		if dbconf.AuthSource != "" {
-			auth.AuthSource = dbconf.AuthSource
-		} else {
-			auth.AuthSource = dbconf.DBName
-		}
-		opts.SetAuth(auth)
+		opts.SetAuth(genAuthFromConf(dbconf))
 	}
 
 	if len(dbconf.Compressors) > 0 {
 		opts.SetCompressors(dbconf.Compressors)
 	}
 
-	if dbconf.Ssh != nil && dbconf.Ssh.On {
-		var sshKey []byte
-		if dbconf.Ssh.PriKey != "" {
-			sshKey, err = base64.StdEncoding.DecodeString(dbconf.Ssh.PriKey)
-			if err != nil {
-				log.Error(context.Background(), "Decode sshKeyB64 failed: %v", err)
-				return nil, err
-			}
-		}
-
-		sshConfig, err := proxy.NewSshClient(dbconf.Ssh.Address, dbconf.Ssh.User, sshKey, dbconf.Ssh.KeyPass)
-		if err != nil {
-			log.Error(context.Background(), "NewSshClient err: %v", err)
-			return nil, err
-		}
-		opts.SetDialer(sshConfig)
-	} else {
-		var dialer net.Dialer
-		if dbconf.Keepalive > 0 {
-			dialer.KeepAlive = dbconf.Keepalive
-		}
-
-		if dbconf.ConnectTimeout > 0 {
-			dialer.Timeout = dbconf.ConnectTimeout
-		}
-		opts.SetDialer(&dialer)
+	dialer, err := genDialerFromConf(dbconf)
+	if err == nil {
+		opts.SetDialer(dialer)
 	}
 
 	if dbconf.ConnectTimeout > 0 {
@@ -141,34 +106,19 @@ func initClient(dbconf *conf.Mongo) (ret *Client, err error) {
 		opts.SetReadPreference(pref)
 	}
 
-	//safe
+	//read write safe
 	if dbconf.Safe == nil {
 		dbconf.Safe = &conf.MongoSafe{W: 1}
 	}
+
 	if dbconf.Safe.RMode != "" {
-		opts.SetReadConcern(readconcern.New(readconcern.Level(strings.ToLower(dbconf.Safe.RMode))))
+		opts.SetReadConcern(&readconcern.ReadConcern{Level: strings.ToLower(dbconf.Safe.RMode)})
 	}
+	opts.SetWriteConcern(genWriteConcernFromConf(dbconf))
 
-	var ops []writeconcern.Option
-	if dbconf.Safe.J {
-		ops = append(ops, writeconcern.J(true))
-	}
-	if dbconf.Safe.W > 0 {
-		ops = append(ops, writeconcern.W(dbconf.Safe.W))
-	}
-	if strings.ToLower(dbconf.Safe.WMode) == "majority" {
-		ops = append(ops, writeconcern.WMajority())
-	}
-	if dbconf.Safe.WTimeout > 0 {
-		ops = append(ops, writeconcern.WTimeout(time.Duration(dbconf.Safe.WTimeout)*time.Millisecond))
-	}
-	opts.SetWriteConcern(writeconcern.New(ops...))
-
-	//time
-	useLocalTimeZone := true
-	tc := bsoncodec.NewTimeCodec(&bsonoptions.TimeCodecOptions{UseLocalTimeZone: &useLocalTimeZone})
-	r := bson.NewRegistryBuilder().RegisterTypeDecoder(reflect.TypeOf(time.Time{}), tc).Build()
-	opts.SetRegistry(r)
+	opts.SetBSONOptions(&options.BSONOptions{
+		UseLocalTimeZone: true,
+	})
 
 	//finished
 	log.Info(context.Background(), "mgo official readPreference: %s, writeConcern: %#v",
@@ -182,6 +132,79 @@ func initClient(dbconf *conf.Mongo) (ret *Client, err error) {
 		Client: client,
 	}
 	return
+}
+
+func genAuthFromConf(dbconf *conf.Mongo) options.Credential {
+	var auth options.Credential
+	auth.Username = dbconf.User
+	auth.Password = dbconf.Password
+	auth.PasswordSet = true
+	if dbconf.AuthSource != "" {
+		auth.AuthSource = dbconf.AuthSource
+	} else {
+		auth.AuthSource = dbconf.DBName
+	}
+	return auth
+}
+
+func genDialerFromConf(dbconf *conf.Mongo) (options.ContextDialer, error) {
+	if dbconf.Ssh != nil && dbconf.Ssh.On {
+		dialer, err := genSshFromConf(dbconf)
+		if err != nil {
+			return nil, err
+		}
+		return dialer, nil
+	} else {
+		var dialer net.Dialer
+		if dbconf.Keepalive > 0 {
+			dialer.KeepAlive = dbconf.Keepalive
+		}
+
+		if dbconf.ConnectTimeout > 0 {
+			dialer.Timeout = dbconf.ConnectTimeout
+		}
+		return &dialer, nil
+	}
+}
+
+func genSshFromConf(dbconf *conf.Mongo) (options.ContextDialer, error) {
+	var sshKey []byte
+	var err error
+	if dbconf.Ssh.PriKey != "" {
+		sshKey, err = base64.StdEncoding.DecodeString(dbconf.Ssh.PriKey)
+		if err != nil {
+			log.Error(context.Background(), "Decode sshKeyB64 failed: %v", err)
+			return nil, err
+		}
+	}
+
+	sshConfig, err := proxy.NewSshClient(dbconf.Ssh.Address, dbconf.Ssh.User, sshKey, dbconf.Ssh.KeyPass)
+	if err != nil {
+		log.Error(context.Background(), "NewSshClient err: %v", err)
+		return nil, err
+	}
+
+	return sshConfig, nil
+}
+
+func genWriteConcernFromConf(dbconf *conf.Mongo) *writeconcern.WriteConcern {
+	var writeConcern *writeconcern.WriteConcern
+	if strings.ToLower(dbconf.Safe.WMode) == "majority" {
+		writeConcern = writeconcern.Majority()
+	} else {
+		writeConcern = &writeconcern.WriteConcern{}
+	}
+
+	if dbconf.Safe.J {
+		writeConcern.Journal = &dbconf.Safe.J
+	}
+	if dbconf.Safe.W > 0 {
+		writeConcern.W = dbconf.Safe.W
+	}
+	if dbconf.Safe.WTimeout > 0 {
+		writeConcern.WTimeout = time.Duration(dbconf.Safe.WTimeout) * time.Millisecond
+	}
+	return writeConcern
 }
 
 func getMode(val interface{}) readpref.Mode {
@@ -205,12 +228,12 @@ func getMode(val interface{}) readpref.Mode {
 	return readpref.PrimaryMode
 }
 
-//需要mongodb4.2以上才能支持事务
+// 需要mongodb4.2以上才能支持事务
 func (client *Client) ExecTx(ctx context.Context, f func(context.Context)) error {
 	return client.UseSession(ctx, func(sctx mongo.SessionContext) (err error) {
 		err = sctx.StartTransaction(options.Transaction().
 			SetReadConcern(readconcern.Snapshot()).
-			SetWriteConcern(writeconcern.New(writeconcern.WMajority())),
+			SetWriteConcern(writeconcern.Majority()),
 		)
 		if err != nil {
 			return err
@@ -254,7 +277,7 @@ func (client *Client) ExecTx(ctx context.Context, f func(context.Context)) error
 
 }
 
-//write
+// write
 func (client *Client) Insert(ctx context.Context, collection *mongo.Collection, data interface{},
 	opts ...*options.InsertOneOptions) error {
 
@@ -352,8 +375,8 @@ type BulkUpsertItem struct {
 	Replacement interface{}
 }
 
-//The replacement parameter must be a document that will be used to replace the selected document.
-//It cannot be nil and cannot contain any update operators
+// The replacement parameter must be a document that will be used to replace the selected document.
+// It cannot be nil and cannot contain any update operators
 func (client *Client) BulkUpsertItems(ctx context.Context, collection *mongo.Collection, bulkUpsertItems []*BulkUpsertItem,
 	opts ...*options.BulkWriteOptions) error {
 	bulkModels := make([]mongo.WriteModel, 0)
@@ -392,7 +415,7 @@ func (client *Client) FindOneAndUpdate(ctx context.Context, collection *mongo.Co
 	return mongoResult.Decode(result)
 }
 
-//read
+// read
 func (client *Client) FindById(ctx context.Context, collection *mongo.Collection, id primitive.ObjectID, result interface{},
 	opts ...*options.FindOneOptions) error {
 	err := collection.FindOne(ctx, bson.M{"_id": id}, opts...).Decode(result)

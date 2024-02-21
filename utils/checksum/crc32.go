@@ -102,12 +102,12 @@ func ChecksumFilesWithCheckInfo(root string, checkInfo map[string]*ChecksumInfo,
 		if err != nil {
 			return err
 		}
-		orginInfo, ok := checkInfo[file]
-		if !ok || orginInfo == nil {
-			return errors.New(fmt.Sprintf("filename:%s orgin check info invalid", file))
+		originInfo, ok := checkInfo[file]
+		if !ok || originInfo == nil {
+			return fmt.Errorf("filename:%s origin check info invalid", file)
 		}
-		if (fileInfo.Crc32Val != orginInfo.Crc32Val) || (fileInfo.FileSize != orginInfo.FileSize) {
-			return errors.New(fmt.Sprintf("filename:%s checksum not equal", file))
+		if (fileInfo.Crc32Val != originInfo.Crc32Val) || (fileInfo.FileSize != originInfo.FileSize) {
+			return fmt.Errorf("filename:%s checksum not equal", file)
 		}
 	}
 	return nil
