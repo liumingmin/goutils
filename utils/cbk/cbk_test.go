@@ -2,6 +2,7 @@ package cbk
 
 import (
 	"fmt"
+	"runtime"
 	"testing"
 	"time"
 )
@@ -35,4 +36,12 @@ func TestCbkFailed(t *testing.T) {
 		}
 		//})
 	}
+}
+
+func TestMain(m *testing.M) {
+	if runtime.GOOS != "windows" {
+		return
+	}
+
+	m.Run()
 }
