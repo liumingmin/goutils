@@ -13,7 +13,7 @@ import (
 
 func getSshClient(t *testing.T) *ssh.Client {
 	pemBytes, _ := ioutil.ReadFile("")
-	config, err := NewSshClient("127.0.0.1:22", "app", pemBytes, "")
+	config, err := NewSshClient("127.0.0.1:28822", "app", pemBytes, "")
 	if err != nil {
 		t.Fatalf("NewSshClient failed %v", err)
 	}
@@ -69,9 +69,9 @@ func TestMysqlSshClient(t *testing.T) {
 }
 
 func TestMain(m *testing.M) {
-	conn, err := net.DialTimeout("tcp", "127.0.0.1:22", time.Second*2)
+	conn, err := net.DialTimeout("tcp", "127.0.0.1:28822", time.Second*2)
 	if err != nil {
-		fmt.Println("Please install ssh on local and start at port: 22, then run test.")
+		fmt.Println("Please install ssh proxy on local and start at port: 28822, then run test.")
 		return
 	}
 	conn.Close()
