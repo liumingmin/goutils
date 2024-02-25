@@ -3,10 +3,11 @@ package cache
 import (
 	"context"
 	"fmt"
+	"net"
 	"reflect"
 	"testing"
+	"time"
 
-	"github.com/go-redis/redis/v8"
 	redisDao "github.com/liumingmin/goutils/db/redis"
 	"github.com/liumingmin/goutils/log"
 )
@@ -21,81 +22,179 @@ func TestRdscCacheFunc(t *testing.T) {
 	rds := redisDao.Get(RDSC_DB)
 
 	result, err := RdsCacheFunc(ctx, rds, 60, rawGetFunc0, cacheKey, "p1", "p2")
-	log.Info(ctx, "%v %v %v", result, err, printKind(result))
+	if err != nil {
+		t.Error(err)
+	}
 
-	_rdsDeleteCacheTestMore(ctx, rds, cacheKey)
+	log.Info(ctx, "%v %v %v", result, err, printKind(result))
 }
 
-func _rdsDeleteCacheTestMore(ctx context.Context, rds redis.UniversalClient, cacheKey string) {
+func TestRdsDeleteCacheTestMore(t *testing.T) {
+	redisDao.InitRedises()
+	ctx := context.Background()
+
+	const cacheKey = "UT:%v:%v"
+	const RDSC_DB = "rdscdb"
+
+	rds := redisDao.Get(RDSC_DB)
+
 	var result interface{}
 	var err error
 
 	result, err = RdsCacheFunc(ctx, rds, 60, rawGetFunc0, cacheKey, "p1", "p2")
+	if err != nil {
+		t.Error(err)
+	}
+
 	log.Info(ctx, "%v %v %v", result, err, printKind(result))
-	RdsDeleteCache(ctx, rds, cacheKey, "p1", "p2")
+	err = RdsDeleteCache(ctx, rds, cacheKey, "p1", "p2")
+	if err != nil {
+		t.Error(err)
+	}
 
 	result, err = RdsCacheFunc(ctx, rds, 60, rawGetFunc1, cacheKey, "p1", "p2")
+	if err != nil {
+		t.Error(err)
+	}
 	log.Info(ctx, "%v %v %v", result, err, printKind(result))
 
 	result, err = RdsCacheFunc(ctx, rds, 60, rawGetFunc1, cacheKey, "p1", "p2")
+	if err != nil {
+		t.Error(err)
+	}
 	log.Info(ctx, "%v %v %v", result, err, printKind(result))
-	RdsDeleteCache(ctx, rds, cacheKey, "p1", "p2")
+	err = RdsDeleteCache(ctx, rds, cacheKey, "p1", "p2")
+	if err != nil {
+		t.Error(err)
+	}
 
 	result, err = RdsCacheFunc(ctx, rds, 60, rawGetFunc2, cacheKey, "p1", "p2")
+	if err != nil {
+		t.Error(err)
+	}
 	log.Info(ctx, "%v %v %v", result, err, printKind(result))
 
 	result, err = RdsCacheFunc(ctx, rds, 60, rawGetFunc2, cacheKey, "p1", "p2")
+	if err != nil {
+		t.Error(err)
+	}
 	log.Info(ctx, "%v %v %v", result, err, printKind(result))
-	RdsDeleteCache(ctx, rds, cacheKey, "p1", "p2")
+	err = RdsDeleteCache(ctx, rds, cacheKey, "p1", "p2")
+	if err != nil {
+		t.Error(err)
+	}
 
 	result, err = RdsCacheFunc(ctx, rds, 60, rawGetFunc3, cacheKey, "p1", "p2")
+	if err != nil {
+		t.Error(err)
+	}
 	log.Info(ctx, "%v %v %v", result, err, printKind(result))
 
 	result, err = RdsCacheFunc(ctx, rds, 60, rawGetFunc3, cacheKey, "p1", "p2")
+	if err != nil {
+		t.Error(err)
+	}
 	log.Info(ctx, "%v %v %v", result, err, printKind(result))
-	RdsDeleteCache(ctx, rds, cacheKey, "p1", "p2")
+	err = RdsDeleteCache(ctx, rds, cacheKey, "p1", "p2")
+	if err != nil {
+		t.Error(err)
+	}
 
 	result, err = RdsCacheFunc(ctx, rds, 60, rawGetFunc4, cacheKey, "p1", "p2")
+	if err != nil {
+		t.Error(err)
+	}
 	log.Info(ctx, "%v %v %v", result, err, printKind(result))
 
 	result, err = RdsCacheFunc(ctx, rds, 60, rawGetFunc4, cacheKey, "p1", "p2")
+	if err != nil {
+		t.Error(err)
+	}
 	log.Info(ctx, "%v %v %v", result, err, printKind(result))
-	RdsDeleteCache(ctx, rds, cacheKey, "p1", "p2")
+	err = RdsDeleteCache(ctx, rds, cacheKey, "p1", "p2")
+	if err != nil {
+		t.Error(err)
+	}
 
 	result, err = RdsCacheFunc(ctx, rds, 60, rawGetFunc5, cacheKey, "p1", "p2")
+	if err != nil {
+		t.Error(err)
+	}
 	log.Info(ctx, "%v %v %v", result, err, printKind(result))
 
 	result, err = RdsCacheFunc(ctx, rds, 60, rawGetFunc5, cacheKey, "p1", "p2")
+	if err != nil {
+		t.Error(err)
+	}
 	log.Info(ctx, "%v %v %v", result, err, printKind(result))
-	RdsDeleteCache(ctx, rds, cacheKey, "p1", "p2")
+	err = RdsDeleteCache(ctx, rds, cacheKey, "p1", "p2")
+	if err != nil {
+		t.Error(err)
+	}
 
 	result, err = RdsCacheFunc(ctx, rds, 60, rawGetFunc6, cacheKey, "p1", "p2")
+	if err != nil {
+		t.Error(err)
+	}
 	log.Info(ctx, "%v %v %v", result, err, printKind(result))
 
 	result, err = RdsCacheFunc(ctx, rds, 60, rawGetFunc6, cacheKey, "p1", "p2")
+	if err != nil {
+		t.Error(err)
+	}
 	log.Info(ctx, "%v %v %v", drainToArray(result), err, printKind(result))
-	RdsDeleteCache(ctx, rds, cacheKey, "p1", "p2")
+	err = RdsDeleteCache(ctx, rds, cacheKey, "p1", "p2")
+	if err != nil {
+		t.Error(err)
+	}
 
 	result, err = RdsCacheFunc(ctx, rds, 60, rawGetFunc7, cacheKey, "p1", "p2")
+	if err != nil {
+		t.Error(err)
+	}
 	log.Info(ctx, "%v %v %v", result, err, printKind(result))
 
 	result, err = RdsCacheFunc(ctx, rds, 60, rawGetFunc7, cacheKey, "p1", "p2")
+	if err != nil {
+		t.Error(err)
+	}
 	log.Info(ctx, "%v %v %v", drainToMap(result), err, printKind(result))
-	RdsDeleteCache(ctx, rds, cacheKey, "p1", "p2")
+	err = RdsDeleteCache(ctx, rds, cacheKey, "p1", "p2")
+	if err != nil {
+		t.Error(err)
+	}
 
 	result, err = RdsCacheFunc(ctx, rds, 60, rawGetFunc8, cacheKey, "p1", "p2")
+	if err != nil {
+		t.Error(err)
+	}
 	log.Info(ctx, "%v %v %v", result, err, printKind(result))
 
 	result, err = RdsCacheFunc(ctx, rds, 60, rawGetFunc8, cacheKey, "p1", "p2")
+	if err != nil {
+		t.Error(err)
+	}
 	log.Info(ctx, "%v %v %v", result, err, printKind(result))
-	RdsDeleteCache(ctx, rds, cacheKey, "p1", "p2")
+	err = RdsDeleteCache(ctx, rds, cacheKey, "p1", "p2")
+	if err != nil {
+		t.Error(err)
+	}
 
 	result, err = RdsCacheFunc(ctx, rds, 60, rawGetFunc9, cacheKey, "p1", "p2")
+	if err != nil {
+		t.Error(err)
+	}
 	log.Info(ctx, "%v %v %v", result, err, printKind(result))
 
 	result, err = RdsCacheFunc(ctx, rds, 60, rawGetFunc9, cacheKey, "p1", "p2")
+	if err != nil {
+		t.Error(err)
+	}
 	log.Info(ctx, "%v %v %v", result, err, printKind(result))
-	RdsDeleteCache(ctx, rds, cacheKey, "p1", "p2")
+	err = RdsDeleteCache(ctx, rds, cacheKey, "p1", "p2")
+	if err != nil {
+		t.Error(err)
+	}
 
 	//result, err = RdsCacheFunc(ctx, rds, 60, rawGetFunc10, cacheKey, "p1", "p2")
 	//log.Info(ctx, "%v %v %v", result, err, printKind(result))
@@ -103,7 +202,10 @@ func _rdsDeleteCacheTestMore(ctx context.Context, rds redis.UniversalClient, cac
 	//result, err = RdsCacheFunc(ctx, rds, 60, rawGetFunc10, cacheKey, "p1", "p2")
 	//log.Info(ctx, "%v %v %v", result, err, printKind(result))
 
-	RdsDeleteCache(ctx, rds, cacheKey, "p1", "p2")
+	err = RdsDeleteCache(ctx, rds, cacheKey, "p1", "p2")
+	if err != nil {
+		t.Error(err)
+	}
 }
 
 func printKind(result interface{}) reflect.Kind {
@@ -226,4 +328,15 @@ func getThingsByIds(ctx context.Context, ids []string) (map[string]*Thing, error
 		"4": {Id: "4"},
 		"5": {Id: "5"},
 	}, nil
+}
+
+func TestMain(m *testing.M) {
+	conn, err := net.DialTimeout("tcp", "127.0.0.1:6379", time.Second*2)
+	if err != nil {
+		fmt.Println("Please install redis on local and start at port: 6379, then run test.")
+		return
+	}
+	conn.Close()
+
+	m.Run()
 }

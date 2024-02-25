@@ -61,8 +61,8 @@ func RdsCacheFunc(ctx context.Context, rds redis.UniversalClient, rdsExpire int,
 	return data, err
 }
 
-//通用场景过于复杂，限定参数,返回类型为 map[string]*struct
-//fMulti示例: func getThingsByIds(ctx context.Context, ids []string) (map[string]*Thing, error)
+// 通用场景过于复杂，限定参数,返回类型为 map[string]*struct
+// fMulti示例: func getThingsByIds(ctx context.Context, ids []string) (map[string]*Thing, error)
 func RdsCacheMultiFunc(ctx context.Context, rds redis.UniversalClient, rdsExpire int, fMulti interface{}, keyFmt string,
 	args []string) (interface{}, error) {
 	defer log.Recover(ctx, func(e interface{}) string {

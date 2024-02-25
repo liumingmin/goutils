@@ -2,9 +2,10 @@ package es7
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
+	"net"
 	"testing"
+	"time"
 
 	"github.com/liumingmin/goutils/db/elasticsearch"
 	"github.com/olivere/elastic/v7"
@@ -66,7 +67,9 @@ func TestCreateIndexByModel(t *testing.T) {
 		},
 	})
 
-	t.Log(err)
+	if err != nil {
+		t.Error(err)
+	}
 }
 
 func TestEsInsert(t *testing.T) {
@@ -85,7 +88,9 @@ func TestEsInsert(t *testing.T) {
 		id := "000000000" + fmt.Sprint(i)
 		err := client.Insert(context.Background(), testUserIndexName,
 			id, testUser{UserId: id, Nickname: "超级棒" + id, Status: status, Type: ptype})
-		t.Log(err)
+		if err != nil {
+			t.Error(err)
+		}
 	}
 }
 
@@ -112,7 +117,9 @@ func TestEsBatchInsert(t *testing.T) {
 	}
 
 	err := client.BatchInsert(context.Background(), testUserIndexName, ids, items)
-	t.Log(err)
+	if err != nil {
+		t.Error(err)
+	}
 }
 
 func TestEsUpdateById(t *testing.T) {
@@ -125,13 +132,17 @@ func TestEsUpdateById(t *testing.T) {
 		id, map[string]interface{}{
 			"status": "invalid",
 		})
-	t.Log(err)
+	if err != nil {
+		t.Error(err)
+	}
 
 	err = client.UpdateById(context.Background(), testUserIndexName,
 		id, map[string]interface{}{
 			"extField": "ext1234",
 		})
-	t.Log(err)
+	if err != nil {
+		t.Error(err)
+	}
 }
 
 func TestDeleteById(t *testing.T) {
@@ -141,7 +152,9 @@ func TestDeleteById(t *testing.T) {
 	id := "000000000" + fmt.Sprint(9)
 
 	err := client.DeleteById(context.Background(), testUserIndexName, id)
-	t.Log(err)
+	if err != nil {
+		t.Error(err)
+	}
 }
 
 func TestQueryEs(t *testing.T) {
@@ -160,8 +173,11 @@ func TestQueryEs(t *testing.T) {
 		Results:   &users,
 		Total:     &total,
 	})
-	bs, _ := json.Marshal(users)
-	t.Log(len(users), total, string(bs), err)
+	if err != nil {
+		t.Error(err)
+	}
+	//bs, _ := json.Marshal(users)
+	//t.Log(len(users), total, string(bs), err)
 }
 
 func TestQueryEsQuerySource(t *testing.T) {
@@ -183,8 +199,11 @@ func TestQueryEsQuerySource(t *testing.T) {
 		Results:   &users,
 		Total:     &total,
 	})
-	bs, _ := json.Marshal(users)
-	t.Log(len(users), total, string(bs), err)
+	if err != nil {
+		t.Error(err)
+	}
+	//bs, _ := json.Marshal(users)
+	//t.Log(len(users), total, string(bs), err)
 }
 
 func TestAggregateBySource(t *testing.T) {
@@ -253,20 +272,22 @@ func TestAggregateBySource(t *testing.T) {
 	}`
 
 	var test AggregationTest
-	client.AggregateBySource(context.Background(), elasticsearch.AggregateModel{
+	err := client.AggregateBySource(context.Background(), elasticsearch.AggregateModel{
 		IndexName: testUserIndexName,
 		Source:    source,
 		AggKeys:   []string{"status"},
 	}, &test)
-	t.Log(test)
+	if err != nil {
+		t.Error(err)
+	}
 }
 
-//  github.com/bashtian/jsonutils   json to struct
-//  m, err := jsonutils.FromBytes([]byte(jsonStr), "GoStruct")
-//  sb := &strings.Builder{}
-//	m.Format = true
-//	m.Writer = sb
-//	m.WriteGo()
+//	 github.com/bashtian/jsonutils   json to struct
+//	 m, err := jsonutils.FromBytes([]byte(jsonStr), "GoStruct")
+//	 sb := &strings.Builder{}
+//		m.Format = true
+//		m.Writer = sb
+//		m.WriteGo()
 type AggregationTest struct {
 	Buckets []struct {
 		DocCount int64  `json:"doc_count"` // 94
@@ -285,4 +306,15 @@ type AggregationTest struct {
 	} `json:"buckets"`
 	DocCountErrorUpperBound int64 `json:"doc_count_error_upper_bound"` // 0
 	SumOtherDocCount        int64 `json:"sum_other_doc_count"`         // 0
+}
+
+func TestMain(m *testing.M) {
+	conn, err := net.DialTimeout("tcp", "127.0.0.1:9200", time.Second*2)
+	if err != nil {
+		fmt.Println("Please install es7 on local and start at port: 9200, then run test.")
+		return
+	}
+	conn.Close()
+
+	m.Run()
 }

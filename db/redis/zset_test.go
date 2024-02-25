@@ -17,8 +17,7 @@ func TestZDescartes(t *testing.T) {
 	dt, err := csv.ReadCsvToDataTable(ctx, "data.csv", ',',
 		[]string{"id", "name", "createtime", "dim1", "dim2", "dim3", "member"}, "id", []string{})
 	if err != nil {
-		t.Log(err)
-		return
+		t.Error(err)
 	}
 
 	err = ZDescartes(ctx, rds, dimValues, func(strs []string) (string, map[string]int64) {
@@ -33,5 +32,7 @@ func TestZDescartes(t *testing.T) {
 		return "rds" + strings.Join(strs, "-"), dimData
 	}, 1000, 30)
 
-	t.Log(err)
+	if err != nil {
+		t.Error(err)
+	}
 }

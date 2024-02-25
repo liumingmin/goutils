@@ -2,8 +2,11 @@ package proxy
 
 import (
 	"database/sql"
+	"fmt"
 	"io/ioutil"
+	"net"
 	"testing"
+	"time"
 
 	"golang.org/x/crypto/ssh"
 )
@@ -63,4 +66,15 @@ func TestMysqlSshClient(t *testing.T) {
 	for rs.Next() {
 
 	}
+}
+
+func TestMain(m *testing.M) {
+	conn, err := net.DialTimeout("tcp", "127.0.0.1:22", time.Second*2)
+	if err != nil {
+		fmt.Println("Please install ssh on local and start at port: 22, then run test.")
+		return
+	}
+	conn.Close()
+
+	m.Run()
 }

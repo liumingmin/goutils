@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"testing"
-	"time"
 )
 
 func TestMqPSubscribe(t *testing.T) {
@@ -17,11 +16,15 @@ func TestMqPSubscribe(t *testing.T) {
 	}, 10)
 
 	err := MqPublish(ctx, rds, "testkey:1", "id:1")
-	t.Log(err)
+	if err != nil {
+		t.Error(err)
+	}
 	err = MqPublish(ctx, rds, "testkey:2", "id:2")
-	t.Log(err)
+	if err != nil {
+		t.Error(err)
+	}
 	err = MqPublish(ctx, rds, "testkey:3", "id:3")
-	t.Log(err)
-
-	time.Sleep(time.Second * 3)
+	if err != nil {
+		t.Error(err)
+	}
 }

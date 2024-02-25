@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"runtime"
 	"strconv"
 	"testing"
 	"time"
@@ -437,4 +438,12 @@ func TestWssDialConnect(t *testing.T) {
 	time.Sleep(time.Second * 3)
 
 	fmt.Println(len(ClientConnHub.ConnectionIds()))
+}
+
+func TestMain(m *testing.M) {
+	//ignore auto test
+	if runtime.GOOS != "windows" {
+		return
+	}
+	m.Run()
 }

@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"testing"
-	"time"
 )
 
 func TestList(t *testing.T) {
@@ -13,12 +12,15 @@ func TestList(t *testing.T) {
 	ctx := context.Background()
 
 	err := ListPush(ctx, rds, "test_list", "stringvalue")
-	t.Log(err)
+	if err != nil {
+		t.Error(err)
+	}
 	ListPop(rds, []string{"test_list"}, 3600, 1000, func(key, data string) {
 		fmt.Println(key, data)
 	})
 
 	err = ListPush(ctx, rds, "test_list", "stringvalue")
-	t.Log(err)
-	time.Sleep(time.Second * 20)
+	if err != nil {
+		t.Error(err)
+	}
 }

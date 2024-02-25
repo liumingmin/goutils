@@ -346,7 +346,6 @@ func (t *Client) CreateIndexByModel(ctx context.Context, esIndexName string, mod
 	}
 
 	mappingBody := string(esMapping)
-	log.Debug(ctx, "CreateIndexByModel mapping is: %v", mappingBody)
 	return t.CreateIndexByMapping(ctx, esIndexName, mappingBody)
 }
 

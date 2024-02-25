@@ -2,10 +2,14 @@ package mongo
 
 import (
 	"context"
+	"fmt"
+	"net"
 	"testing"
+	"time"
 
 	"github.com/liumingmin/goutils/log"
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/mongo"
 )
 
 const dbKey = "testDbKey"
@@ -31,7 +35,9 @@ func TestInsert(t *testing.T) {
 		Status:   "valid",
 		Type:     "normal",
 	})
-	log.Info(context.Background(), err)
+	if err != nil {
+		t.Error(err)
+	}
 
 	var result []bson.M
 	err = op.Find(ctx, FindModel{
@@ -39,8 +45,7 @@ func TestInsert(t *testing.T) {
 		Results: &result,
 	})
 	if err != nil {
-		log.Error(ctx, "Mgo find err: %v", err)
-		return
+		t.Error(err)
 	}
 	for _, item := range result {
 		t.Log(item)
@@ -53,13 +58,19 @@ func TestUpdate(t *testing.T) {
 	c, _ := MgoClient(dbKey)
 
 	op := NewCompCollectionOp(c, dbName, collectionName)
-	op.Update(ctx, bson.M{"user_id": "1"}, bson.M{"$set": bson.M{"nick_name": "超级棒++"}})
+	err := op.Update(ctx, bson.M{"user_id": "1"}, bson.M{"$set": bson.M{"nick_name": "超级棒++"}})
+	if err != nil {
+		t.Error(err)
+	}
 
 	var result interface{}
-	op.FindOne(ctx, FindModel{
+	err = op.FindOne(ctx, FindModel{
 		Query:   bson.M{"user_id": "1"},
 		Results: &result,
 	})
+	if err != nil {
+		t.Error(err)
+	}
 
 	log.Info(ctx, "result: %v", result)
 }
@@ -93,14 +104,18 @@ func TestDelete(t *testing.T) {
 
 	op := NewCompCollectionOp(c, dbName, collectionName)
 	err := op.Delete(ctx, bson.M{"user_id": "1"})
-	log.Info(context.Background(), err)
+	if err != nil {
+		t.Error(err)
+	}
 
 	var result interface{}
-	op.FindOne(ctx, FindModel{
+	err = op.FindOne(ctx, FindModel{
 		Query:   bson.M{"user_id": "1"},
 		Results: &result,
 	})
-
+	if err != mongo.ErrNoDocuments {
+		t.Error(err)
+	}
 	log.Info(ctx, "result: %v", result)
 }
 
@@ -111,7 +126,9 @@ func TestUpert(t *testing.T) {
 
 	op := NewCompCollectionOp(c, dbName, collectionName)
 	err := op.Upsert(ctx, bson.M{"name": "tom2"}, bson.M{"$set": bson.M{"birth": "2020"}}, bson.M{"birth2": "2024"})
-	t.Log(err)
+	if err != nil {
+		t.Error(err)
+	}
 }
 
 func TestBulkUpdateItems(t *testing.T) {
@@ -125,7 +142,9 @@ func TestBulkUpdateItems(t *testing.T) {
 		{Selector: bson.M{"name": "tom"}, Update: bson.M{"$set": bson.M{"birth": "1"}}},
 		{Selector: bson.M{"name": "tom1"}, Update: bson.M{"$set": bson.M{"birth2": "2"}}},
 	})
-	t.Log(err)
+	if err != nil {
+		t.Error(err)
+	}
 }
 
 func TestBulkUpsertItems(t *testing.T) {
@@ -139,5 +158,18 @@ func TestBulkUpsertItems(t *testing.T) {
 		{Selector: bson.M{"name": "tim"}, Replacement: bson.M{"name": "tim", "birth": "3"}},
 		{Selector: bson.M{"name": "tim1"}, Replacement: bson.M{"name": "tim1", "birth2": "4"}},
 	})
-	t.Log(err)
+	if err != nil {
+		t.Error(err)
+	}
+}
+
+func TestMain(m *testing.M) {
+	conn, err := net.DialTimeout("tcp", "127.0.0.1:27017", time.Second*2)
+	if err != nil {
+		fmt.Println("Please install mongo on local and start at port: 27017, then run test.")
+		return
+	}
+	conn.Close()
+
+	m.Run()
 }

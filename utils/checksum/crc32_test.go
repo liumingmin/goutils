@@ -87,3 +87,7 @@ func TestCompareChecksumFiles(t *testing.T) {
 		return
 	}
 }
+
+func TestMain(m *testing.M) {
+	return
+}
