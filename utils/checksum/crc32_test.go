@@ -89,8 +89,5 @@ func TestCompareChecksumFiles(t *testing.T) {
 }
 
 func TestMain(m *testing.M) {
-	if true { //not support test
-		return
-	}
-	m.Run()
+
 }
