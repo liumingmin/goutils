@@ -6,6 +6,7 @@ package utils
 import (
 	"bytes"
 	"reflect"
+	"runtime"
 	"testing"
 	"unsafe"
 )
@@ -185,4 +186,12 @@ func TestDllConvertFunc(t *testing.T) {
 	// callback := *(*(func(s uintptr) uintptr))(unsafe.Pointer(arg))
 
 	// t.Log(callback(12345))
+}
+
+func TestMain(m *testing.M) {
+	if runtime.GOOS != "windows" {
+		return
+	}
+
+	m.Run()
 }
