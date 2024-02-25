@@ -11,7 +11,7 @@ import (
 
 func TestHttpDownloaderDownload(t *testing.T) {
 	dialer := bwlimit.NewDialer()
-	dialer.RxBwLimit().SetBwLimit(1024 * 1024)
+	dialer.RxBwLimit().SetBwLimit(6 * 1024 * 1024)
 	hc := &http.Client{
 		Transport: &http.Transport{
 			Proxy:                 http.ProxyFromEnvironment,

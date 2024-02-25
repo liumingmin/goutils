@@ -3,7 +3,6 @@ package container
 import (
 	"fmt"
 	"math/rand"
-	"runtime"
 	"strconv"
 	"testing"
 	"time"
@@ -20,8 +19,6 @@ func TestStartTicks(t *testing.T) {
 		}
 		return false
 	})
-
-	time.Sleep(time.Hour)
 }
 
 func TestStartTicksDeadline(t *testing.T) {
@@ -41,8 +38,6 @@ func TestStartTicksDeadline(t *testing.T) {
 		fmt.Println("end callback", seqNo, "-")
 		return true
 	})
-
-	time.Sleep(time.Hour)
 }
 
 func TestLtPool(t *testing.T) {
@@ -61,12 +56,6 @@ func TestLtPool(t *testing.T) {
 			return true
 		})
 	}
-
-	time.Sleep(time.Second * 20)
-
-	fmt.Println(runtime.NumGoroutine())
-
-	time.Sleep(time.Hour)
 }
 
 func TestStartTicks2(t *testing.T) {
@@ -76,8 +65,6 @@ func TestStartTicks2(t *testing.T) {
 	lt.AddCallback(time.Second*time.Duration(3), func() {
 		fmt.Println("invoke once")
 	})
-
-	time.Sleep(time.Hour)
 }
 
 func BenchmarkStartTicks(b *testing.B) {
@@ -92,6 +79,4 @@ func BenchmarkStartTicks(b *testing.B) {
 			return true
 		})
 	}
-
-	time.Sleep(time.Hour)
 }
