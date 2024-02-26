@@ -35,5 +35,7 @@ func TestHttpDownloaderDownload(t *testing.T) {
 		"User-Agent": []string{"Mozilla/5.0 (Linux; Android 10; Pixel 4) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/86.0.4240.183 Mobile Safari/537.36"},
 	}, "./go1.21.7.windows-amd64.zip")
 
-	t.Log(err)
+	if err != nil {
+		t.Error(err)
+	}
 }

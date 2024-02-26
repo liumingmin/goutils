@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"testing"
-	"time"
 
 	"go.uber.org/zap"
 )
@@ -28,8 +27,6 @@ func TestZap(t *testing.T) {
 
 	Info(ctx, "我是日志5: %v", "hello")
 	Warn(ctx, "我是日志6: %v", "hello sam")
-
-	time.Sleep(time.Second * 5)
 }
 
 func TestErrorStack(t *testing.T) {
@@ -52,27 +49,55 @@ func testPanicLog() {
 }
 
 func TestLevelChange(t *testing.T) {
-	traceId := time.Now().Unix()
-	ctx := context.WithValue(context.Background(), LOG_TRACE_ID, traceId)
-	Error(ctx, LogLess())
-	Error(ctx, LogLess())
-	Error(ctx, LogLess())
-	Error(ctx, LogLess())
-	Error(ctx, LogLess())
-	Error(ctx, LogLess())
-	Error(ctx, LogLess())
-	Error(ctx, LogLess())
+	if LogLess() != zap.WarnLevel {
+		t.FailNow()
+	}
 
-	fmt.Println(LogLess(), "============")
+	if LogLess() != zap.ErrorLevel {
+		t.FailNow()
+	}
 
-	Info(ctx, LogMore())
-	Info(ctx, LogMore())
-	Info(ctx, LogMore())
-	Info(ctx, LogMore())
-	Info(ctx, LogMore())
-	Info(ctx, LogMore())
-	Info(ctx, LogMore())
-	Info(ctx, LogMore())
+	if LogLess() != zap.DPanicLevel {
+		t.FailNow()
+	}
 
-	fmt.Println(LogMore(), "============")
+	if LogLess() != zap.PanicLevel {
+		t.FailNow()
+	}
+
+	if LogLess() != zap.FatalLevel {
+		t.FailNow()
+	}
+
+	if LogLess() != zap.FatalLevel {
+		t.FailNow()
+	}
+
+	if LogMore() != zap.PanicLevel {
+		t.FailNow()
+	}
+
+	if LogMore() != zap.DPanicLevel {
+		t.FailNow()
+	}
+
+	if LogMore() != zap.ErrorLevel {
+		t.FailNow()
+	}
+
+	if LogMore() != zap.WarnLevel {
+		t.FailNow()
+	}
+
+	if LogMore() != zap.InfoLevel {
+		t.FailNow()
+	}
+
+	if LogMore() != zap.DebugLevel {
+		t.FailNow()
+	}
+
+	if LogMore() != zap.DebugLevel {
+		t.FailNow()
+	}
 }
