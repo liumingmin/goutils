@@ -1,18 +1,18 @@
-**Read this in other languages: [English](README.md), [中文](README_zh.md).**
+**其他语言版本: [English](README.md), [中文](README_zh.md).**
 
 
 
 <!-- toc -->
 
-- [algorithm](#algorithm)
+- [算法模块](#%E7%AE%97%E6%B3%95%E6%A8%A1%E5%9D%97)
   * [circ2buffer_test.go](#circ2buffer_testgo)
-  * [crc16_test.go](#crc16_testgo)
-  * [descartes_test.go](#descartes_testgo)
+  * [crc16算法](#crc16%E7%AE%97%E6%B3%95)
+  * [笛卡尔组合](#%E7%AC%9B%E5%8D%A1%E5%B0%94%E7%BB%84%E5%90%88)
   * [xor_io_test.go](#xor_io_testgo)
 
 <!-- tocstop -->
 
-# algorithm
+# 算法模块
 ## circ2buffer_test.go
 ### TestCreateC2Buffer
 ```go
@@ -175,7 +175,7 @@ if bytes.Compare(block, []byte{4, 5, 6, 7, 8, 9, 34, 46}) != 0 {
 		len(block))
 }
 ```
-## crc16_test.go
+## crc16算法
 ### TestCrc16
 ```go
 
@@ -186,7 +186,7 @@ t.Log(Crc16([]byte("abcdefg汉字")))
 
 t.Log(Crc16s("abcdefg汉字") == Crc16([]byte("abcdefg汉字")))
 ```
-## descartes_test.go
+## 笛卡尔组合
 ### TestDescartes
 ```go
 

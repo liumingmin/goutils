@@ -1,20 +1,20 @@
-**Read this in other languages: [English](README.md), [中文](README_zh.md).**
+**其他语言版本: [English](README.md), [中文](README_zh.md).**
 
 
 
 <!-- toc -->
 
-- [db](#db)
-  * [elasticsearch](#elasticsearch)
-  * [kafka](#kafka)
-  * [mongo](#mongo)
-  * [redis](#redis)
+- [数据库](#%E6%95%B0%E6%8D%AE%E5%BA%93)
+  * [ES搜索引擎](#es%E6%90%9C%E7%B4%A2%E5%BC%95%E6%93%8E)
+  * [kafka消息队列](#kafka%E6%B6%88%E6%81%AF%E9%98%9F%E5%88%97)
+  * [mongo数据库](#mongo%E6%95%B0%E6%8D%AE%E5%BA%93)
+  * [go-redis](#go-redis)
 
 <!-- tocstop -->
 
-# db
-## elasticsearch
-### es6
+# 数据库
+## ES搜索引擎
+### ES6版本API
 #### es_test.go
 ##### TestCreateIndexByModel
 ```go
@@ -292,7 +292,7 @@ if err != nil {
 	t.Error(err)
 }
 ```
-### es7
+### ES7版本API
 #### es_test.go
 ##### TestCreateIndexByModel
 ```go
@@ -563,7 +563,7 @@ if err != nil {
 	t.Error(err)
 }
 ```
-## kafka
+## kafka消息队列
 ### kafka_test.go
 #### TestKafkaProducer
 ```go
@@ -611,7 +611,7 @@ for i := 0; i < 10; i++ {
 
 time.Sleep(time.Millisecond * 100)
 ```
-## mongo
+## mongo数据库
 ### collection_test.go
 #### TestInsert
 ```go
@@ -760,8 +760,8 @@ if err != nil {
 	t.Error(err)
 }
 ```
-## redis
-### list_test.go
+## go-redis
+### Redis List工具库
 #### TestList
 ```go
 
@@ -782,7 +782,7 @@ if err != nil {
 	t.Error(err)
 }
 ```
-### lock_test.go
+### Redis 锁工具库
 #### TestRdsAllowActionWithCD
 ```go
 
@@ -831,7 +831,7 @@ time.Sleep(time.Second * 4)
 ok = RdsLockResWithCD(ctx, rds, "test:res", "res-2", 3)
 t.Log(ok)
 ```
-### mq_test.go
+### Redis PubSub工具库
 #### TestMqPSubscribe
 ```go
 
@@ -885,7 +885,7 @@ if err != nil {
 	t.Error(err)
 }
 ```
-### zset_test.go
+### Redis ZSet工具库
 #### TestZDescartes
 ```go
 

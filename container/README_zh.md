@@ -1,19 +1,19 @@
-**Read this in other languages: [English](README.md), [中文](README_zh.md).**
+**其他语言版本: [English](README.md), [中文](README_zh.md).**
 
 
 
 <!-- toc -->
 
-- [container](#container)
-  * [bitmap_test.go](#bitmap_testgo)
-  * [const_hash_test.go](#const_hash_testgo)
-  * [lighttimer_test.go](#lighttimer_testgo)
+- [容器模块](#%E5%AE%B9%E5%99%A8%E6%A8%A1%E5%9D%97)
+  * [比特位表](#%E6%AF%94%E7%89%B9%E4%BD%8D%E8%A1%A8)
+  * [一致性HASH](#%E4%B8%80%E8%87%B4%E6%80%A7hash)
+  * [轻量级计时器](#%E8%BD%BB%E9%87%8F%E7%BA%A7%E8%AE%A1%E6%97%B6%E5%99%A8)
   * [queue_test.go](#queue_testgo)
 
 <!-- tocstop -->
 
-# container
-## bitmap_test.go
+# 容器模块
+## 比特位表
 ### TestBitmapExists
 ```go
 
@@ -65,7 +65,7 @@ bitmap.Inverse()
 t.Log(bitmap.Exists(66))
 
 ```
-## const_hash_test.go
+## 一致性HASH
 ### TestConstHash
 ```go
 
@@ -124,7 +124,7 @@ fmt.Println(ringchash.Get("vdsafd:32:fdsfd"))
 
 fmt.Println(ringchash.Get("xvd:fs:xcvd"))
 ```
-## lighttimer_test.go
+## 轻量级计时器
 ### TestStartTicks
 ```go
 

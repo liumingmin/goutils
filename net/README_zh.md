@@ -1,21 +1,21 @@
-**Read this in other languages: [English](README.md), [中文](README_zh.md).**
+**其他语言版本: [English](README.md), [中文](README_zh.md).**
 
 
 
 <!-- toc -->
 
-- [net](#net)
+- [网络库](#%E7%BD%91%E7%BB%9C%E5%BA%93)
   * [bwlimit](#bwlimit)
   * [httpdownloader](#httpdownloader)
-  * [httpx](#httpx)
+  * [兼容http1.x和2.0的httpclient](#%E5%85%BC%E5%AE%B9http1x%E5%92%8C20%E7%9A%84httpclient)
   * [ip](#ip)
-  * [packet](#packet)
-  * [proxy](#proxy)
-  * [serverx](#serverx)
+  * [tcp包model](#tcp%E5%8C%85model)
+  * [ssh proxy](#ssh-proxy)
+  * [兼容http1.x和2.0的http server](#%E5%85%BC%E5%AE%B9http1x%E5%92%8C20%E7%9A%84http-server)
 
 <!-- tocstop -->
 
-# net
+# 网络库
 ## bwlimit
 ## httpdownloader
 ### httpdownloader_test.go
@@ -51,7 +51,7 @@ if err != nil {
 	t.Error(err)
 }
 ```
-## httpx
+## 兼容http1.x和2.0的httpclient
 ### httpclientx_test.go
 #### TestHttpXGet
 ```go
@@ -82,8 +82,8 @@ for i := 0; i < 3; i++ {
 }
 ```
 ## ip
-## packet
-## proxy
+## tcp包model
+## ssh proxy
 ### ssh_client_test.go
 #### TestSshClient
 ```go
@@ -130,4 +130,4 @@ for rs.Next() {
 
 }
 ```
-## serverx
+## 兼容http1.x和2.0的http server

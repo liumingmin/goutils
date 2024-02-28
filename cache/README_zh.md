@@ -1,17 +1,17 @@
-**Read this in other languages: [English](README.md), [中文](README_zh.md).**
+**其他语言版本: [English](README.md), [中文](README_zh.md).**
 
 
 
 <!-- toc -->
 
-- [cache](#cache)
+- [缓存模块](#%E7%BC%93%E5%AD%98%E6%A8%A1%E5%9D%97)
   * [cache_test.go](#cache_testgo)
-  * [mem_cache_test.go](#mem_cache_testgo)
-  * [rds_cache_test.go](#rds_cache_testgo)
+  * [内存缓存](#%E5%86%85%E5%AD%98%E7%BC%93%E5%AD%98)
+  * [Redis缓存](#redis%E7%BC%93%E5%AD%98)
 
 <!-- tocstop -->
 
-# cache
+# 缓存模块
 ## cache_test.go
 ### TestCache
 ```go
@@ -509,7 +509,7 @@ if err.Error() != "gob NewTypeObject can't handle type: chan bool" {
 	t.Error("Error from Save was not gob NewTypeObject can't handle type chan bool:", err)
 }
 ```
-## mem_cache_test.go
+## 内存缓存
 ### TestMemCacheFunc
 ```go
 
@@ -523,7 +523,7 @@ log.Info(ctx, "%v %v %v", result, err, printKind(result))
 
 _memCacheFuncTestMore(ctx, lCache, cacheKey)
 ```
-## rds_cache_test.go
+## Redis缓存
 ### TestRdscCacheFunc
 ```go
 

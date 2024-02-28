@@ -1,28 +1,28 @@
-**Read this in other languages: [English](README.md), [中文](README_zh.md).**
+**其他语言版本: [English](README.md), [中文](README_zh.md).**
 
 
 
 <!-- toc -->
 
-- [utils](#utils)
-  * [cbk](#cbk)
+- [通用工具库](#%E9%80%9A%E7%94%A8%E5%B7%A5%E5%85%B7%E5%BA%93)
+  * [熔断器](#%E7%86%94%E6%96%AD%E5%99%A8)
   * [checksum](#checksum)
   * [context_test.go](#context_testgo)
-  * [csv](#csv)
-  * [distlock](#distlock)
+  * [CSV文件解析为MDB内存表](#csv%E6%96%87%E4%BB%B6%E8%A7%A3%E6%9E%90%E4%B8%BAmdb%E5%86%85%E5%AD%98%E8%A1%A8)
+  * [分布式锁](#%E5%88%86%E5%B8%83%E5%BC%8F%E9%94%81)
   * [dll_mod_test.go](#dll_mod_testgo)
-  * [docgen](#docgen)
-  * [fsm](#fsm)
-  * [hc](#hc)
-  * [ismtp](#ismtp)
-  * [safego](#safego)
+  * [文档自动生成](#%E6%96%87%E6%A1%A3%E8%87%AA%E5%8A%A8%E7%94%9F%E6%88%90)
+  * [有限状态机](#%E6%9C%89%E9%99%90%E7%8A%B6%E6%80%81%E6%9C%BA)
+  * [httpclient工具](#httpclient%E5%B7%A5%E5%85%B7)
+  * [邮件工具](#%E9%82%AE%E4%BB%B6%E5%B7%A5%E5%85%B7)
+  * [安全的go协程](#%E5%AE%89%E5%85%A8%E7%9A%84go%E5%8D%8F%E7%A8%8B)
   * [snowflake](#snowflake)
-  * [tags_test.go](#tags_testgo)
+  * [结构体TAG生成器](#%E7%BB%93%E6%9E%84%E4%BD%93tag%E7%94%9F%E6%88%90%E5%99%A8)
 
 <!-- tocstop -->
 
-# utils
-## cbk
+# 通用工具库
+## 熔断器
 ### cbk_test.go
 #### TestCbkFailed
 ```go
@@ -157,7 +157,7 @@ t.Log(ContextWithTsTrace())
 t.Log(ContextWithTsTrace())
 t.Log(ContextWithTsTrace())
 ```
-## csv
+## CSV文件解析为MDB内存表
 ### csv_parse_test.go
 #### TestReadCsvToDataTable
 ```go
@@ -179,7 +179,7 @@ for _, r := range rs {
 
 t.Log(dt.Row("17"))
 ```
-## distlock
+## 分布式锁
 ### consullock_test.go
 #### TestAquireConsulLock
 ```go
@@ -446,7 +446,7 @@ if testStr != origStr {
 
 // t.Log(callback(12345))
 ```
-## docgen
+## 文档自动生成
 ### cmd
 ### doc
 ### docgen_test.go
@@ -461,9 +461,9 @@ sb.WriteString(genDocTestUserDelete())
 
 GenDoc(context.Background(), "用户管理", "doc/testuser.md", 2, sb.String())
 ```
-## fsm
-## hc
-## ismtp
+## 有限状态机
+## httpclient工具
+## 邮件工具
 ### ismtp_test.go
 #### TestSendEmail
 ```go
@@ -498,16 +498,16 @@ if err != nil {
 
 return
 ```
-## safego
+## 安全的go协程
 ## snowflake
-### snowflake_test.go
+### 雪花ID生成器
 #### TestSnowflake
 ```go
 
 n, _ := NewNode(1)
 t.Log(n.Generate(), ",", n.Generate(), ",", n.Generate())
 ```
-## tags_test.go
+## 结构体TAG生成器
 ### TestAutoGenTags
 ```go
 

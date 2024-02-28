@@ -1,15 +1,15 @@
-**Read this in other languages: [English](README.md), [中文](README_zh.md).**
+**其他语言版本: [English](README.md), [中文](README_zh.md).**
 
 
 
 <!-- toc -->
 
-- [log](#log)
+- [zap日志库](#zap%E6%97%A5%E5%BF%97%E5%BA%93)
   * [zap_test.go](#zap_testgo)
 
 <!-- tocstop -->
 
-# log
+# zap日志库
 ## zap_test.go
 ### TestZap
 ```go
