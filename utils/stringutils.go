@@ -1,17 +1,10 @@
 package utils
 
-import (
-	"strings"
-)
-
 func StringsReverse(s []string) []string {
 	for i, j := 0, len(s)-1; i < j; i, j = i+1, j-1 {
 		s[i], s[j] = s[j], s[i]
 	}
 	return s
-}
-func ComposeKey(keys ...string) string {
-	return strings.Join(keys, "#")
 }
 
 func StringsInArray(s []string, e string) (bool, int) {
@@ -20,56 +13,43 @@ func StringsInArray(s []string, e string) (bool, int) {
 			return true, i
 		}
 	}
+
 	return false, -1
 }
 
-func StringsExcept(ss1 []string, ss2 []string) (se []string) {
+func StringsExcept(ss1 []string, ss2 []string) []string {
 	if len(ss1) == 0 {
-		return
+		return make([]string, 0)
 	}
 
 	if len(ss2) == 0 {
 		return ss1
 	}
 
+	s2map := make(map[string]bool)
+	for _, s2 := range ss2 {
+		s2map[s2] = true
+	}
+
+	se := make([]string, 0, len(ss1))
 	for _, s1 := range ss1 {
-		found := false
-		for _, s2 := range ss2 {
-			if s1 == s2 {
-				found = true
-				break
-			}
-		}
-		if !found {
+		if _, found := s2map[s1]; !found {
 			se = append(se, s1)
 		}
 	}
-	return
+	return se
 }
 
-func ParseContentByTag(content, tagStart, tagEnd string) (string, int) {
-	if sIdx := strings.Index(content, tagStart); sIdx >= 0 {
-		pos := sIdx + len(tagStart)
-		content = content[pos:]
-		if eIdx := strings.Index(content, tagEnd); eIdx >= 0 {
-			tagContent := content[:eIdx]
-			return tagContent, pos + eIdx + len(tagEnd)
-		}
-	}
-	return "", 0
-}
+func StringsDistinct(input []string) []string {
+	u := make([]string, 0, len(input))
+	m := make(map[string]struct{})
 
-//检查keyname的keyvalue是否符合预期值expectKeyValues，如果不存在keyvalue，使用defaultKeyValue判断
-func CheckKeyValueExpected(keyValues map[string]string, keyName, defaultKeyValue string, expectKeyValues []string) bool {
-	if keyValue, exist := keyValues[keyName]; exist {
-		if found, _ := StringsInArray(expectKeyValues, keyValue); found {
-			return true
-		}
-	} else {
-		if found, _ := StringsInArray(expectKeyValues, defaultKeyValue); found {
-			return true
+	for _, val := range input {
+		if _, ok := m[val]; !ok {
+			m[val] = struct{}{}
+			u = append(u, val)
 		}
 	}
 
-	return false
+	return u
 }

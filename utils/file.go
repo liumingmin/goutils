@@ -18,6 +18,7 @@ func FileExist(filePath string) bool {
 	_, err := os.Stat(filePath)
 	return err == nil || os.IsExist(err)
 }
+
 func FileExt(filePath string) string {
 	idx := strings.LastIndex(filePath, ".")
 	ext := ""
@@ -29,6 +30,13 @@ func FileExt(filePath string) string {
 }
 
 func FileCopy(src, dst string) error {
+	srcPath, _ := filepath.Abs(src)
+	dstPath, _ := filepath.Abs(dst)
+
+	if srcPath == dstPath {
+		return nil
+	}
+
 	var err error
 	var srcfd *os.File
 	var dstfd *os.File
