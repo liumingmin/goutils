@@ -58,91 +58,35 @@ for j := 0; j < 200; j++ {
 ```
 ## checksum
 ### crc32_test.go
-#### TestGenerateCheckSumFile
+#### TestCompareChecksumFiles
 ```go
 
-src := "D:\\gitea_ws\\repair_dir\\dev_test_01\\1.0.0.1\\product"
-checksumName := "nwjs"
-checkSumPath, err := GenerateChecksumFile(context.Background(), src, checksumName)
+checkSumPath, err := GenerateChecksumFile(context.Background(), testChecksumDirPath, testChecksumName)
 if err != nil {
 	t.Error(err)
 	return
 }
 t.Log(checkSumPath)
-```
-#### TestGenerateChecksumMd5File
-```go
 
-src := "D:\\gitea_ws\\repair_dir\\dev_test_01\\1.0.0.1\\product\\nwjs.checksum"
-checksumMd5Path, err := GenerateChecksumMd5File(context.Background(), src)
+checksumMd5Path, err := GenerateChecksumMd5File(context.Background(), checkSumPath)
 if err != nil {
 	t.Error(err)
 	return
 }
-t.Log(checksumMd5Path)
-```
-#### TestGenerateChecksumFileWithIgnore
-```go
 
-dirMap := make(map[string][]string)
-dirMap["jsex"] = []string{"E:\\game\\jsex\\base"}
-for code, dirs := range dirMap {
-	t.Log("game: ", code)
-	for _, dir := range dirs {
-		t.Log("dir: ", dir)
-		start := time.Now() // 获取当前时间
-		checksumName := fmt.Sprintf("%v", code)
-		checksumMd5Path, err := GenerateChecksumFileWithIgnore(context.Background(), dir, checksumName, []string{fmt.Sprintf("%v.checksum", code), "pak", "locales\\pak"})
-		if err != nil {
-			t.Error(err)
-			return
-		}
-		t.Log(checksumMd5Path)
-		elapsed := time.Since(start)
-		t.Log("time：", elapsed)
-	}
-}
-```
-#### TestIsChecksumFileValid
-```go
-
-src := "D:\\gitea_ws\\repair_dir\\dev_test_01\\1.0.0.1\\product\\nwjs.checksum"
-md5Path := "D:\\gitea_ws\\repair_dir\\dev_test_01\\1.0.0.1\\product\\nwjs.checksum.md5"
-valid := IsChecksumFileValid(context.Background(), src, md5Path)
+valid := IsChecksumFileValid(context.Background(), checkSumPath, checksumMd5Path)
 if !valid {
 	t.Error(valid)
 	return
 }
-t.Log(valid)
-```
-#### TestRelPath
-```go
 
-repos := []string{"", "a", "b", "a\\b", "a/c", "a\\b/c", "a/d/c", "d/a", "d/c", "/a", "\\a", "/a\\b\\", "\\a/b/b\\"}
-
-for _, repo1 := range repos {
-	t.Log(">>>", repo1)
-	for _, repo2 := range repos {
-		repo2 = strings.Trim(repo2, "/\\")
-		rel, _ := filepath.Rel(repo1, repo2)
-		if !strings.Contains(rel, ".") {
-			t.Log(repo2, ":", rel)
-		}
-	}
-}
-
-```
-#### TestCompareChecksumFiles
-```go
-
-src := "D:\\gitea_ws\\repair_dir\\dev_test_01\\1.0.0.1\\product\\nwjs.checksum"
-root := "D:\\gitea_ws\\repair_dir\\dev_test_01\\1.0.0.1\\product"
-err := CompareChecksumFiles(context.Background(), root, src)
+err = CompareChecksumFiles(context.Background(), testChecksumDirPath, checkSumPath)
 if err != nil {
 	t.Error(err)
 	return
 }
 ```
+### temp
 ## context_test.go
 ### TestContextWithTsTrace
 ```go
