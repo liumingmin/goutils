@@ -3,85 +3,38 @@ package checksum
 import (
 	"context"
 	"fmt"
+	"math/rand"
+	"os"
 	"path/filepath"
-	"strings"
 	"testing"
 	"time"
 )
 
-func TestGenerateCheckSumFile(t *testing.T) {
-	src := "D:\\gitea_ws\\repair_dir\\dev_test_01\\1.0.0.1\\product"
-	checksumName := "nwjs"
-	checkSumPath, err := GenerateChecksumFile(context.Background(), src, checksumName)
+var testChecksumDirPath = "temp/goutils"
+var testChecksumName = "goutils"
+var testChecmsumFileName = "goutils.checksum"
+
+func TestCompareChecksumFiles(t *testing.T) {
+	checkSumPath, err := GenerateChecksumFile(context.Background(), testChecksumDirPath, testChecksumName)
 	if err != nil {
 		t.Error(err)
 		return
 	}
 	t.Log(checkSumPath)
-}
 
-func TestGenerateChecksumMd5File(t *testing.T) {
-	src := "D:\\gitea_ws\\repair_dir\\dev_test_01\\1.0.0.1\\product\\nwjs.checksum"
-	checksumMd5Path, err := GenerateChecksumMd5File(context.Background(), src)
+	checksumMd5Path, err := GenerateChecksumMd5File(context.Background(), checkSumPath)
 	if err != nil {
 		t.Error(err)
 		return
 	}
-	t.Log(checksumMd5Path)
-}
 
-func TestGenerateChecksumFileWithIgnore(t *testing.T) {
-	dirMap := make(map[string][]string)
-	dirMap["jsex"] = []string{"E:\\game\\jsex\\base"}
-	for code, dirs := range dirMap {
-		t.Log("game: ", code)
-		for _, dir := range dirs {
-			t.Log("dir: ", dir)
-			start := time.Now() // 获取当前时间
-			checksumName := fmt.Sprintf("%v", code)
-			checksumMd5Path, err := GenerateChecksumFileWithIgnore(context.Background(), dir, checksumName, []string{fmt.Sprintf("%v.checksum", code), "pak", "locales\\pak"})
-			if err != nil {
-				t.Error(err)
-				return
-			}
-			t.Log(checksumMd5Path)
-			elapsed := time.Since(start)
-			t.Log("time：", elapsed)
-		}
-	}
-}
-
-func TestIsChecksumFileValid(t *testing.T) {
-	src := "D:\\gitea_ws\\repair_dir\\dev_test_01\\1.0.0.1\\product\\nwjs.checksum"
-	md5Path := "D:\\gitea_ws\\repair_dir\\dev_test_01\\1.0.0.1\\product\\nwjs.checksum.md5"
-	valid := IsChecksumFileValid(context.Background(), src, md5Path)
+	valid := IsChecksumFileValid(context.Background(), checkSumPath, checksumMd5Path)
 	if !valid {
 		t.Error(valid)
 		return
 	}
-	t.Log(valid)
-}
 
-func TestRelPath(t *testing.T) {
-	repos := []string{"", "a", "b", "a\\b", "a/c", "a\\b/c", "a/d/c", "d/a", "d/c", "/a", "\\a", "/a\\b\\", "\\a/b/b\\"}
-
-	for _, repo1 := range repos {
-		t.Log(">>>", repo1)
-		for _, repo2 := range repos {
-			repo2 = strings.Trim(repo2, "/\\")
-			rel, _ := filepath.Rel(repo1, repo2)
-			if !strings.Contains(rel, ".") {
-				t.Log(repo2, ":", rel)
-			}
-		}
-	}
-
-}
-
-func TestCompareChecksumFiles(t *testing.T) {
-	src := "D:\\gitea_ws\\repair_dir\\dev_test_01\\1.0.0.1\\product\\nwjs.checksum"
-	root := "D:\\gitea_ws\\repair_dir\\dev_test_01\\1.0.0.1\\product"
-	err := CompareChecksumFiles(context.Background(), root, src)
+	err = CompareChecksumFiles(context.Background(), testChecksumDirPath, checkSumPath)
 	if err != nil {
 		t.Error(err)
 		return
@@ -89,5 +42,30 @@ func TestCompareChecksumFiles(t *testing.T) {
 }
 
 func TestMain(m *testing.M) {
+	os.MkdirAll(testChecksumDirPath, 0666)
 
+	rd := rand.New(rand.NewSource(time.Now().UnixNano()))
+	for l1 := 0; l1 < 5; l1++ {
+		for l2 := 0; l2 < 5; l2++ {
+			filePath := testChecksumDirPath + fmt.Sprintf("/%v/%v", l1, l2)
+			os.MkdirAll(filepath.Dir(filePath), 0666)
+			file, err := os.OpenFile(filePath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0666)
+			if err != nil {
+				return
+			}
+			block := make([]byte, 32*1024)
+			blockCnt := 32 + rd.Intn(16)
+			for i := 0; i < blockCnt; i++ {
+				for j := 0; j < len(block); j++ {
+					block[j] = byte(rd.Intn(256))
+				}
+				file.Write(block)
+			}
+			file.Close()
+		}
+	}
+
+	m.Run()
+
+	//os.RemoveAll(testChecksumDirPath)
 }
