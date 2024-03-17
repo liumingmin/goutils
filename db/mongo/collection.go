@@ -45,14 +45,14 @@ func NewMgoCollection(client *Client, dbName, collectionName string,
 	return mgoC
 }
 
-//复合集合操作类
+// 复合集合操作类
 type CompCollectionOp struct {
 	*CollectionOp               //全局配置
 	Primary       *CollectionOp //强制读主库
 	Slave         *CollectionOp //优先读从库
 }
 
-//集合操作类
+// 集合操作类
 type CollectionOp struct {
 	client     *Client
 	database   *mongo.Database
@@ -108,7 +108,7 @@ func (c *CollectionOp) Aggregate(ctx context.Context, pipeline interface{}, resu
 	return c.client.Aggregate(ctx, c.collection, pipeline, result)
 }
 
-//setOnInsertM only write on insert
+// setOnInsertM only write on insert
 func (c *CollectionOp) Upsert(ctx context.Context, selector interface{}, updateOp bson.M, setOnInsertItem interface{}) error {
 	if setOnInsertItem != nil {
 		updateOp["$setOnInsert"] = setOnInsertItem
