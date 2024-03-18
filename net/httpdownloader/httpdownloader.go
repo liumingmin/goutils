@@ -9,6 +9,7 @@ import (
 	"strconv"
 	"sync"
 
+	"github.com/liumingmin/goutils/container"
 	"github.com/liumingmin/goutils/log"
 )
 
@@ -113,8 +114,11 @@ func (t *HttpDownloader) downloadBlock(ctx context.Context, url string, header h
 	rangeHeader := fmt.Sprintf("bytes=%d-%d", min, max-1)
 	req.Header.Set("Range", rangeHeader)
 
+	buff := container.GetPoolBuff(container.BUFF_4M)
+	defer container.PutPoolBuff(container.BUFF_4M, buff)
+
 	for j := 0; j < t.RetryCnt; j++ {
-		err := t.downloadToWriter(req, writer)
+		err := t.downloadToWriter(req, writer, buff)
 		if err == nil {
 			break
 		}
@@ -126,7 +130,7 @@ func (t *HttpDownloader) downloadBlock(ctx context.Context, url string, header h
 	return err
 }
 
-func (t *HttpDownloader) downloadToWriter(req *http.Request, writer *HttpFileOffsetWriter) error {
+func (t *HttpDownloader) downloadToWriter(req *http.Request, writer *HttpFileOffsetWriter, buff []byte) error {
 	resp, err := t.HttpClient.Do(req)
 	if err != nil {
 		return err
@@ -138,7 +142,7 @@ func (t *HttpDownloader) downloadToWriter(req *http.Request, writer *HttpFileOff
 		}
 	}()
 
-	_, err = io.Copy(writer, resp.Body)
+	_, err = io.CopyBuffer(writer, resp.Body, buff)
 	return err
 }
 
