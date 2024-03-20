@@ -1,19 +1,17 @@
 package container
 
 import (
-	"fmt"
 	"strconv"
 	"testing"
 )
 
-type TestNode string
+type testConstHashNode string
 
-func (n TestNode) Id() string {
+func (n testConstHashNode) Id() string {
 	return string(n)
 }
 
-func (n TestNode) Health() bool {
-	//keyC32 := crc32.ChecksumIEEE([]byte(string(n)))
+func (n testConstHashNode) Health() bool {
 	return "node8" != string(n)
 }
 
@@ -23,53 +21,47 @@ func TestConstHash(t *testing.T) {
 
 	var configs []CHashNode
 	for i := 0; i < 10; i++ {
-		configs = append(configs, TestNode("node"+strconv.Itoa(i)))
+		configs = append(configs, testConstHashNode("node"+strconv.Itoa(i)))
 	}
 
 	ringchash.Adds(configs)
 
-	fmt.Println(ringchash.Debug())
+	t.Log("init:", ringchash.Debug())
 
-	fmt.Println("==================================", configs)
+	if ringchash.GetByC32(100, false).Id() != "node0" {
+		t.Fail()
+	}
 
-	fmt.Println(ringchash.Get("jjfdsljk:dfdfd:fds"))
+	if ringchash.GetByC32(134217727, false).Id() != "node0" {
+		t.Fail()
+	}
 
-	fmt.Println(ringchash.Get("jjfdxxvsljk:dddsaf:xzcv"))
-	//
-	fmt.Println(ringchash.Get("fcds:cxc:fdsfd"))
-	//
-	fmt.Println(ringchash.Get("vdsafd:32:fdsfd"))
-
-	fmt.Println(ringchash.Get("xvd:fs:xcvd"))
+	if ringchash.GetByC32(134217728, false).Id() != "node8" {
+		t.Fail()
+	}
 
 	var configs2 []CHashNode
 	for i := 0; i < 2; i++ {
-		configs2 = append(configs2, TestNode("node"+strconv.Itoa(10+i)))
+		configs2 = append(configs2, testConstHashNode("node"+strconv.Itoa(10+i)))
 	}
 	ringchash.Adds(configs2)
-	fmt.Println("==================================")
-	fmt.Println(ringchash.Debug())
-	fmt.Println(ringchash.Get("jjfdsljk:dfdfd:fds"))
 
-	fmt.Println(ringchash.Get("jjfdxxvsljk:dddsaf:xzcv"))
-	//
-	fmt.Println(ringchash.Get("fcds:cxc:fdsfd"))
-	//
-	fmt.Println(ringchash.Get("vdsafd:32:fdsfd"))
+	t.Log("add 2 nodes", ringchash.Debug())
 
-	fmt.Println(ringchash.Get("xvd:fs:xcvd"))
+	if ringchash.GetByC32(134217727, false).Id() != "node10" {
+		t.Fail()
+	}
+
+	if ringchash.GetByC32(134217728, false).Id() != "node10" {
+		t.Fail()
+	}
 
 	ringchash.Del("node0")
+	t.Log("del 1 node", ringchash.Debug())
 
-	fmt.Println("==================================")
-	fmt.Println(ringchash.Debug())
-	fmt.Println(ringchash.Get("jjfdsljk:dfdfd:fds"))
+	if ringchash.GetByC32(100, false).Id() != "node10" {
+		t.Fail()
+	}
 
-	fmt.Println(ringchash.Get("jjfdxxvsljk:dddsaf:xzcv"))
-	//
-	fmt.Println(ringchash.Get("fcds:cxc:fdsfd"))
-	//
-	fmt.Println(ringchash.Get("vdsafd:32:fdsfd"))
-
-	fmt.Println(ringchash.Get("xvd:fs:xcvd"))
+	t.Log(ringchash.GetByKey("goutils", false))
 }

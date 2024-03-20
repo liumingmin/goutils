@@ -92,17 +92,21 @@ func (c *CHashRing) Del(nodeId string) {
 	}
 }
 
-func (c *CHashRing) Get(key string) CHashNode {
+func (c *CHashRing) GetByKey(key string, mustHealth bool) CHashNode {
+	keyC32 := crc32.ChecksumIEEE([]byte(key))
+	return c.GetByC32(keyC32, mustHealth)
+}
+
+func (c *CHashRing) GetByC32(keyC32 uint32, mustHealth bool) CHashNode {
 	c.lock.RLock()
 	defer c.lock.RUnlock()
 
-	keyC32 := crc32.ChecksumIEEE([]byte(key))
 	var nearDistance = float64(^uint32(0))
 	var nearNode CHashNode
 
 	c.ring.Do(func(r interface{}) {
 		hslot := r.(*cHashSlot)
-		if !hslot.node.Health() {
+		if mustHealth && !hslot.node.Health() {
 			return
 		}
 
