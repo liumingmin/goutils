@@ -6,8 +6,9 @@
 
 - [容器模块](#%E5%AE%B9%E5%99%A8%E6%A8%A1%E5%9D%97)
   * [比特位表](#%E6%AF%94%E7%89%B9%E4%BD%8D%E8%A1%A8)
+  * [buff_pool_test.go](#buff_pool_testgo)
   * [一致性HASH](#%E4%B8%80%E8%87%B4%E6%80%A7hash)
-  * [轻量级计时器](#%E8%BD%BB%E9%87%8F%E7%BA%A7%E8%AE%A1%E6%97%B6%E5%99%A8)
+  * [mdb_test.go](#mdb_testgo)
   * [queue_test.go](#queue_testgo)
 
 <!-- tocstop -->
@@ -20,23 +21,28 @@
 bitmap := initTestData()
 t.Log(bitmap)
 
-t.Log(bitmap.Exists(122))
-t.Log(bitmap.Exists(123))
+if !bitmap.Exists(122) {
+	t.FailNow()
+}
 
-//data1 := []byte{1, 2, 4, 7}
-//data2 := []byte{0, 1, 5}
-
+if bitmap.Exists(123) {
+	t.FailNow()
+}
 ```
 ### TestBitmapSet
 ```go
 
 bitmap := initTestData()
 
-t.Log(bitmap.Exists(1256))
+if bitmap.Exists(1256) {
+	t.FailNow()
+}
 
 bitmap.Set(1256)
 
-t.Log(bitmap.Exists(1256))
+if !bitmap.Exists(1256) {
+	t.FailNow()
+}
 ```
 ### TestBitmapUnionOr
 ```go
@@ -46,24 +52,83 @@ bitmap2 := initTestData()
 bitmap2.Set(256)
 
 bitmap3 := bitmap.Union(&bitmap2)
-t.Log(bitmap3.Exists(256))
+if !bitmap3.Exists(256) {
+	t.FailNow()
+}
 
 bitmap3.Set(562)
-t.Log(bitmap3.Exists(562))
 
-t.Log(bitmap.Exists(562))
+if !bitmap3.Exists(562) {
+	t.FailNow()
+}
+
+if bitmap.Exists(562) {
+	t.FailNow()
+}
 ```
 ### TestBitmapBitInverse
 ```go
 
 bitmap := initTestData()
 
-t.Log(bitmap.Exists(66))
+if !bitmap.Exists(66) {
+	t.FailNow()
+}
 
 bitmap.Inverse()
 
-t.Log(bitmap.Exists(66))
+if bitmap.Exists(66) {
+	t.FailNow()
+}
+```
+## buff_pool_test.go
+### TestBuffPool
+```go
 
+buf1 := GetPoolBuff(BUFF_128K)
+ptr1 := uintptr(unsafe.Pointer(&buf1[0]))
+len1 := len(buf1)
+PutPoolBuff(BUFF_128K, buf1)
+
+buf2 := GetPoolBuff(BUFF_128K)
+ptr2 := uintptr(unsafe.Pointer(&buf2[0]))
+len2 := len(buf2)
+PutPoolBuff(BUFF_128K, buf2)
+
+if len1 != BUFF_128K {
+	t.Error("pool get BUFF_128K len failed")
+}
+
+if len1 != len2 {
+	t.Error("pool get BUFF_128K len failed")
+}
+
+if ptr1 != ptr2 {
+	t.Error("pool get BUFF_128K failed")
+}
+
+//4M
+buf1 = GetPoolBuff(BUFF_4M)
+ptr1 = uintptr(unsafe.Pointer(&buf1[0]))
+len1 = len(buf1)
+PutPoolBuff(BUFF_4M, buf1)
+
+buf2 = GetPoolBuff(BUFF_4M)
+ptr2 = uintptr(unsafe.Pointer(&buf2[0]))
+len2 = len(buf2)
+PutPoolBuff(BUFF_4M, buf2)
+
+if len1 != BUFF_4M {
+	t.Error("pool get BUFF_4M len failed")
+}
+
+if len1 != len2 {
+	t.Error("pool get BUFF_4M len failed")
+}
+
+if ptr1 != ptr2 {
+	t.Error("pool get BUFF_4M failed")
+}
 ```
 ## 一致性HASH
 ### TestConstHash
@@ -74,119 +139,90 @@ var ringchash CHashRing
 
 var configs []CHashNode
 for i := 0; i < 10; i++ {
-	configs = append(configs, TestNode("node"+strconv.Itoa(i)))
+	configs = append(configs, testConstHashNode("node"+strconv.Itoa(i)))
 }
 
 ringchash.Adds(configs)
 
-fmt.Println(ringchash.Debug())
+t.Log("init:", ringchash.Debug())
 
-fmt.Println("==================================", configs)
+if ringchash.GetByC32(100, false).Id() != "node0" {
+	t.Fail()
+}
 
-fmt.Println(ringchash.Get("jjfdsljk:dfdfd:fds"))
+if ringchash.GetByC32(134217727, false).Id() != "node0" {
+	t.Fail()
+}
 
-fmt.Println(ringchash.Get("jjfdxxvsljk:dddsaf:xzcv"))
-//
-fmt.Println(ringchash.Get("fcds:cxc:fdsfd"))
-//
-fmt.Println(ringchash.Get("vdsafd:32:fdsfd"))
-
-fmt.Println(ringchash.Get("xvd:fs:xcvd"))
+if ringchash.GetByC32(134217728, false).Id() != "node8" {
+	t.Fail()
+}
 
 var configs2 []CHashNode
 for i := 0; i < 2; i++ {
-	configs2 = append(configs2, TestNode("node"+strconv.Itoa(10+i)))
+	configs2 = append(configs2, testConstHashNode("node"+strconv.Itoa(10+i)))
 }
 ringchash.Adds(configs2)
-fmt.Println("==================================")
-fmt.Println(ringchash.Debug())
-fmt.Println(ringchash.Get("jjfdsljk:dfdfd:fds"))
 
-fmt.Println(ringchash.Get("jjfdxxvsljk:dddsaf:xzcv"))
-//
-fmt.Println(ringchash.Get("fcds:cxc:fdsfd"))
-//
-fmt.Println(ringchash.Get("vdsafd:32:fdsfd"))
+t.Log("add 2 nodes", ringchash.Debug())
 
-fmt.Println(ringchash.Get("xvd:fs:xcvd"))
+if ringchash.GetByC32(134217727, false).Id() != "node10" {
+	t.Fail()
+}
+
+if ringchash.GetByC32(134217728, false).Id() != "node10" {
+	t.Fail()
+}
 
 ringchash.Del("node0")
+t.Log("del 1 node", ringchash.Debug())
 
-fmt.Println("==================================")
-fmt.Println(ringchash.Debug())
-fmt.Println(ringchash.Get("jjfdsljk:dfdfd:fds"))
+if ringchash.GetByC32(100, false).Id() != "node10" {
+	t.Fail()
+}
 
-fmt.Println(ringchash.Get("jjfdxxvsljk:dddsaf:xzcv"))
-//
-fmt.Println(ringchash.Get("fcds:cxc:fdsfd"))
-//
-fmt.Println(ringchash.Get("vdsafd:32:fdsfd"))
-
-fmt.Println(ringchash.Get("xvd:fs:xcvd"))
+t.Log(ringchash.GetByKey("goutils", false))
 ```
-## 轻量级计时器
-### TestStartTicks
+## mdb_test.go
+### TestDataTable
 ```go
 
-lt := NewLightTimer()
-lt.StartTicks(time.Millisecond)
+if len(testDt.Rows()) != 10 {
+	t.FailNow()
+}
 
-lt.AddTimer(time.Second*time.Duration(2), func(fireSeqNo uint) bool {
-	fmt.Println("callback", fireSeqNo, "-")
-	if fireSeqNo == 4 {
-		return true
-	}
-	return false
-})
-```
-### TestStartTicksDeadline
-```go
+if testDt.PkString(testDt.Row("9")) != "9" {
+	t.FailNow()
+}
 
+if testDt.PkInt(testDt.Row("8")) != 8 {
+	t.FailNow()
+}
 
-//NewLightTimerPool
+if reflect.DeepEqual(testDt.Row("2"), []string{"2", "C2", "N2"}) {
+	t.FailNow()
+}
 
-lt := NewLightTimer()
-lt.StartTicks(time.Millisecond)
+if reflect.DeepEqual(testDt.RowsBy("code", "C2")[0], []string{"2", "C2", "N2"}) {
+	t.FailNow()
+}
 
-lt.AddTimerWithDeadline(time.Second*time.Duration(2), time.Now().Add(time.Second*5), func(seqNo uint) bool {
-	fmt.Println("callback", seqNo, "-")
-	if seqNo == 4 {
-		return true
-	}
-	return false
-}, func(seqNo uint) bool {
-	fmt.Println("end callback", seqNo, "-")
-	return true
-})
-```
-### TestLtPool
-```go
+if reflect.DeepEqual(testDt.RowsByPredicate(func(dr *DataRow) bool { return dr.String("name") == "N4" })[0], []string{"4", "C4", "N4"}) {
+	t.FailNow()
+}
 
-pool := NewLightTimerPool(10, time.Millisecond)
+testDt.Push([]string{"2", "C2", "N3"})
 
-for i := 0; i < 100000; i++ {
-	tmp := i
-	pool.AddTimerWithDeadline(strconv.Itoa(tmp), time.Second*time.Duration(2), time.Now().Add(time.Second*5), func(seqNo uint) bool {
-		fmt.Println("callback", tmp, "-", seqNo, "-")
-		if seqNo == 4 {
-			return true
-		}
-		return false
-	}, func(seqNo uint) bool {
-		fmt.Println("end callback", tmp, "-", seqNo, "-")
-		return true
-	})
+if reflect.DeepEqual(testDt.RowsByIndexPredicate("code", "C2", func(dr *DataRow) bool { return dr.String("name") == "N3" })[0], []string{"2", "C2", "N2"}) {
+	t.FailNow()
 }
 ```
-### TestStartTicks2
+### TestDataSet
 ```go
 
-lt := NewLightTimer()
-lt.StartTicks(time.Millisecond)
-
-lt.AddCallback(time.Second*time.Duration(3), func() {
-	fmt.Println("invoke once")
-})
+if testDs.Table("testDt") != testDt {
+	t.FailNow()
+}
 ```
 ## queue_test.go
 ### TestEnqueueBack

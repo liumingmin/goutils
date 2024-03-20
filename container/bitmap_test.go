@@ -10,7 +10,7 @@ func initTestData() Bitmap {
 	bitmap.Init(65)
 	fmt.Println(bitmap)
 	bitmap.Sets([]uint32{4, 16, 66, 64, 32, 128, 122})
-	fmt.Println(bitmap)
+	//fmt.Println(bitmap)
 	return bitmap
 }
 
@@ -18,22 +18,27 @@ func TestBitmapExists(t *testing.T) {
 	bitmap := initTestData()
 	t.Log(bitmap)
 
-	t.Log(bitmap.Exists(122))
-	t.Log(bitmap.Exists(123))
+	if !bitmap.Exists(122) {
+		t.FailNow()
+	}
 
-	//data1 := []byte{1, 2, 4, 7}
-	//data2 := []byte{0, 1, 5}
-
+	if bitmap.Exists(123) {
+		t.FailNow()
+	}
 }
 
 func TestBitmapSet(t *testing.T) {
 	bitmap := initTestData()
 
-	t.Log(bitmap.Exists(1256))
+	if bitmap.Exists(1256) {
+		t.FailNow()
+	}
 
 	bitmap.Set(1256)
 
-	t.Log(bitmap.Exists(1256))
+	if !bitmap.Exists(1256) {
+		t.FailNow()
+	}
 }
 
 func TestBitmapUnionOr(t *testing.T) {
@@ -42,23 +47,33 @@ func TestBitmapUnionOr(t *testing.T) {
 	bitmap2.Set(256)
 
 	bitmap3 := bitmap.Union(&bitmap2)
-	t.Log(bitmap3.Exists(256))
+	if !bitmap3.Exists(256) {
+		t.FailNow()
+	}
 
 	bitmap3.Set(562)
-	t.Log(bitmap3.Exists(562))
 
-	t.Log(bitmap.Exists(562))
+	if !bitmap3.Exists(562) {
+		t.FailNow()
+	}
+
+	if bitmap.Exists(562) {
+		t.FailNow()
+	}
 }
 
 func TestBitmapBitInverse(t *testing.T) {
 	bitmap := initTestData()
 
-	t.Log(bitmap.Exists(66))
+	if !bitmap.Exists(66) {
+		t.FailNow()
+	}
 
 	bitmap.Inverse()
 
-	t.Log(bitmap.Exists(66))
-
+	if bitmap.Exists(66) {
+		t.FailNow()
+	}
 }
 
 func BenchmarkBitmap_Exists(b *testing.B) {
@@ -76,5 +91,5 @@ func BenchmarkBitmap_Exists(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		bitmap.Exists(uint32(i))
 	}
-	b.StopTimer()
+	//b.StopTimer()
 }

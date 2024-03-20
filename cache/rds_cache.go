@@ -2,6 +2,8 @@ package cache
 
 import (
 	"context"
+	"crypto/md5"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -110,7 +112,7 @@ func RdsCacheMultiFunc(ctx context.Context, rds redis.UniversalClient, rdsExpire
 
 	//防击穿
 	sort.Strings(noCachedArgs)
-	sgKey := keyFmt + utils.MD5(strings.Join(noCachedArgs, ","))
+	sgKey := keyFmt + cacheCalcMD5(strings.Join(noCachedArgs, ","))
 	callRetValue, err, _ := sg.Do(sgKey, func() (interface{}, error) {
 		return rdsCacheMultiCallFunc(ctx, rds, rdsExpire, fMulti, keyFmt, noCachedArgs, retItemType)
 	})
@@ -291,4 +293,11 @@ func init() {
 
 	var pbMsg proto.Message
 	pbIface = reflect.TypeOf(&pbMsg).Elem()
+}
+
+func cacheCalcMD5(origStr string) string {
+	md5Ctx := md5.New()
+	md5Ctx.Write([]byte(origStr))
+	cipherStr := md5Ctx.Sum(nil)
+	return hex.EncodeToString(cipherStr)
 }

@@ -23,7 +23,7 @@
 ```go
 
 dialer := bwlimit.NewDialer()
-dialer.RxBwLimit().SetBwLimit(6 * 1024 * 1024)
+dialer.RxBwLimit().SetBwLimit(20 * 1024 * 1024)
 hc := &http.Client{
 	Transport: &http.Transport{
 		Proxy:                 http.ProxyFromEnvironment,
