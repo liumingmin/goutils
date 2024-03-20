@@ -79,7 +79,7 @@ func NewDataTable(cols []string, pkCol string, indexes []string, initCap int) *D
 	return dt
 }
 
-//meta info
+// meta info
 func (t *DataTable) Cols() []string {
 	return t.cols[:]
 }
@@ -92,7 +92,7 @@ func (t *DataTable) Indexes() []string {
 	return t.indexes[:]
 }
 
-//data info
+// data info
 func (t *DataTable) Row(pk string) *DataRow {
 	return t.pkMap[pk]
 }
@@ -163,6 +163,14 @@ func (t *DataTable) PushAll(rows [][]string) {
 
 type DataSet map[string]*DataTable
 
-func (s DataSet) Table(tName string) *DataTable {
-	return s[tName]
+func NewDataSet() *DataSet {
+	return &DataSet{}
+}
+
+func (s *DataSet) AddTable(tName string, dt *DataTable) {
+	(*s)[tName] = dt
+}
+
+func (s *DataSet) Table(tName string) *DataTable {
+	return (*s)[tName]
 }
