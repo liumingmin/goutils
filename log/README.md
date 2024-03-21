@@ -14,11 +14,10 @@
 ### TestZap
 ```go
 
-ctx := context.WithValue(context.Background(), LOG_TRACE_ID, "zap_trace_id")
+ctx := ContextWithTraceId()
 Info(ctx, "我是日志2")
 SetDefaultGenerator(new(GameDefaultFieldGenerator))
 Error(ctx, "我是日志4: %v,%v", "管理员", "eee")
-
 Info(ctx, "我是日志5: %v", "hello")
 Warn(ctx, "我是日志6: %v", "hello sam")
 ```
@@ -87,4 +86,9 @@ if LogMore() != zap.DebugLevel {
 if LogMore() != zap.DebugLevel {
 	t.FailNow()
 }
+```
+### TestNewTraceId
+```go
+
+t.Log(NewTraceId())
 ```

@@ -168,13 +168,6 @@ if err != nil {
 	return
 }
 ```
-### temp
-#### goutils
-##### 0
-##### 1
-##### 2
-##### 3
-##### 4
 ## CSV文件解析为MDB内存表
 ### csv_parse_test.go
 #### TestReadCsvToDataTable
@@ -287,6 +280,10 @@ if !l2.Lock(ctx, 1) {
 ## dll_mod_test.go
 ### TestDllCall
 ```go
+
+if runtime.GOOS != "windows" {
+	return
+}
 
 // mod := NewDllMod("machineinfo.dll")
 
@@ -441,28 +438,6 @@ origStr := mod.GetCStrFromUintptr(arg)
 if testStr != origStr {
 	t.FailNow()
 }
-```
-### TestDllConvertFunc
-```go
-
-//cannot convert back
-// mod := NewDllMod("test.dll")
-
-// var testCallback = func(s uintptr) uintptr {
-// 	fmt.Println("test callback")
-// 	return s + 900000
-// }
-
-// var arg uintptr
-// var err error
-// arg, err = mod.convertArg(testCallback)
-// if err != nil {
-// 	t.FailNow()
-// }
-
-// callback := *(*(func(s uintptr) uintptr))(unsafe.Pointer(arg))
-
-// t.Log(callback(12345))
 ```
 ## 文档自动生成
 ### cmd
@@ -631,9 +606,21 @@ if !reflect.DeepEqual(distincted, []string{"1", "2", "3", "4"}) {
 ### TestAutoGenTags
 ```go
 
-fmt.Println(AutoGenTags(testUser{}, map[string]TAG_STYLE{
+structStrWithTag := AutoGenTags(testUser{}, map[string]TAG_STYLE{
 	"json": TAG_STYLE_SNAKE,
 	"bson": TAG_STYLE_UNDERLINE,
 	"form": TAG_STYLE_ORIG,
-}))
+})
+
+if !strings.Contains(structStrWithTag, `bson:"user_id"`) {
+	t.FailNow()
+}
+
+if !strings.Contains(structStrWithTag, `form:"UserId"`) {
+	t.FailNow()
+}
+
+if !strings.Contains(structStrWithTag, `json:"userId"`) {
+	t.FailNow()
+}
 ```

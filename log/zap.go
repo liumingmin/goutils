@@ -352,7 +352,11 @@ func ContextWithTraceId() context.Context {
 }
 
 func ContextWithTraceIdFromParent(parent context.Context) context.Context {
+	return context.WithValue(parent, LOG_TRACE_ID, NewTraceId())
+}
+
+func NewTraceId() string {
 	uuidBytes := [16]byte(uuid.New())
 	b32Uuid := base32.StdEncoding.WithPadding(base32.NoPadding).EncodeToString(uuidBytes[:])
-	return context.WithValue(parent, LOG_TRACE_ID, b32Uuid)
+	return b32Uuid
 }

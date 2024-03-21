@@ -14,7 +14,6 @@ import (
 
 	"github.com/gorilla/websocket"
 	"github.com/liumingmin/goutils/log"
-	"github.com/liumingmin/goutils/utils"
 	"github.com/liumingmin/goutils/utils/safego"
 )
 
@@ -433,7 +432,7 @@ func (c *Connection) writeToConnection() {
 
 		case <-ticker.C:
 			if c.debug {
-				pingPayload = []byte(c.typ.String() + utils.NanoTsBase36() + utils.RandBase36())
+				pingPayload = []byte(c.typ.String() + log.NewTraceId())
 				log.Debug(ctx, "%v send ping. pingId: %v, ptr: %p", c.typ, string(pingPayload), c)
 			}
 

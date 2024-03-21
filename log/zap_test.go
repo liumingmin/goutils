@@ -20,11 +20,10 @@ func (f *GameDefaultFieldGenerator) GetDefaultFields() []zap.Field {
 }
 
 func TestZap(t *testing.T) {
-	ctx := context.WithValue(context.Background(), LOG_TRACE_ID, "zap_trace_id")
+	ctx := ContextWithTraceId()
 	Info(ctx, "我是日志2")
 	SetDefaultGenerator(new(GameDefaultFieldGenerator))
 	Error(ctx, "我是日志4: %v,%v", "管理员", "eee")
-
 	Info(ctx, "我是日志5: %v", "hello")
 	Warn(ctx, "我是日志6: %v", "hello sam")
 }
@@ -39,7 +38,7 @@ func TestPanicLog(t *testing.T) {
 }
 
 func testPanicLog() {
-	ctx := context.WithValue(context.Background(), LOG_TRACE_ID, "zap_trace_id")
+	ctx := ContextWithTraceId()
 
 	defer Recover(ctx, func(e interface{}) string {
 		return fmt.Sprintf("recover from err: %v", e)
@@ -100,4 +99,8 @@ func TestLevelChange(t *testing.T) {
 	if LogMore() != zap.DebugLevel {
 		t.FailNow()
 	}
+}
+
+func TestNewTraceId(t *testing.T) {
+	t.Log(NewTraceId())
 }

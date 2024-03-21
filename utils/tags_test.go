@@ -1,7 +1,7 @@
 package utils
 
 import (
-	"fmt"
+	"strings"
 	"testing"
 )
 
@@ -13,9 +13,21 @@ type testUser struct {
 }
 
 func TestAutoGenTags(t *testing.T) {
-	fmt.Println(AutoGenTags(testUser{}, map[string]TAG_STYLE{
+	structStrWithTag := AutoGenTags(testUser{}, map[string]TAG_STYLE{
 		"json": TAG_STYLE_SNAKE,
 		"bson": TAG_STYLE_UNDERLINE,
 		"form": TAG_STYLE_ORIG,
-	}))
+	})
+
+	if !strings.Contains(structStrWithTag, `bson:"user_id"`) {
+		t.FailNow()
+	}
+
+	if !strings.Contains(structStrWithTag, `form:"UserId"`) {
+		t.FailNow()
+	}
+
+	if !strings.Contains(structStrWithTag, `json:"userId"`) {
+		t.FailNow()
+	}
 }
