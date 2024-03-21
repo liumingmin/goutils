@@ -5,7 +5,6 @@ import (
 	"sync/atomic"
 
 	"github.com/liumingmin/goutils/log"
-	"github.com/liumingmin/goutils/utils"
 )
 
 type Puller interface {
@@ -30,7 +29,7 @@ type defaultPuller struct {
 }
 
 func (c *defaultPuller) PullSend() {
-	ctx := utils.ContextWithTsTrace()
+	ctx := log.ContextWithTraceId()
 
 	ok := atomic.CompareAndSwapInt32(&c.isRunning, 0, 1)
 	if !ok {
@@ -61,6 +60,6 @@ func (c *defaultPuller) PullSend() {
 			return
 		}
 
-		ctx = utils.ContextWithTsTrace()
+		ctx = log.ContextWithTraceId()
 	}
 }

@@ -5,23 +5,105 @@
 <!-- toc -->
 
 - [通用工具库](#%E9%80%9A%E7%94%A8%E5%B7%A5%E5%85%B7%E5%BA%93)
+  * [async_test.go](#async_testgo)
   * [熔断器](#%E7%86%94%E6%96%AD%E5%99%A8)
   * [checksum](#checksum)
-  * [context_test.go](#context_testgo)
   * [CSV文件解析为MDB内存表](#csv%E6%96%87%E4%BB%B6%E8%A7%A3%E6%9E%90%E4%B8%BAmdb%E5%86%85%E5%AD%98%E8%A1%A8)
   * [分布式锁](#%E5%88%86%E5%B8%83%E5%BC%8F%E9%94%81)
   * [dll_mod_test.go](#dll_mod_testgo)
   * [文档自动生成](#%E6%96%87%E6%A1%A3%E8%87%AA%E5%8A%A8%E7%94%9F%E6%88%90)
+  * [encoding_test.go](#encoding_testgo)
   * [有限状态机](#%E6%9C%89%E9%99%90%E7%8A%B6%E6%80%81%E6%9C%BA)
   * [httpclient工具](#httpclient%E5%B7%A5%E5%85%B7)
   * [邮件工具](#%E9%82%AE%E4%BB%B6%E5%B7%A5%E5%85%B7)
   * [安全的go协程](#%E5%AE%89%E5%85%A8%E7%9A%84go%E5%8D%8F%E7%A8%8B)
   * [snowflake](#snowflake)
+  * [stringutils_test.go](#stringutils_testgo)
   * [结构体TAG生成器](#%E7%BB%93%E6%9E%84%E4%BD%93tag%E7%94%9F%E6%88%90%E5%99%A8)
 
 <!-- tocstop -->
 
 # 通用工具库
+## async_test.go
+### TestAsyncInvokeWithTimeout
+```go
+
+f1 := false
+f2 := false
+result := AsyncInvokeWithTimeout(time.Second*1, func() {
+	time.Sleep(time.Millisecond * 500)
+	f1 = true
+}, func() {
+	time.Sleep(time.Millisecond * 500)
+	f2 = true
+})
+
+if !result {
+	t.FailNow()
+}
+
+if !f1 {
+	t.FailNow()
+}
+
+if !f2 {
+	t.FailNow()
+}
+```
+### TestAsyncInvokeWithTimeouted
+```go
+
+f1 := false
+f2 := false
+result := AsyncInvokeWithTimeout(time.Second*1, func() {
+	time.Sleep(time.Millisecond * 1500)
+	f1 = true
+}, func() {
+	time.Sleep(time.Millisecond * 500)
+	f2 = true
+})
+
+if result {
+	t.FailNow()
+}
+
+if f1 {
+	t.FailNow()
+}
+
+if !f2 {
+	t.FailNow()
+}
+```
+### TestAsyncInvokesWithTimeout
+```go
+
+f1 := false
+f2 := false
+
+fns := []func(){
+	func() {
+		time.Sleep(time.Millisecond * 500)
+		f1 = true
+	}, func() {
+		time.Sleep(time.Millisecond * 500)
+		f2 = true
+	},
+}
+result := AsyncInvokesWithTimeout(time.Second*1, fns)
+
+if !result {
+	t.FailNow()
+}
+
+if !f1 {
+	t.FailNow()
+}
+
+if !f2 {
+	t.FailNow()
+}
+```
 ## 熔断器
 ### cbk_test.go
 #### TestCbkFailed
@@ -93,20 +175,6 @@ if err != nil {
 ##### 2
 ##### 3
 ##### 4
-## context_test.go
-### TestContextWithTsTrace
-```go
-
-t.Log(ContextWithTrace())
-
-t.Log(time.Now().UnixNano())
-time.Sleep(time.Second)
-t.Log(time.Now().UnixNano())
-t.Log(NanoTsBase32())
-t.Log(ContextWithTsTrace())
-t.Log(ContextWithTsTrace())
-t.Log(ContextWithTsTrace())
-```
 ## CSV文件解析为MDB内存表
 ### csv_parse_test.go
 #### TestReadCsvToDataTable
@@ -411,6 +479,47 @@ sb.WriteString(genDocTestUserDelete())
 
 GenDoc(context.Background(), "用户管理", "doc/testuser.md", 2, sb.String())
 ```
+## encoding_test.go
+### TestGBK2UTF8
+```go
+
+src := []byte{206, 210, 202, 199, 103, 111, 117, 116, 105, 108, 115, 49}
+utf8str, err := GBK2UTF8(src)
+if err != nil {
+	t.FailNow()
+}
+
+if string(utf8str) != "我是goutils1" {
+	t.FailNow()
+}
+```
+### TestUTF82GBK
+```go
+
+src := []byte{230, 136, 145, 230, 152, 175, 103, 111, 117, 116, 105, 108, 115, 49}
+gbkStr, err := UTF82GBK(src)
+if err != nil {
+	t.FailNow()
+}
+
+if !reflect.DeepEqual(gbkStr, []byte{206, 210, 202, 199, 103, 111, 117, 116, 105, 108, 115, 49}) {
+	t.FailNow()
+}
+```
+### TestIsGBK
+```go
+
+if !IsGBK([]byte{206, 210}) {
+	t.FailNow()
+}
+```
+### TestIsUtf8
+```go
+
+if !IsUtf8([]byte{230, 136, 145}) {
+	t.FailNow()
+}
+```
 ## 有限状态机
 ## httpclient工具
 ## 邮件工具
@@ -456,6 +565,67 @@ return
 
 n, _ := NewNode(1)
 t.Log(n.Generate(), ",", n.Generate(), ",", n.Generate())
+```
+## stringutils_test.go
+### TestStringsReverse
+```go
+
+var strs = []string{"1", "2", "3", "4"}
+revStrs := StringsReverse(strs)
+
+if !reflect.DeepEqual(revStrs, []string{"4", "3", "2", "1"}) {
+	t.FailNow()
+}
+```
+### TestStringsInArray
+```go
+
+var strs = []string{"1", "2", "3", "4"}
+ok, index := StringsInArray(strs, "3")
+if !ok {
+	t.FailNow()
+}
+
+if index != 2 {
+	t.FailNow()
+}
+
+ok, index = StringsInArray(strs, "5")
+if ok {
+	t.FailNow()
+}
+
+if index != -1 {
+	t.FailNow()
+}
+```
+### TestStringsExcept
+```go
+
+var strs1 = []string{"1", "2", "3", "4"}
+var strs2 = []string{"3", "4", "5", "6"}
+
+if !reflect.DeepEqual(StringsExcept(strs1, strs2), []string{"1", "2"}) {
+	t.FailNow()
+}
+
+if !reflect.DeepEqual(StringsExcept(strs1, []string{}), []string{"1", "2", "3", "4"}) {
+	t.FailNow()
+}
+
+if !reflect.DeepEqual(StringsExcept([]string{}, strs2), []string{}) {
+	t.FailNow()
+}
+```
+### TestStringsDistinct
+```go
+
+var strs1 = []string{"1", "2", "3", "4", "1", "3"}
+distincted := StringsDistinct(strs1)
+sort.Strings(distincted)
+if !reflect.DeepEqual(distincted, []string{"1", "2", "3", "4"}) {
+	t.FailNow()
+}
 ```
 ## 结构体TAG生成器
 ### TestAutoGenTags

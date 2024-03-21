@@ -391,7 +391,7 @@ func (c *Connection) writeToConnection() {
 	defer func() {
 		ticker.Stop()
 
-		ctx := utils.ContextWithTsTrace()
+		ctx := log.ContextWithTraceId()
 		c.setStop(ctx)
 		c.closeWrite(ctx)
 		close(c.writeDone)
@@ -408,7 +408,7 @@ func (c *Connection) writeToConnection() {
 	pingPayload := []byte{}
 
 	for {
-		ctx := utils.ContextWithTsTrace()
+		ctx := log.ContextWithTraceId()
 
 		if c.IsStopped() {
 			log.Info(ctx, "%v connection stopped, finish write. id: %v, ptr: %p", c.typ, c.id, c)
@@ -512,7 +512,7 @@ func (c *Connection) readMsgFromWs() {
 	failedRetry := 0
 
 	for {
-		ctx := utils.ContextWithTsTrace()
+		ctx := log.ContextWithTraceId()
 		if c.IsStopped() {
 			log.Info(ctx, "%v connect is stopped. id: %v, ptr: %p", c.typ, c.id, c)
 			return

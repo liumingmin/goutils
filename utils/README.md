@@ -5,23 +5,105 @@
 <!-- toc -->
 
 - [utils](#utils)
+  * [async_test.go](#async_testgo)
   * [cbk](#cbk)
   * [checksum](#checksum)
-  * [context_test.go](#context_testgo)
   * [csv](#csv)
   * [distlock](#distlock)
   * [dll_mod_test.go](#dll_mod_testgo)
   * [docgen](#docgen)
+  * [encoding_test.go](#encoding_testgo)
   * [fsm](#fsm)
   * [hc](#hc)
   * [ismtp](#ismtp)
   * [safego](#safego)
   * [snowflake](#snowflake)
+  * [stringutils_test.go](#stringutils_testgo)
   * [tags_test.go](#tags_testgo)
 
 <!-- tocstop -->
 
 # utils
+## async_test.go
+### TestAsyncInvokeWithTimeout
+```go
+
+f1 := false
+f2 := false
+result := AsyncInvokeWithTimeout(time.Second*1, func() {
+	time.Sleep(time.Millisecond * 500)
+	f1 = true
+}, func() {
+	time.Sleep(time.Millisecond * 500)
+	f2 = true
+})
+
+if !result {
+	t.FailNow()
+}
+
+if !f1 {
+	t.FailNow()
+}
+
+if !f2 {
+	t.FailNow()
+}
+```
+### TestAsyncInvokeWithTimeouted
+```go
+
+f1 := false
+f2 := false
+result := AsyncInvokeWithTimeout(time.Second*1, func() {
+	time.Sleep(time.Millisecond * 1500)
+	f1 = true
+}, func() {
+	time.Sleep(time.Millisecond * 500)
+	f2 = true
+})
+
+if result {
+	t.FailNow()
+}
+
+if f1 {
+	t.FailNow()
+}
+
+if !f2 {
+	t.FailNow()
+}
+```
+### TestAsyncInvokesWithTimeout
+```go
+
+f1 := false
+f2 := false
+
+fns := []func(){
+	func() {
+		time.Sleep(time.Millisecond * 500)
+		f1 = true
+	}, func() {
+		time.Sleep(time.Millisecond * 500)
+		f2 = true
+	},
+}
+result := AsyncInvokesWithTimeout(time.Second*1, fns)
+
+if !result {
+	t.FailNow()
+}
+
+if !f1 {
+	t.FailNow()
+}
+
+if !f2 {
+	t.FailNow()
+}
+```
 ## cbk
 ### cbk_test.go
 #### TestCbkFailed
@@ -93,20 +175,6 @@ if err != nil {
 ##### 2
 ##### 3
 ##### 4
-## context_test.go
-### TestContextWithTsTrace
-```go
-
-t.Log(ContextWithTrace())
-
-t.Log(time.Now().UnixNano())
-time.Sleep(time.Second)
-t.Log(time.Now().UnixNano())
-t.Log(NanoTsBase32())
-t.Log(ContextWithTsTrace())
-t.Log(ContextWithTsTrace())
-t.Log(ContextWithTsTrace())
-```
 ## csv
 ### csv_parse_test.go
 #### TestReadCsvToDataTable
@@ -411,6 +479,47 @@ sb.WriteString(genDocTestUserDelete())
 
 GenDoc(context.Background(), "用户管理", "doc/testuser.md", 2, sb.String())
 ```
+## encoding_test.go
+### TestGBK2UTF8
+```go
+
+src := []byte{206, 210, 202, 199, 103, 111, 117, 116, 105, 108, 115, 49}
+utf8str, err := GBK2UTF8(src)
+if err != nil {
+	t.FailNow()
+}
+
+if string(utf8str) != "我是goutils1" {
+	t.FailNow()
+}
+```
+### TestUTF82GBK
+```go
+
+src := []byte{230, 136, 145, 230, 152, 175, 103, 111, 117, 116, 105, 108, 115, 49}
+gbkStr, err := UTF82GBK(src)
+if err != nil {
+	t.FailNow()
+}
+
+if !reflect.DeepEqual(gbkStr, []byte{206, 210, 202, 199, 103, 111, 117, 116, 105, 108, 115, 49}) {
+	t.FailNow()
+}
+```
+### TestIsGBK
+```go
+
+if !IsGBK([]byte{206, 210}) {
+	t.FailNow()
+}
+```
+### TestIsUtf8
+```go
+
+if !IsUtf8([]byte{230, 136, 145}) {
+	t.FailNow()
+}
+```
 ## fsm
 ## hc
 ## ismtp
@@ -456,6 +565,67 @@ return
 
 n, _ := NewNode(1)
 t.Log(n.Generate(), ",", n.Generate(), ",", n.Generate())
+```
+## stringutils_test.go
+### TestStringsReverse
+```go
+
+var strs = []string{"1", "2", "3", "4"}
+revStrs := StringsReverse(strs)
+
+if !reflect.DeepEqual(revStrs, []string{"4", "3", "2", "1"}) {
+	t.FailNow()
+}
+```
+### TestStringsInArray
+```go
+
+var strs = []string{"1", "2", "3", "4"}
+ok, index := StringsInArray(strs, "3")
+if !ok {
+	t.FailNow()
+}
+
+if index != 2 {
+	t.FailNow()
+}
+
+ok, index = StringsInArray(strs, "5")
+if ok {
+	t.FailNow()
+}
+
+if index != -1 {
+	t.FailNow()
+}
+```
+### TestStringsExcept
+```go
+
+var strs1 = []string{"1", "2", "3", "4"}
+var strs2 = []string{"3", "4", "5", "6"}
+
+if !reflect.DeepEqual(StringsExcept(strs1, strs2), []string{"1", "2"}) {
+	t.FailNow()
+}
+
+if !reflect.DeepEqual(StringsExcept(strs1, []string{}), []string{"1", "2", "3", "4"}) {
+	t.FailNow()
+}
+
+if !reflect.DeepEqual(StringsExcept([]string{}, strs2), []string{}) {
+	t.FailNow()
+}
+```
+### TestStringsDistinct
+```go
+
+var strs1 = []string{"1", "2", "3", "4", "1", "3"}
+distincted := StringsDistinct(strs1)
+sort.Strings(distincted)
+if !reflect.DeepEqual(distincted, []string{"1", "2", "3", "4"}) {
+	t.FailNow()
+}
 ```
 ## tags_test.go
 ### TestAutoGenTags

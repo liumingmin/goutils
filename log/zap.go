@@ -3,6 +3,7 @@ package log
 import (
 	"bytes"
 	"context"
+	"encoding/base32"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -13,6 +14,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/liumingmin/goutils/conf"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
@@ -343,4 +345,14 @@ func (h *httpWriter) Write(data []byte) (int, error) {
 	}()
 
 	return len(input), nil
+}
+
+func ContextWithTraceId() context.Context {
+	return ContextWithTraceIdFromParent(context.Background())
+}
+
+func ContextWithTraceIdFromParent(parent context.Context) context.Context {
+	uuidBytes := [16]byte(uuid.New())
+	b32Uuid := base32.StdEncoding.WithPadding(base32.NoPadding).EncodeToString(uuidBytes[:])
+	return context.WithValue(parent, LOG_TRACE_ID, b32Uuid)
 }

@@ -8,11 +8,10 @@ import (
 
 	"github.com/liumingmin/goutils/algorithm"
 	"github.com/liumingmin/goutils/log"
-	"github.com/liumingmin/goutils/utils"
 	"github.com/liumingmin/goutils/utils/safego"
 )
 
-//连接管理器
+// 连接管理器
 type Hub struct {
 	connections *sync.Map        // 连接容器
 	register    chan *Connection // 注册队列
@@ -81,7 +80,7 @@ func (h *Hub) run() {
 }
 
 func (h *Hub) processRegister(conn *Connection) {
-	ctx := utils.ContextWithTsTrace()
+	ctx := log.ContextWithTraceId()
 	defer log.Recover(ctx, func(e interface{}) string {
 		return fmt.Sprintf("processRegister. error: %v", e)
 	})
@@ -119,7 +118,7 @@ func (h *Hub) processRegister(conn *Connection) {
 }
 
 func (h *Hub) processUnregister(conn *Connection) {
-	ctx := utils.ContextWithTsTrace()
+	ctx := log.ContextWithTraceId()
 	defer log.Recover(ctx, func(e interface{}) string {
 		return fmt.Sprintf("processUnregister. error: %v", e)
 	})
@@ -164,7 +163,7 @@ func (h *Hub) sendDisplace(ctx context.Context, old *Connection, newIp string) {
 	old.sendMsgToWs(ctx, message.(*Message))
 }
 
-//init server
+// init server
 func initServer(serverOpt ServerOption) IHub {
 	RegisterDataMsgType(uint32(P_BASE_s2c_err_displace), &P_DISPLACE{})
 
@@ -189,7 +188,7 @@ func newShardHub(opts []HubOption) IHub {
 	return sHub
 }
 
-//init client
+// init client
 func initClient() IHub {
 	RegisterDataMsgType(uint32(P_BASE_s2c_err_displace), &P_DISPLACE{})
 
@@ -211,7 +210,7 @@ func initClient() IHub {
 	return connHub
 }
 
-//shard hub
+// shard hub
 type shardHub struct {
 	hubs []*Hub
 }
