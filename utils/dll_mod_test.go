@@ -12,6 +12,10 @@ import (
 )
 
 func TestDllCall(t *testing.T) {
+	if runtime.GOOS != "windows" {
+		return
+	}
+
 	// mod := NewDllMod("machineinfo.dll")
 
 	// result := int32(0)
@@ -167,31 +171,23 @@ func TestGetCStrFromUintptr(t *testing.T) {
 	}
 }
 
-func TestDllConvertFunc(t *testing.T) {
-	//cannot convert back
-	// mod := NewDllMod("test.dll")
+//func TestDllConvertFunc(t *testing.T) {
+//cannot convert back
+// mod := NewDllMod("test.dll")
 
-	// var testCallback = func(s uintptr) uintptr {
-	// 	fmt.Println("test callback")
-	// 	return s + 900000
-	// }
+// var testCallback = func(s uintptr) uintptr {
+// 	fmt.Println("test callback")
+// 	return s + 900000
+// }
 
-	// var arg uintptr
-	// var err error
-	// arg, err = mod.convertArg(testCallback)
-	// if err != nil {
-	// 	t.FailNow()
-	// }
+// var arg uintptr
+// var err error
+// arg, err = mod.convertArg(testCallback)
+// if err != nil {
+// 	t.FailNow()
+// }
 
-	// callback := *(*(func(s uintptr) uintptr))(unsafe.Pointer(arg))
+// callback := *(*(func(s uintptr) uintptr))(unsafe.Pointer(arg))
 
-	// t.Log(callback(12345))
-}
-
-func TestMain(m *testing.M) {
-	if runtime.GOOS != "windows" {
-		return
-	}
-
-	m.Run()
-}
+// t.Log(callback(12345))
+//}
