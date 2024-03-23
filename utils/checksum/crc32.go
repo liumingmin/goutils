@@ -154,21 +154,32 @@ func GenerateChecksumFileWithIgnore(ctx context.Context, folder string, checksum
 	}
 	builder := strings.Builder{}
 	for idx, path := range paths {
-		file, err := os.Open(filepath.Join(folder, path))
-		if err != nil {
-			log.Error(ctx, "open filepath:%s failed. err:%v", path, err)
-			return "", err
-		}
-		checksumCrc32, err := ChecksumCrc32(file)
-		if err != nil {
-			log.Error(ctx, "get filepath:%s crc32 val failed. err:%v", path, err)
-			return "", err
-		}
-		fileInfo, _ := file.Stat()
-		if idx == len(paths)-1 {
+		err = func() error {
+			file, err := os.Open(filepath.Join(folder, path))
+			if err != nil {
+				log.Error(ctx, "open filepath:%s failed. err:%v", path, err)
+				return err
+			}
+			defer file.Close()
+
+			checksumCrc32, err := ChecksumCrc32(file)
+			if err != nil {
+				log.Error(ctx, "get filepath:%s crc32 val failed. err:%v", path, err)
+				return err
+			}
+
+			fileInfo, _ := file.Stat()
 			builder.WriteString(fmt.Sprintf("%v|%v|%v", strings.ReplaceAll(path, string(os.PathSeparator), "/"), checksumCrc32, fileInfo.Size()))
-		} else {
-			builder.WriteString(fmt.Sprintf("%v|%v|%v\n", strings.ReplaceAll(path, string(os.PathSeparator), "/"), checksumCrc32, fileInfo.Size()))
+
+			if idx < len(paths)-1 {
+				builder.WriteString("\n")
+			}
+
+			return nil
+		}()
+
+		if err != nil {
+			return "", err
 		}
 	}
 	// 生成文件checksum文件

@@ -2,6 +2,7 @@ package ismtp
 
 import (
 	"fmt"
+	"runtime"
 	"strings"
 	"testing"
 )
@@ -36,4 +37,12 @@ func TestSendEmail(t *testing.T) {
 	}
 
 	return
+}
+
+func TestMain(m *testing.M) {
+	if runtime.GOOS != "windows" {
+		return
+	}
+
+	m.Run()
 }
