@@ -1,10 +1,10 @@
 log:
   filename: "ssgpaksync.log"
-  logLevel: info
+  logLevel: debug
   stdout: true
   fileOut: true
-  httpOut: false
+  httpOut: true
   outputEncoder: json
   contentEncoder: utf-8
-  httpUrl: "http://127.0.0.1:8053/techpass/log"
+  httpUrl: "http://127.0.0.1:8053/goutils/log"
   httpDebug: true

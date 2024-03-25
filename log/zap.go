@@ -209,6 +209,16 @@ func Panic(c context.Context, args ...interface{}) {
 	logger.Panic(msg, SupplementFields(c)...)
 }
 
+func GetLogLevel() zapcore.Level {
+	return loggerLevel.Level()
+}
+
+func SetLogLevel(l zapcore.Level) zapcore.Level {
+	level := loggerLevel.Level()
+	loggerLevel.SetLevel(l)
+	return level
+}
+
 func LogMore() zapcore.Level {
 	level := loggerLevel.Level()
 	if level == zap.DebugLevel {
