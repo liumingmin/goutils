@@ -11,10 +11,11 @@ var testTempDirPath = filepath.Join(os.TempDir(), "goutils_httpdownloader")
 
 func TestFileOffsetWriter(t *testing.T) {
 	os.MkdirAll(testTempDirPath, 0666)
+
 	savePath := filepath.Join(testTempDirPath, "testFileOffsetWriter.txt")
 	file, err := os.OpenFile(savePath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0666)
 	if err != nil {
-		t.FailNow()
+		t.Error(err)
 	}
 
 	var mutex sync.Mutex
@@ -26,10 +27,10 @@ func TestFileOffsetWriter(t *testing.T) {
 
 	bs, err := os.ReadFile(savePath)
 	if err != nil {
-		t.FailNow()
+		t.Error(err)
 	}
 
 	if string(bs) != "1234567890" {
-		t.FailNow()
+		t.Error(string(bs))
 	}
 }

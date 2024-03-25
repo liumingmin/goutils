@@ -3,6 +3,9 @@ package httpdownloader
 import (
 	"context"
 	"net/http"
+	"os"
+	"path/filepath"
+	"strconv"
 	"testing"
 	"time"
 
@@ -10,6 +13,8 @@ import (
 )
 
 func TestHttpDownloaderDownload(t *testing.T) {
+	os.MkdirAll(testTempDirPath, 0666)
+
 	dialer := bwlimit.NewDialer()
 	dialer.RxBwLimit().SetBwLimit(20 * 1024 * 1024)
 	hc := &http.Client{
@@ -31,11 +36,36 @@ func TestHttpDownloaderDownload(t *testing.T) {
 		RetryCnt:     1,
 	}
 
-	err := downloader.Download(context.Background(), "https://golang.google.cn/dl/go1.22.1.src.tar.gz", http.Header{ //https://golang.google.cn/dl/go1.21.7.windows-amd64.zip
+	savePath := filepath.Join(testTempDirPath, "vc_redist")
+
+	url := "https://aka.ms/vs/17/release/vc_redist.arm64.exe"
+	resp, err := http.Head(url)
+	if err != nil {
+		t.Error(err)
+	}
+	if resp != nil {
+		resp.Body.Close()
+	}
+
+	contentLen := resp.Header.Get("Content-Length")
+
+	fileSize, _ := strconv.ParseInt(contentLen, 10, 64)
+
+	err = downloader.Download(context.Background(), url, http.Header{
 		"User-Agent": []string{"Mozilla/5.0 (Linux; Android 10; Pixel 4) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/86.0.4240.183 Mobile Safari/537.36"},
-	}, "./go1.21.7.windows-amd64.zip")
+	}, savePath)
 
 	if err != nil {
 		t.Error(err)
 	}
+
+	fileInfo, err := os.Stat(savePath)
+	if err != nil {
+		t.Error(err)
+	}
+
+	if fileInfo.Size() != fileSize {
+		t.Error(fileSize)
+	}
+
 }
