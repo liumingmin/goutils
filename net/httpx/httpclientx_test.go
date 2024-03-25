@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
+	"sync"
 	"testing"
 
 	"golang.org/x/net/http2"
@@ -15,7 +16,6 @@ import (
 )
 
 func TestHttpXGet(t *testing.T) {
-	testRunHttpxServer()
 
 	clientX := getHcx()
 
@@ -51,7 +51,6 @@ func TestHttpXGet(t *testing.T) {
 }
 
 func TestHttpXPost(t *testing.T) {
-	testRunHttpxServer()
 
 	clientX := getHcx()
 
@@ -87,7 +86,6 @@ func TestHttpXPost(t *testing.T) {
 }
 
 func TestHttpXHead(t *testing.T) {
-	testRunHttpxServer()
 
 	clientX := getHcx()
 
@@ -123,7 +121,6 @@ func TestHttpXHead(t *testing.T) {
 }
 
 func TestHttpXPostForm(t *testing.T) {
-	testRunHttpxServer()
 
 	clientX := getHcx()
 
@@ -174,7 +171,6 @@ func getHcx() *HttpClientX {
 }
 
 func BenchmarkHttpx(b *testing.B) {
-	testRunHttpxServer()
 	clientX := getHcx()
 	//b.ResetTimer()
 	b.StartTimer()
@@ -203,4 +199,11 @@ func testRunHttpxServer() {
 		Handler: h2c.NewHandler(handler, h2s),
 	}
 	go h1s.ListenAndServe()
+}
+
+func TestMain(m *testing.M) {
+	var once sync.Once
+	once.Do(testRunHttpxServer)
+
+	m.Run()
 }
