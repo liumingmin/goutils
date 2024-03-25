@@ -24,8 +24,9 @@ func (f *GameDefaultFieldGenerator) GetDefaultFields() []zap.Field {
 }
 
 func TestZap(t *testing.T) {
-	testRunLogServer(t)
+	testRunLogServer(t, "log1", "log2")
 	SetDefaultGenerator(new(GameDefaultFieldGenerator))
+	SetLogLevel(zap.DebugLevel)
 
 	ctx := ContextWithTraceId()
 	Debug(ctx, "I am debug log1")
@@ -44,18 +45,28 @@ func TestZap(t *testing.T) {
 	LogLess()
 	Error(ctx, "I am error log2: %v, %v", "admin", "eee")
 
-	ErrorStack(ctx, "I am panic error")
+	ErrorStack(ctx, "I am panic error log1")
 	LogLess()
-	ErrorStack(ctx, "I am panic error")
+	ErrorStack(ctx, "I am panic error log2")
 
+	Log(ctx, zap.DebugLevel, "I am debug, log1")
 	time.Sleep(time.Second)
 }
 
-func testRunLogServer(t *testing.T) {
+func testRunLogServer(t *testing.T, incldueTag, excludeTag string) {
 	http.HandleFunc("/goutils/log", func(w http.ResponseWriter, r *http.Request) {
 		data, _ := io.ReadAll(r.Body)
 		str := string(data)
-		if strings.Contains(str, "log2") {
+
+		if !strings.Contains(str, "I am") {
+			return
+		}
+
+		if incldueTag != "" && !strings.Contains(str, incldueTag) {
+			t.FailNow()
+		}
+
+		if excludeTag != "" && strings.Contains(str, excludeTag) {
 			t.FailNow()
 		}
 	})
@@ -63,18 +74,29 @@ func testRunLogServer(t *testing.T) {
 }
 
 func TestPanicLog(t *testing.T) {
-	testPanicLog()
-	Info(context.Background(), "catch panic")
+	testRunLogServer(t, "log1", "")
+
+	testPanicLog(func() {
+		panic(errors.New("log1"))
+	})
+
+	testPanicLog(func() {
+		Panic(context.Background(), "I am panic log1")
+	})
+
+	testPanicLog(func() {
+		Fatal(context.Background(), "I am fatal log1")
+	})
 }
 
-func testPanicLog() {
+func testPanicLog(f func()) {
 	ctx := ContextWithTraceId()
 
 	defer Recover(ctx, func(e interface{}) string {
-		return fmt.Sprintf("recover from err: %v", e)
+		return fmt.Sprintf("catch panic: %v", e)
 	})
 
-	panic(errors.New("dddd"))
+	f()
 }
 
 func TestLevelChange(t *testing.T) {
