@@ -31,7 +31,7 @@ func TestHttpDownloaderDownload(t *testing.T) {
 		RetryCnt:     1,
 	}
 
-	err := downloader.Download(context.Background(), "https://golang.google.cn/dl/go1.21.7.windows-amd64.zip", http.Header{
+	err := downloader.Download(context.Background(), "https://golang.google.cn", http.Header{ //https://golang.google.cn/dl/go1.21.7.windows-amd64.zip
 		"User-Agent": []string{"Mozilla/5.0 (Linux; Android 10; Pixel 4) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/86.0.4240.183 Mobile Safari/537.36"},
 	}, "./go1.21.7.windows-amd64.zip")
 

@@ -50,6 +50,14 @@ func TestZap(t *testing.T) {
 	ErrorStack(ctx, "I am panic error log2")
 
 	Log(ctx, zap.DebugLevel, "I am debug, log1")
+
+	testPanicLog(func() {
+		panic(errors.New("I am log1"))
+	})
+
+	testPanicLog(func() {
+		Panic(context.Background(), "I am panic log1")
+	})
 	time.Sleep(time.Second)
 }
 
@@ -71,22 +79,6 @@ func testRunLogServer(t *testing.T, incldueTag, excludeTag string) {
 		}
 	})
 	go http.ListenAndServe(":8053", nil)
-}
-
-func TestPanicLog(t *testing.T) {
-	testRunLogServer(t, "log1", "")
-
-	testPanicLog(func() {
-		panic(errors.New("log1"))
-	})
-
-	testPanicLog(func() {
-		Panic(context.Background(), "I am panic log1")
-	})
-
-	testPanicLog(func() {
-		Fatal(context.Background(), "I am fatal log1")
-	})
 }
 
 func testPanicLog(f func()) {
