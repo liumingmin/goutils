@@ -4,23 +4,29 @@ import (
 	"crypto/tls"
 	"fmt"
 	"io"
+	"math/rand"
 	"net"
 	"net/http"
 	"net/url"
 	"strings"
 	"sync"
 	"testing"
+	"time"
 
 	"golang.org/x/net/http2"
 	"golang.org/x/net/http2/h2c"
 )
+
+var testHttpxPortBase = 10000 + rand.New(rand.NewSource(time.Now().UnixNano())).Int63n(10000)
+var testHttpxPortH1 = fmt.Sprint(testHttpxPortBase)
+var testHttpxPortH2 = fmt.Sprint(testHttpxPortBase + 1)
 
 func TestHttpXGet(t *testing.T) {
 
 	clientX := getHcx()
 
 	for i := 0; i < 3; i++ {
-		resp, err := clientX.Get("http://127.0.0.1:17771/goutils/httpx")
+		resp, err := clientX.Get("http://127.0.0.1:" + testHttpxPortH1 + "/goutils/httpx")
 		if err != nil {
 			t.Error(fmt.Errorf("error making request: %v", err))
 		}
@@ -35,7 +41,7 @@ func TestHttpXGet(t *testing.T) {
 	}
 
 	for i := 0; i < 3; i++ {
-		resp, err := clientX.Get("http://127.0.0.1:17772/goutils/httpx")
+		resp, err := clientX.Get("http://127.0.0.1:" + testHttpxPortH2 + "/goutils/httpx")
 		if err != nil {
 			t.Error(fmt.Errorf("error making request: %v", err))
 		}
@@ -55,7 +61,7 @@ func TestHttpXPost(t *testing.T) {
 	clientX := getHcx()
 
 	for i := 0; i < 3; i++ {
-		resp, err := clientX.Post("http://127.0.0.1:17771/goutils/httpx", "application/json", strings.NewReader(""))
+		resp, err := clientX.Post("http://127.0.0.1:"+testHttpxPortH1+"/goutils/httpx", "application/json", strings.NewReader(""))
 		if err != nil {
 			t.Error(fmt.Errorf("error making request: %v", err))
 		}
@@ -70,7 +76,7 @@ func TestHttpXPost(t *testing.T) {
 	}
 
 	for i := 0; i < 3; i++ {
-		resp, err := clientX.Post("http://127.0.0.1:17772/goutils/httpx", "application/json", strings.NewReader(""))
+		resp, err := clientX.Post("http://127.0.0.1:"+testHttpxPortH2+"/goutils/httpx", "application/json", strings.NewReader(""))
 		if err != nil {
 			t.Error(fmt.Errorf("error making request: %v", err))
 		}
@@ -90,7 +96,7 @@ func TestHttpXHead(t *testing.T) {
 	clientX := getHcx()
 
 	for i := 0; i < 3; i++ {
-		resp, err := clientX.Head("http://127.0.0.1:17771/goutils/httpx")
+		resp, err := clientX.Head("http://127.0.0.1:" + testHttpxPortH1 + "/goutils/httpx")
 		if err != nil {
 			t.Error(fmt.Errorf("error making request: %v", err))
 		}
@@ -105,7 +111,7 @@ func TestHttpXHead(t *testing.T) {
 	}
 
 	for i := 0; i < 3; i++ {
-		resp, err := clientX.Head("http://127.0.0.1:17772/goutils/httpx")
+		resp, err := clientX.Head("http://127.0.0.1:" + testHttpxPortH2 + "/goutils/httpx")
 		if err != nil {
 			t.Error(fmt.Errorf("error making request: %v", err))
 		}
@@ -125,7 +131,7 @@ func TestHttpXPostForm(t *testing.T) {
 	clientX := getHcx()
 
 	for i := 0; i < 3; i++ {
-		resp, err := clientX.PostForm("http://127.0.0.1:17771/goutils/httpx", url.Values{"key": []string{"value"}})
+		resp, err := clientX.PostForm("http://127.0.0.1:"+testHttpxPortH1+"/goutils/httpx", url.Values{"key": []string{"value"}})
 		if err != nil {
 			t.Error(fmt.Errorf("error making request: %v", err))
 		}
@@ -140,7 +146,7 @@ func TestHttpXPostForm(t *testing.T) {
 	}
 
 	for i := 0; i < 3; i++ {
-		resp, err := clientX.PostForm("http://127.0.0.1:17772/goutils/httpx", url.Values{"key": []string{"value"}})
+		resp, err := clientX.PostForm("http://127.0.0.1:"+testHttpxPortH2+"/goutils/httpx", url.Values{"key": []string{"value"}})
 		if err != nil {
 			t.Error(fmt.Errorf("error making request: %v", err))
 		}
@@ -175,7 +181,7 @@ func BenchmarkHttpx(b *testing.B) {
 	//b.ResetTimer()
 	b.StartTimer()
 	for i := 0; i < b.N; i++ {
-		_, err := clientX.Get("http://127.0.0.1:17772/goutils/httpx")
+		_, err := clientX.Get("http://127.0.0.1:" + testHttpxPortH2 + "/goutils/httpx")
 		if err != nil {
 			b.Fatal(fmt.Errorf("error making request: %v", err))
 		}
@@ -191,11 +197,11 @@ func testRunHttpxServer() {
 		w.Write(data)
 	})
 
-	go http.ListenAndServe(":17771", handler)
+	go http.ListenAndServe(":"+testHttpxPortH1, handler)
 
 	h2s := &http2.Server{}
 	h1s := &http.Server{
-		Addr:    ":17772",
+		Addr:    ":" + testHttpxPortH2,
 		Handler: h2c.NewHandler(handler, h2s),
 	}
 	go h1s.ListenAndServe()
