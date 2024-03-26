@@ -11,9 +11,6 @@ jobs:
 
   build:
     runs-on: ubuntu-latest
-    container: 
-      image: alpine:latest
-      options: --user root -v ${{ github.workspace }}:/tmp/:rw
     steps:
     - uses: actions/checkout@v4
 
