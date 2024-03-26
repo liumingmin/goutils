@@ -10,7 +10,7 @@ import (
 func TestFileOffsetWriter(t *testing.T) {
 	os.MkdirAll(testTempDirPath, 0666)
 
-	savePath := filepath.Join(testTempDirPath, "testFileOffsetWriter.txt")
+	savePath := filepath.Join(testTempDirPath, "testFileOffsetWriter")
 	file, err := os.OpenFile(savePath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0666)
 	if err != nil {
 		t.Error(err)
