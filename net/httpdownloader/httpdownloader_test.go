@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strconv"
 	"testing"
 	"time"
@@ -73,6 +74,10 @@ func TestHttpDownloaderDownload(t *testing.T) {
 }
 
 func TestMain(m *testing.M) {
+	if runtime.GOOS != "windows" {
+		return
+	}
+
 	os.MkdirAll(testTempDirPath, 0666)
 
 	m.Run()
