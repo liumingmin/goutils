@@ -7,8 +7,6 @@ import (
 	"testing"
 )
 
-var testTempDirPath = filepath.Join("./tmp", "goutils_httpdownloader")
-
 func TestFileOffsetWriter(t *testing.T) {
 	os.MkdirAll(testTempDirPath, 0666)
 

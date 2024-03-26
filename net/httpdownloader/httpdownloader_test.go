@@ -12,8 +12,9 @@ import (
 	"github.com/liumingmin/goutils/net/bwlimit"
 )
 
+var testTempDirPath = filepath.Join(os.TempDir(), "goutils_httpdl")
+
 func TestHttpDownloaderDownload(t *testing.T) {
-	os.MkdirAll(testTempDirPath, 0666)
 
 	dialer := bwlimit.NewDialer()
 	dialer.RxBwLimit().SetBwLimit(20 * 1024 * 1024)
@@ -36,7 +37,7 @@ func TestHttpDownloaderDownload(t *testing.T) {
 		RetryCnt:     1,
 	}
 
-	savePath := filepath.Join(testTempDirPath, "vc_redist")
+	savePath := filepath.Join(testTempDirPath, "vc_redist.arm")
 
 	url := "https://aka.ms/vs/17/release/vc_redist.arm64.exe"
 	resp, err := http.Head(url)
@@ -68,4 +69,12 @@ func TestHttpDownloaderDownload(t *testing.T) {
 		t.Error(fileSize)
 	}
 
+}
+
+func TestMain(m *testing.M) {
+	os.MkdirAll(testTempDirPath, 0666)
+
+	m.Run()
+
+	os.RemoveAll(testTempDirPath)
 }
