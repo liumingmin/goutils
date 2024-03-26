@@ -2,180 +2,214 @@ package container
 
 import (
 	"fmt"
-	"strconv"
 	"testing"
 )
 
 func TestEnqueueBack(t *testing.T) {
 	q := InitQueue()
-	t.Log("queue is empty ", q.IsEmpty())
+	if !q.IsEmpty() {
+		t.FailNow()
+	}
 
 	for i := 0; i < 25; i++ {
 		deItem := q.EnqueueBack(fmt.Sprint(i))
-		if deItem != "" {
-			t.Log("EnqueueBack dequeue front: ", deItem)
+
+		if i >= q.Len() {
+			expectedItem := fmt.Sprint(i - q.Len())
+			if deItem != expectedItem {
+				t.Error(deItem)
+			}
+		} else {
+			if deItem != "" {
+				t.Error(deItem)
+			}
 		}
 	}
-	t.Log("queue is empty ", q.IsEmpty())
-	q.Range(func(i string) bool {
-		t.Log("left:", i)
-		return true
-	})
+
+	if q.IsEmpty() {
+		t.FailNow()
+	}
+
+	// q.Range(func(i string) bool {
+	// 	t.Log("left:", i)
+	// 	return true
+	// })
 
 }
 
 func TestDequeueFront(t *testing.T) {
 	q := InitQueue()
-	t.Log("queue is empty ", q.IsEmpty())
+	if !q.IsEmpty() {
+		t.FailNow()
+	}
 
 	for i := 0; i < 25; i++ {
-		deItem := q.EnqueueBack(fmt.Sprint(i))
-		if deItem != "" {
-			t.Log("EnqueueBack dequeue front: ", deItem)
-		}
+		q.EnqueueBack(fmt.Sprint(i))
 	}
 
 	for i := 0; i < 5; i++ {
 		deItem := q.DequeueFront()
-		if deItem != "" {
-			t.Log("DequeueFront dequeue front: ", deItem)
+		expectedItem := fmt.Sprint(i + 25 - 10)
+		if deItem != expectedItem {
+			t.Error(deItem)
 		}
 	}
 
-	q.Range(func(i string) bool {
-		t.Log("left:", i)
-		return true
-	})
+	// q.Range(func(i string) bool {
+	// 	t.Log("left:", i)
+	// 	return true
+	// })
 
-	t.Log("queue is empty ", q.IsEmpty())
+	if q.IsEmpty() {
+		t.FailNow()
+	}
 
 	for i := 0; i < 5; i++ {
 		deItem := q.DequeueFront()
-		if deItem != "" {
-			t.Log("DequeueFront dequeue front: ", deItem)
+		expectedItem := fmt.Sprint(i + 25 - 10 + 5)
+		if deItem != expectedItem {
+			t.Error(deItem)
 		}
 	}
 
-	q.Range(func(i string) bool {
-		t.Log("left:", i)
-		return true
-	})
+	// q.Range(func(i string) bool {
+	// 	t.Log("left:", i)
+	// 	return true
+	// })
 
-	t.Log("queue is empty ", q.IsEmpty())
+	if !q.IsEmpty() {
+		t.FailNow()
+	}
 }
 
 func TestEnqueueFront(t *testing.T) {
 	q := InitQueue()
-	t.Log("queue is empty ", q.IsEmpty())
+	if !q.IsEmpty() {
+		t.FailNow()
+	}
 
 	for i := 0; i < 25; i++ {
 		deItem := q.EnqueueFront(fmt.Sprint(i))
-		if deItem != "" {
-			t.Log("EnqueueFront dequeue back: ", deItem)
+		if i >= q.Len() {
+			expectedItem := fmt.Sprint(i - q.Len())
+			if deItem != expectedItem {
+				t.Error(deItem)
+			}
+		} else {
+			if deItem != "" {
+				t.Error(deItem)
+			}
 		}
 	}
-	t.Log("queue is empty ", q.IsEmpty())
-	q.Range(func(i string) bool {
-		t.Log("left:", i)
-		return true
-	})
+
+	if q.IsEmpty() {
+		t.FailNow()
+	}
+
+	// q.Range(func(i string) bool {
+	// 	t.Log("left:", i)
+	// 	return true
+	// })
 }
 
 func TestDequeueBack(t *testing.T) {
 	q := InitQueue()
-	t.Log("queue is empty ", q.IsEmpty())
+	if !q.IsEmpty() {
+		t.FailNow()
+	}
 
 	for i := 0; i < 25; i++ {
-		deItem := q.EnqueueFront(fmt.Sprint(i))
-		if deItem != "" {
-			t.Log("EnqueueFront dequeue back: ", deItem)
-		}
+		q.EnqueueFront(fmt.Sprint(i))
 	}
 
 	for i := 0; i < 5; i++ {
 		deItem := q.DequeueBack()
-		if deItem != "" {
-			t.Log("DequeueBack dequeue back: ", deItem)
+		expectedItem := fmt.Sprint(i + 25 - 10)
+		if deItem != expectedItem {
+			t.Error(deItem)
 		}
 	}
-	t.Log("queue is empty ", q.IsEmpty())
+	if q.IsEmpty() {
+		t.FailNow()
+	}
 
-	q.Range(func(i string) bool {
-		t.Log("left:", i)
-		return true
-	})
+	// q.Range(func(i string) bool {
+	// 	t.Log("left:", i)
+	// 	return true
+	// })
 
 	for i := 0; i < 5; i++ {
 		deItem := q.DequeueBack()
-		if deItem != "" {
-			t.Log("DequeueBack dequeue back: ", deItem)
+		expectedItem := fmt.Sprint(i + 25 - 10 + 5)
+		if deItem != expectedItem {
+			t.Error(deItem)
 		}
 	}
 
-	t.Log("queue is empty ", q.IsEmpty())
+	if !q.IsEmpty() {
+		t.FailNow()
+	}
 }
 
 func TestQueueClear(t *testing.T) {
 	q := InitQueue()
-	t.Log("queue is empty ", q.IsEmpty())
+	if q.Cap() != 10 {
+		t.FailNow()
+	}
+
+	if !q.IsEmpty() {
+		t.FailNow()
+	}
 
 	for i := 0; i < 25; i++ {
-		deItem := q.EnqueueBack(fmt.Sprint(i))
-		if deItem != "" {
-			t.Log("EnqueueBack dequeue front: ", deItem)
-		}
+		q.EnqueueBack(fmt.Sprint(i))
 	}
-	t.Log("queue is empty ", q.IsEmpty())
-	q.Range(func(i string) bool {
-		t.Log("left:", i)
-		return true
-	})
+
+	// q.Range(func(i string) bool {
+	// 	t.Log("left:", i)
+	// 	return true
+	// })
 
 	q.Clear()
-	t.Log("queue is empty ", q.IsEmpty())
-	q.Range(func(i string) bool {
-		t.Log("left:", i)
-		return true
-	})
+
+	if q.Cap() != 10 {
+		t.FailNow()
+	}
+
+	if !q.IsEmpty() {
+		t.FailNow()
+	}
+
+	// q.Range(func(i string) bool {
+	// 	t.Log("left:", i)
+	// 	return true
+	// })
 }
 
 func TestQueueFindBy(t *testing.T) {
-	q := InitQueue()
-	t.Log("queue is empty ", q.IsEmpty())
+	q := NewQueue[int](25)
 
 	for i := 0; i < 25; i++ {
-		deItem := q.EnqueueBack(fmt.Sprint(i))
-		if deItem != "" {
-			t.Log("EnqueueBack dequeue front: ", deItem)
-		}
+		q.EnqueueBack(i)
 	}
 
-	q.Range(func(i string) bool {
-		t.Log("left:", i)
-		return true
+	i20 := q.FindOneBy(func(i int) bool {
+		return i == 20
 	})
 
-	i20 := q.FindOneBy(func(i string) bool {
-		ni, _ := strconv.Atoi(i)
-		if ni == 20 {
-			return true
-		}
-		return false
-	})
-	if i20 != "20" {
+	if i20 != 20 {
 		t.FailNow()
-	} else {
-		t.Log("FindOneBy: ", i20)
 	}
 
-	data := q.FindBy(func(i string) bool {
-		ni, _ := strconv.Atoi(i)
-		if ni%3 == 0 {
-			return true
-		}
-		return false
+	items := q.FindBy(func(i int) bool {
+		return i%3 == 0
 	})
-	t.Log("modern 3 :", data)
+
+	for _, item := range items {
+		if item%3 != 0 {
+			t.Error(item)
+		}
+	}
 }
 
 func InitQueue() *Queue[string] {

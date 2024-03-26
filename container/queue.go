@@ -21,6 +21,24 @@ func NewQueue[T any](maxSize int) *Queue[T] {
 	return q
 }
 
+func (q *Queue[T]) Cap() int {
+	return q.maxSize
+}
+
+func (q *Queue[T]) Len() int {
+	q.mutex.RLock()
+	defer q.mutex.RUnlock()
+
+	return q.items.Len()
+}
+
+func (q *Queue[T]) IsEmpty() bool {
+	q.mutex.RLock()
+	defer q.mutex.RUnlock()
+
+	return q.items.Len() == 0
+}
+
 func (q *Queue[T]) EnqueueBack(item T) (t T) {
 	q.mutex.Lock()
 	defer q.mutex.Unlock()
@@ -99,13 +117,6 @@ func (q *Queue[T]) Range(fn func(t T) bool) {
 			break
 		}
 	}
-}
-
-func (q *Queue[T]) IsEmpty() bool {
-	q.mutex.RLock()
-	defer q.mutex.RUnlock()
-
-	return q.items.Len() == 0
 }
 
 func (q *Queue[T]) FindOneBy(fn func(T) bool) (t T) {
