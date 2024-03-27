@@ -6,16 +6,11 @@ package utils
 import (
 	"bytes"
 	"reflect"
-	"runtime"
 	"testing"
 	"unsafe"
 )
 
 func TestDllCall(t *testing.T) {
-	if runtime.GOOS != "windows" {
-		return
-	}
-
 	// mod := NewDllMod("machineinfo.dll")
 
 	// result := int32(0)

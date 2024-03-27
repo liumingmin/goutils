@@ -317,10 +317,6 @@ if !l2.Lock(ctx, 1) {
 ### TestDllCall
 ```go
 
-if runtime.GOOS != "windows" {
-	return
-}
-
 // mod := NewDllMod("machineinfo.dll")
 
 // result := int32(0)

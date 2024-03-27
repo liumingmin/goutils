@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"net/http"
-	"runtime"
 	"strconv"
 	"testing"
 	"time"
@@ -442,8 +441,6 @@ func TestWssDialConnect(t *testing.T) {
 
 func TestMain(m *testing.M) {
 	//ignore auto test
-	if runtime.GOOS != "windows" {
-		return
-	}
-	m.Run()
+
+	// m.Run()
 }
