@@ -50,7 +50,7 @@ func (c *CircuitBreakerSimple) Check(key string) error {
 
 	if param, ok := c.cbkParamMap[key]; ok {
 		if param.isBreaker {
-			if utils.Abs64(time.Now().UnixNano()-param.accessLast) < int64(c.testRecoverInterval) {
+			if utils.Abs(time.Now().UnixNano()-param.accessLast) < int64(c.testRecoverInterval) {
 				return Error{}
 			}
 		}
@@ -61,7 +61,7 @@ func (c *CircuitBreakerSimple) Check(key string) error {
 
 func (c *CircuitBreakerSimple) accessed(param *cbkParam) {
 	now := time.Now().UnixNano()
-	if utils.Abs64(now-param.simpleLast) > int64(c.simpleInterval) {
+	if utils.Abs(now-param.simpleLast) > int64(c.simpleInterval) {
 		param.errCount = 0
 		param.totalCount = 0
 		param.simpleLast = now

@@ -9,8 +9,16 @@ import (
 )
 
 func GetCurrPath() string {
-	file, _ := exec.LookPath(os.Args[0])
-	path, _ := filepath.Abs(file)
+	file, err := exec.LookPath(os.Args[0])
+	if err != nil {
+		return ""
+	}
+
+	path, err := filepath.Abs(file)
+	if err != nil {
+		return ""
+	}
+
 	return filepath.Dir(path)
 }
 
@@ -30,10 +38,7 @@ func FileExt(filePath string) string {
 }
 
 func FileCopy(src, dst string) error {
-	srcPath, _ := filepath.Abs(src)
-	dstPath, _ := filepath.Abs(dst)
-
-	if srcPath == dstPath {
+	if IsSameFilePath(src, dst) {
 		return nil
 	}
 
@@ -70,4 +75,31 @@ func FileCopy(src, dst string) error {
 	}
 
 	return nil
+}
+
+func IsPathTravOut(path, base string) bool {
+	return !strings.HasPrefix(UniformPathStyleCase(filepath.Clean(path)), UniformPathStyleCase(filepath.Clean(base)))
+}
+
+func UniformPathStyle(path string) string {
+	return strings.ReplaceAll(path, "\\", "/")
+}
+
+func UniformPathStyleCase(path string) string {
+	return strings.ToLower(UniformPathStyle(path))
+}
+
+func UniformPathListStyleCase(pathList []string) []string {
+	resultPathList := make([]string, 0, len(pathList))
+	for _, path := range pathList {
+		resultPathList = append(resultPathList, UniformPathStyleCase(path))
+	}
+	return resultPathList
+}
+
+func IsSameFilePath(src, dst string) bool {
+	srcPath, _ := filepath.Abs(src)
+	dstPath, _ := filepath.Abs(dst)
+
+	return UniformPathStyleCase(srcPath) == UniformPathStyleCase(dstPath)
 }

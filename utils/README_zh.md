@@ -13,9 +13,11 @@
   * [dll_mod_test.go](#dll_mod_testgo)
   * [文档自动生成](#%E6%96%87%E6%A1%A3%E8%87%AA%E5%8A%A8%E7%94%9F%E6%88%90)
   * [encoding_test.go](#encoding_testgo)
+  * [file_test.go](#file_testgo)
   * [有限状态机](#%E6%9C%89%E9%99%90%E7%8A%B6%E6%80%81%E6%9C%BA)
   * [httpclient工具](#httpclient%E5%B7%A5%E5%85%B7)
   * [邮件工具](#%E9%82%AE%E4%BB%B6%E5%B7%A5%E5%85%B7)
+  * [math_test.go](#math_testgo)
   * [安全的go协程](#%E5%AE%89%E5%85%A8%E7%9A%84go%E5%8D%8F%E7%A8%8B)
   * [snowflake](#snowflake)
   * [stringutils_test.go](#stringutils_testgo)
@@ -143,7 +145,7 @@ for j := 0; j < 200; j++ {
 #### TestCompareChecksumFiles
 ```go
 
-checkSumPath, err := GenerateChecksumFile(context.Background(), testChecksumDirPath, testChecksumName)
+checkSumPath, err := GenerateChecksumFile(context.Background(), testTempDirPath, testChecksumName)
 if err != nil {
 	t.Error(err)
 	return
@@ -162,7 +164,7 @@ if !valid {
 	return
 }
 
-err = CompareChecksumFiles(context.Background(), testChecksumDirPath, checkSumPath)
+err = CompareChecksumFiles(context.Background(), testTempDirPath, checkSumPath)
 if err != nil {
 	t.Error(err)
 	return
@@ -173,22 +175,56 @@ if err != nil {
 #### TestReadCsvToDataTable
 ```go
 
-dt, err := ReadCsvToDataTable(context.Background(), `goutils.log`, '\t',
-	[]string{"xx", "xx", "xx", "xx"}, "xxx", []string{"xxx"})
+dt, err := ReadCsvToDataTable(context.Background(), filepath.Join(testTempDirPath, testCsvFilePath), ',',
+	[]string{"id", "name", "age", "remark"}, "id", []string{"name"})
 if err != nil {
-	t.Log(err)
-	return
-}
-for _, r := range dt.Rows() {
-	t.Log(r.Data())
+	t.Error(err)
 }
 
-rs := dt.RowsBy("xxx", "869")
-for _, r := range rs {
-	t.Log(r.Data())
+if !reflect.DeepEqual(dt.Row("10").Data(), []string{"10", "name10", "10", "remark10"}) {
+	t.FailNow()
 }
 
-t.Log(dt.Row("17"))
+if !reflect.DeepEqual(dt.RowsBy("name", "name10")[0].Data(), []string{"10", "name10", "10", "remark10"}) {
+	t.FailNow()
+}
+```
+#### TestParseCsvRaw
+```go
+
+records := ParseCsvRaw(context.Background(),
+	`id	name	age	remark
+0	name0	0	remark0
+1	name1	1	remark1
+2	name2	2	remark2
+3	name3	3	remark3
+4	name4	4	remark4
+5	name5	5	remark5
+6	name6	6	remark6
+7	name7	7	remark7
+8	name8	8	remark8
+9	name9	9	remark9
+10	name10	10	remark10
+11	name11	11	remark11
+12	name12	12	remark12
+13	name13	13	remark13
+14	name14	14	remark14
+15	name15	15	remark15
+16	name16	16	remark16
+17	name17	17	remark17
+18	name18	18	remark18
+19	name19	19	remark19`)
+
+dt := container.NewDataTable([]string{"id", "name", "age", "remark"}, "id", []string{"name"}, 20)
+dt.PushAll(records)
+
+if !reflect.DeepEqual(dt.Row("10").Data(), []string{"10", "name10", "10", "remark10"}) {
+	t.FailNow()
+}
+
+if !reflect.DeepEqual(dt.RowsBy("name", "name10")[0].Data(), []string{"10", "name10", "10", "remark10"}) {
+	t.FailNow()
+}
 ```
 ## 分布式锁
 ### consullock_test.go
@@ -495,6 +531,107 @@ if !IsUtf8([]byte{230, 136, 145}) {
 	t.FailNow()
 }
 ```
+## file_test.go
+### TestGetCurrPath
+```go
+
+path := GetCurrPath()
+t.Log(path)
+```
+### TestFileExist
+```go
+
+runFile := os.Args[0]
+
+if !FileExist(runFile) {
+	t.Error(runFile)
+}
+```
+### TestFileExt
+```go
+
+if FileExt("aaa.txt") != ".txt" {
+	t.Error(FileExt("aaa.txt"))
+}
+
+if FileExt("aaa.txt.zip") != ".zip" {
+	t.Error(FileExt("aaa.txt.zip"))
+}
+
+if FileExt("aaa.txt.") != "." {
+	t.Error(FileExt("aaa.txt."))
+}
+
+if FileExt("aaa") != "" {
+	t.Error(FileExt("aaa"))
+}
+```
+### TestFileCopy
+```go
+
+runFile := os.Args[0]
+err := FileCopy(runFile, filepath.Join(testTempDirPath, "test_file"))
+if err != nil {
+	t.Error()
+}
+```
+### TestIsPathTravOut
+```go
+
+if IsPathTravOut(`C:\a\b`, `C:\a`) {
+	t.FailNow()
+}
+
+if IsPathTravOut(`C:\A\B`, `C:\a`) {
+	t.FailNow()
+}
+
+if IsPathTravOut(`C:\a\b\..`, `C:\a`) {
+	t.FailNow()
+}
+
+if !IsPathTravOut(`C:\a\b\..\..`, `C:\a`) {
+	t.FailNow()
+}
+
+if !IsPathTravOut(`C:\A\B\..\..`, `C:\a`) {
+	t.FailNow()
+}
+
+if !IsPathTravOut(`C:\a\b`, `C:\c`) {
+	t.FailNow()
+}
+```
+### TestUniformPathStyle
+```go
+
+if UniformPathStyle(`C:\a\b`) != `C:/a/b` {
+	t.FailNow()
+}
+
+if UniformPathStyleCase(`C:\A\B`) != `c:/a/b` {
+	t.FailNow()
+}
+
+if !reflect.DeepEqual(UniformPathListStyleCase([]string{`C:\A\B`}), []string{`c:/a/b`}) {
+	t.FailNow()
+}
+```
+### TestIsSameFilePath
+```go
+
+if !IsSameFilePath(`C:\a\b`, `C:/a/b`) {
+	t.FailNow()
+}
+
+if !IsSameFilePath(`C:\a\..\a\b`, `C:/a/b`) {
+	t.FailNow()
+}
+
+if IsSameFilePath(`C:\a\..\a\b\c`, `C:/a/b`) {
+	t.FailNow()
+}
+```
 ## 有限状态机
 ## httpclient工具
 ## 邮件工具
@@ -532,14 +669,153 @@ if err != nil {
 
 return
 ```
+## math_test.go
+### TestMathMin
+```go
+
+if Min(10, 9) != 9 {
+	t.FailNow()
+}
+
+if Min(-1, -2) != -2 {
+	t.FailNow()
+}
+
+if Min(3.1, 4.02) != 3.1 {
+	t.FailNow()
+}
+```
+### TestMathMax
+```go
+
+if Max(10, 9) != 10 {
+	t.FailNow()
+}
+
+if Max(-1, -2) != -1 {
+	t.FailNow()
+}
+
+if Max(3.1, 4.02) != 4.02 {
+	t.FailNow()
+}
+```
+### TestMathAbs
+```go
+
+if Abs(-1) != 1 {
+	t.FailNow()
+}
+
+if Abs(1) != 1 {
+	t.FailNow()
+}
+```
 ## 安全的go协程
 ## snowflake
 ### 雪花ID生成器
 #### TestSnowflake
 ```go
 
-n, _ := NewNode(1)
-t.Log(n.Generate(), ",", n.Generate(), ",", n.Generate())
+n, err := NewNode(-1)
+if err == nil {
+	t.FailNow()
+}
+
+n, err = NewNode(1024)
+if err == nil {
+	t.FailNow()
+}
+
+n, err = NewNode(2)
+if err != nil {
+	t.Fatal(err)
+}
+
+id1 := n.Generate()
+id2 := n.Generate()
+if id1 == id2 {
+	t.FailNow()
+}
+
+if ParseInt64(id1.Int64()) != id1 {
+	t.FailNow()
+}
+
+idtemp, err := ParseString(id1.String())
+if err != nil {
+	t.Fatal(err)
+}
+if idtemp != id1 {
+	t.FailNow()
+}
+
+idtemp, err = ParseBase2(id1.Base2())
+if err != nil {
+	t.Fatal(err)
+}
+if idtemp != id1 {
+	t.FailNow()
+}
+
+idtemp, err = ParseBase32([]byte(id1.Base32()))
+if err != nil {
+	t.Fatal(err)
+}
+if idtemp != id1 {
+	t.FailNow()
+}
+
+idtemp, err = ParseBase36(id1.Base36())
+if err != nil {
+	t.Fatal(err)
+}
+if idtemp != id1 {
+	t.FailNow()
+}
+
+idtemp, err = ParseBase58([]byte(id1.Base58()))
+if err != nil {
+	t.Fatal(err)
+}
+if idtemp != id1 {
+	t.FailNow()
+}
+
+idtemp, err = ParseBase64(id1.Base64())
+if err != nil {
+	t.Fatal(err)
+}
+if idtemp != id1 {
+	t.FailNow()
+}
+
+idtemp, err = ParseBytes(id1.Bytes())
+if err != nil {
+	t.Fatal(err)
+}
+if idtemp != id1 {
+	t.FailNow()
+}
+
+idtemp = ParseIntBytes(id1.IntBytes())
+if idtemp != id1 {
+	t.FailNow()
+}
+
+bs, err := id1.MarshalJSON()
+if err != nil {
+	t.Fatal(err)
+}
+
+idtemp = ID(0)
+err = idtemp.UnmarshalJSON(bs)
+if err != nil {
+	t.Fatal(err)
+}
+if idtemp != id1 {
+	t.FailNow()
+}
 ```
 ## stringutils_test.go
 ### TestStringsReverse
@@ -607,9 +883,10 @@ if !reflect.DeepEqual(distincted, []string{"1", "2", "3", "4"}) {
 ```go
 
 structStrWithTag := AutoGenTags(testUser{}, map[string]TAG_STYLE{
-	"json": TAG_STYLE_SNAKE,
-	"bson": TAG_STYLE_UNDERLINE,
-	"form": TAG_STYLE_ORIG,
+	"json":      TAG_STYLE_SNAKE,
+	"bson":      TAG_STYLE_UNDERLINE,
+	"form":      TAG_STYLE_ORIG,
+	"nonestyle": TAG_STYLE_NONE,
 })
 
 if !strings.Contains(structStrWithTag, `bson:"user_id"`) {
@@ -623,4 +900,14 @@ if !strings.Contains(structStrWithTag, `form:"UserId"`) {
 if !strings.Contains(structStrWithTag, `json:"userId"`) {
 	t.FailNow()
 }
+
+if !strings.Contains(structStrWithTag, `json:"status"`) {
+	t.FailNow()
+}
+
+if strings.Contains(structStrWithTag, `nonestyle:`) {
+	t.FailNow()
+}
+
+//t.Log(structStrWithTag)
 ```

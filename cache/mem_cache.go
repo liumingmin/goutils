@@ -67,7 +67,7 @@ func memCacheCallFunc(ctx context.Context, cc *Cache, expire time.Duration, f in
 		result = retValues[0].Interface()
 		cc.Set(key, result, expire)
 	} else {
-		cc.Set(key, nil, time.Duration(utils.Min64(int64(expire), 20*int64(time.Second)))) //防止缓存穿透
+		cc.Set(key, nil, time.Duration(utils.Min(int64(expire), 20*int64(time.Second)))) //防止缓存穿透
 		log.Debug(ctx, "MemCacheFunc avoid cache through: %v", key)
 	}
 	return result, retErr

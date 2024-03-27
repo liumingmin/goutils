@@ -18,9 +18,39 @@
 # net
 ## bwlimit
 ## httpdownloader
+### file_offset_writer_test.go
+#### TestFileOffsetWriter
+```go
+
+os.MkdirAll(testTempDirPath, 0666)
+
+savePath := filepath.Join(testTempDirPath, "testFileOffsetWriter")
+file, err := os.OpenFile(savePath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0666)
+if err != nil {
+	t.Error(err)
+}
+
+var mutex sync.Mutex
+writer := NewOffsetWriter(file, &mutex, 0, 1024)
+writer.Write([]byte("1234567890"))
+writer.ResetOffset()
+writer.Write([]byte("1234567890"))
+file.Close()
+
+bs, err := os.ReadFile(savePath)
+if err != nil {
+	t.Error(err)
+}
+
+if string(bs) != "1234567890" {
+	t.Error(string(bs))
+}
+```
 ### httpdownloader_test.go
 #### TestHttpDownloaderDownload
 ```go
+
+os.MkdirAll(testTempDirPath, 0666)
 
 dialer := bwlimit.NewDialer()
 dialer.RxBwLimit().SetBwLimit(20 * 1024 * 1024)
@@ -43,42 +73,183 @@ downloader := &HttpDownloader{
 	RetryCnt:     1,
 }
 
-err := downloader.Download(context.Background(), "https://golang.google.cn/dl/go1.21.7.windows-amd64.zip", http.Header{
+savePath := filepath.Join(testTempDirPath, "vc_redist")
+
+url := "https://aka.ms/vs/17/release/vc_redist.arm64.exe"
+resp, err := http.Head(url)
+if err != nil {
+	t.Error(err)
+}
+if resp != nil {
+	resp.Body.Close()
+}
+
+contentLen := resp.Header.Get("Content-Length")
+
+fileSize, _ := strconv.ParseInt(contentLen, 10, 64)
+
+err = downloader.Download(context.Background(), url, http.Header{
 	"User-Agent": []string{"Mozilla/5.0 (Linux; Android 10; Pixel 4) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/86.0.4240.183 Mobile Safari/537.36"},
-}, "./go1.21.7.windows-amd64.zip")
+}, savePath)
 
 if err != nil {
 	t.Error(err)
 }
+
+fileInfo, err := os.Stat(savePath)
+if err != nil {
+	t.Error(err)
+}
+
+if fileInfo.Size() != fileSize {
+	t.Error(fileSize)
+}
+
 ```
 ## httpx
 ### httpclientx_test.go
 #### TestHttpXGet
 ```go
 
+
 clientX := getHcx()
 
 for i := 0; i < 3; i++ {
-	resp, err := clientX.Get("http://golang.google.cn")
+	resp, err := clientX.Get("http://127.0.0.1:" + testHttpxPortH1 + "/goutils/httpx")
 	if err != nil {
 		t.Error(fmt.Errorf("error making request: %v", err))
 	}
-	t.Log(resp.StatusCode)
-	t.Log(resp.Proto)
+
+	if resp.StatusCode >= 400 {
+		t.Error(resp.StatusCode)
+	}
+
+	if resp.Proto != "HTTP/1.1" {
+		t.Error(resp.Proto)
+	}
+}
+
+for i := 0; i < 3; i++ {
+	resp, err := clientX.Get("http://127.0.0.1:" + testHttpxPortH2 + "/goutils/httpx")
+	if err != nil {
+		t.Error(fmt.Errorf("error making request: %v", err))
+	}
+
+	if resp.StatusCode >= 400 {
+		t.Error(resp.StatusCode)
+	}
+
+	if resp.Proto != "HTTP/2.0" {
+		t.Error(resp.Proto)
+	}
 }
 ```
 #### TestHttpXPost
 ```go
 
+
 clientX := getHcx()
 
 for i := 0; i < 3; i++ {
-	resp, err := clientX.Get("http://golang.google.cn")
+	resp, err := clientX.Post("http://127.0.0.1:"+testHttpxPortH1+"/goutils/httpx", "application/json", strings.NewReader(""))
 	if err != nil {
 		t.Error(fmt.Errorf("error making request: %v", err))
 	}
-	t.Log(resp.StatusCode)
-	t.Log(resp.Proto)
+
+	if resp.StatusCode >= 400 {
+		t.Error(resp.StatusCode)
+	}
+
+	if resp.Proto != "HTTP/1.1" {
+		t.Error(resp.Proto)
+	}
+}
+
+for i := 0; i < 3; i++ {
+	resp, err := clientX.Post("http://127.0.0.1:"+testHttpxPortH2+"/goutils/httpx", "application/json", strings.NewReader(""))
+	if err != nil {
+		t.Error(fmt.Errorf("error making request: %v", err))
+	}
+
+	if resp.StatusCode >= 400 {
+		t.Error(resp.StatusCode)
+	}
+
+	if resp.Proto != "HTTP/2.0" {
+		t.Error(resp.Proto)
+	}
+}
+```
+#### TestHttpXHead
+```go
+
+
+clientX := getHcx()
+
+for i := 0; i < 3; i++ {
+	resp, err := clientX.Head("http://127.0.0.1:" + testHttpxPortH1 + "/goutils/httpx")
+	if err != nil {
+		t.Error(fmt.Errorf("error making request: %v", err))
+	}
+
+	if resp.StatusCode >= 400 {
+		t.Error(resp.StatusCode)
+	}
+
+	if resp.Proto != "HTTP/1.1" {
+		t.Error(resp.Proto)
+	}
+}
+
+for i := 0; i < 3; i++ {
+	resp, err := clientX.Head("http://127.0.0.1:" + testHttpxPortH2 + "/goutils/httpx")
+	if err != nil {
+		t.Error(fmt.Errorf("error making request: %v", err))
+	}
+
+	if resp.StatusCode >= 400 {
+		t.Error(resp.StatusCode)
+	}
+
+	if resp.Proto != "HTTP/2.0" {
+		t.Error(resp.Proto)
+	}
+}
+```
+#### TestHttpXPostForm
+```go
+
+
+clientX := getHcx()
+
+for i := 0; i < 3; i++ {
+	resp, err := clientX.PostForm("http://127.0.0.1:"+testHttpxPortH1+"/goutils/httpx", url.Values{"key": []string{"value"}})
+	if err != nil {
+		t.Error(fmt.Errorf("error making request: %v", err))
+	}
+
+	if resp.StatusCode >= 400 {
+		t.Error(resp.StatusCode)
+	}
+
+	if resp.Proto != "HTTP/1.1" {
+		t.Error(resp.Proto)
+	}
+}
+
+for i := 0; i < 3; i++ {
+	resp, err := clientX.PostForm("http://127.0.0.1:"+testHttpxPortH2+"/goutils/httpx", url.Values{"key": []string{"value"}})
+	if err != nil {
+		t.Error(fmt.Errorf("error making request: %v", err))
+	}
+
+	if resp.StatusCode >= 400 {
+		t.Error(resp.StatusCode)
+	}
+
+	if resp.Proto != "HTTP/2.0" {
+		t.Error(resp.Proto)
+	}
 }
 ```
 ## ip

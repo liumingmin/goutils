@@ -1,55 +1,24 @@
 package utils
 
-func Min(x, y int) int {
+type T interface {
+	comparable
+}
+
+func Min[T int | int32 | uint32 | int64 | uint64 | float32 | float64](x, y T) T {
 	if x < y {
 		return x
 	}
 	return y
 }
 
-func Max(x, y int) int {
+func Max[T int | int32 | uint32 | int64 | uint64 | float32 | float64](x, y T) T {
 	if x > y {
 		return x
 	}
 	return y
 }
 
-func Abs(x int) int {
-	if x < 0 {
-		return -x
-	}
-	return x
-}
-
-func MinU(x, y uint32) uint32 {
-	if x < y {
-		return x
-	}
-	return y
-}
-
-func MaxU(x, y uint32) uint32 {
-	if x > y {
-		return x
-	}
-	return y
-}
-
-func Min64(x, y int64) int64 {
-	if x < y {
-		return x
-	}
-	return y
-}
-
-func Max64(x, y int64) int64 {
-	if x > y {
-		return x
-	}
-	return y
-}
-
-func Abs64(x int64) int64 {
+func Abs[T int | int32 | int64 | float32 | float64](x T) T {
 	if x < 0 {
 		return -x
 	}
