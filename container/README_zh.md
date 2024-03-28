@@ -10,6 +10,7 @@
   * [一致性HASH](#%E4%B8%80%E8%87%B4%E6%80%A7hash)
   * [mdb_test.go](#mdb_testgo)
   * [queue_test.go](#queue_testgo)
+  * [red_black_tree_test.go](#red_black_tree_testgo)
 
 <!-- tocstop -->
 
@@ -437,4 +438,50 @@ for _, item := range items {
 		t.Error(item)
 	}
 }
+```
+## red_black_tree_test.go
+### TestReaBlackTree
+```go
+
+
+type personT struct {
+	name   string
+	age    int
+	gender bool
+	score  int64
+}
+
+tree := RedBlackTree{}
+
+for i := 0; i < 1000000; i++ {
+
+	name := fmt.Sprintf("rongo%d", i)
+
+	tree.Put(name, &personT{
+		name:   name,
+		age:    i,
+		gender: true,
+		score:  int64(i) + 100,
+	})
+}
+
+nodeVal := tree.Get("rongo999999")
+
+personVal, ok := nodeVal.(*personT)
+if !ok {
+	t.FailNow()
+}
+
+if personVal.name != "rongo999999" {
+	t.FailNow()
+}
+
+if personVal.age != 999999 {
+	t.FailNow()
+}
+
+if personVal.score != 1000099 {
+	t.FailNow()
+}
+
 ```
