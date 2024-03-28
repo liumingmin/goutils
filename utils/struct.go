@@ -3,7 +3,6 @@ package utils
 import (
 	"errors"
 	"reflect"
-	"strings"
 	"time"
 )
 
@@ -130,143 +129,6 @@ func CopyStructs(src, dest interface{}, f StructConvFunc) error {
 	return nil
 }
 
-func MergeStructs(src, dest interface{}, f StructConvFunc, keyField string, fieldMapping ...string) error {
-	srcType := reflect.TypeOf(src)
-	if srcType.Kind() != reflect.Ptr && srcType.Kind() != reflect.Slice {
-		return errors.New("src type must be slice or a slice address") //[] *[]
-	}
-
-	destType := reflect.TypeOf(dest)
-	if destType.Kind() != reflect.Ptr || destType.Elem().Kind() != reflect.Slice ||
-		destType.Elem().Elem().Kind() != reflect.Ptr {
-		return errors.New("dest type must be a slice of ptr address") // *[]*a
-	}
-
-	srcValue := reflect.Indirect(reflect.ValueOf(src))
-	destValue := reflect.Indirect(reflect.ValueOf(dest))
-
-	//有一个没数据不需要取合并
-	if srcValue.Len() == 0 || destValue.Len() == 0 {
-		return nil
-	}
-
-	var srcFName, dstFName string
-	keyFields := strings.Split(keyField, ":")
-	if len(keyFields) < 2 {
-		return errors.New("keyField format is srcFieldName:dstFieldName")
-	}
-	srcFName = keyFields[0]
-	dstFName = keyFields[1]
-
-	srcElemType := reflect.Indirect(srcValue.Index(0)).Type()
-	srcKeyFieldType, ok := srcElemType.FieldByName(srcFName)
-	if !ok {
-		return errors.New("src can not found field: " + srcFName)
-	}
-
-	destElemType := reflect.Indirect(destValue.Index(0)).Type()
-	destKeyFieldType, ok := destElemType.FieldByName(dstFName)
-	if !ok {
-		return errors.New("dest can not found field: " + dstFName)
-	}
-
-	tupleInts := fieldMappingToIndex(srcElemType, destElemType, fieldMapping...)
-
-	srcMap := genMergeStructSrcMap(srcValue, srcKeyFieldType)
-	for i := 0; i < destValue.Len(); i++ {
-		dstElemValuePtr := destValue.Index(i)
-		dstElemField := reflect.Indirect(dstElemValuePtr).FieldByIndex(destKeyFieldType.Index)
-		if !dstElemField.IsValid() {
-			continue
-		}
-
-		if destKeyFieldType.Type == srcKeyFieldType.Type {
-			if srcElemValue, ok := srcMap[dstElemField.Interface()]; ok {
-				copyStructFields(srcElemValue, dstElemValuePtr.Interface(), f, tupleInts)
-			}
-		} else if f != nil {
-			dstElemField2 := f(dstElemField.Interface(), srcKeyFieldType.Type)
-			if dstElemField2 != nil {
-				if srcElemValue, ok := srcMap[dstElemField2]; ok {
-					copyStructFields(srcElemValue, dstElemValuePtr.Interface(), f, tupleInts)
-				}
-			}
-		}
-	}
-
-	return nil
-}
-
-func genMergeStructSrcMap(srcValue reflect.Value, srcKeyFieldType reflect.StructField) map[interface{}]interface{} {
-	srcMap := make(map[interface{}]interface{})
-	for i := 0; i < srcValue.Len(); i++ {
-		srcElemValueRaw := srcValue.Index(i)
-		srcElemField := reflect.Indirect(srcElemValueRaw).FieldByIndex(srcKeyFieldType.Index)
-		if !srcElemField.IsValid() {
-			continue
-		}
-
-		srcMap[srcElemField.Interface()] = srcElemValueRaw.Interface()
-	}
-	return srcMap
-}
-
-func fieldMappingToIndex(srcElemType, destElemType reflect.Type, fieldMapping ...string) []structTupleInts {
-	tupleInts := make([]structTupleInts, 0)
-	for _, item := range fieldMapping {
-		keyFields := strings.Split(item, ":")
-		if len(keyFields) < 2 {
-			continue
-		}
-
-		srcFName := keyFields[0]
-		dstFName := keyFields[1]
-
-		srcField, ok := srcElemType.FieldByName(srcFName)
-		if !ok {
-			continue
-		}
-
-		dstField, ok := destElemType.FieldByName(dstFName)
-		if !ok {
-			continue
-		}
-
-		tupleInts = append(tupleInts, structTupleInts{Ints1: srcField.Index, Ints2: dstField.Index})
-	}
-	return tupleInts
-}
-
-func copyStructFields(src, dest interface{}, f StructConvFunc, tupleInts []structTupleInts) {
-	srcValue := reflect.Indirect(reflect.ValueOf(src))
-	destValue := reflect.Indirect(reflect.ValueOf(dest))
-
-	for _, tupleInt := range tupleInts {
-		srcField := srcValue.FieldByIndex(tupleInt.Ints1)
-		if !srcField.IsValid() {
-			continue
-		}
-
-		dstField := destValue.FieldByIndex(tupleInt.Ints2)
-		if !dstField.IsValid() {
-			continue
-		}
-
-		if !dstField.CanSet() {
-			continue
-		}
-
-		if srcField.Type() == dstField.Type() {
-			dstField.Set(srcField)
-		} else if f != nil {
-			convSrcElemField := f(srcField.Interface(), dstField.Type())
-			if convSrcElemField != nil {
-				dstField.Set(reflect.ValueOf(convSrcElemField))
-			}
-		}
-	}
-}
-
 func BaseConvert(src interface{}, dstType reflect.Type) interface{} {
 	if srcData, ok := src.(time.Time); ok && dstType.Kind() == reflect.String {
 		if !srcData.IsZero() {
@@ -288,9 +150,4 @@ func BaseConvert(src interface{}, dstType reflect.Type) interface{} {
 		}
 	}
 	return nil
-}
-
-type structTupleInts struct {
-	Ints1 []int
-	Ints2 []int
 }

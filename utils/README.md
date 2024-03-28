@@ -18,9 +18,11 @@
   * [hc](#hc)
   * [ismtp](#ismtp)
   * [math_test.go](#math_testgo)
+  * [reflectutils_test.go](#reflectutils_testgo)
   * [safego](#safego)
   * [snowflake](#snowflake)
   * [stringutils_test.go](#stringutils_testgo)
+  * [struct_test.go](#struct_testgo)
   * [tags_test.go](#tags_testgo)
 
 <!-- tocstop -->
@@ -317,22 +319,51 @@ if !l2.Lock(ctx, 1) {
 ### TestDllCall
 ```go
 
-// mod := NewDllMod("machineinfo.dll")
+mod := NewDllMod("ntdll.dll")
 
-// result := int32(0)
+info := &struct {
+	osVersionInfoSize uint32
+	MajorVersion      uint32
+	MinorVersion      uint32
+	BuildNumber       uint32
+	PlatformId        uint32
+	CsdVersion        [128]uint16
+	ServicePackMajor  uint16
+	ServicePackMinor  uint16
+	SuiteMask         uint16
+	ProductType       byte
+	_                 byte
+}{}
 
-// retCode, err := mod.Call("GetDiskType", "C:", &result)
-// if err != nil {
-// 	t.Fatal(err)
-// }
+info.osVersionInfoSize = uint32(unsafe.Sizeof(*info))
+retCode, err := mod.Call("RtlGetVersion", uintptr(unsafe.Pointer(info)))
+if err != nil {
+	t.Error(err)
+}
 
-// if retCode != 0 {
-// 	t.FailNow()
-// }
+if retCode != 0 {
+	t.Error(retCode)
+}
 
-// if result != 4 {
-// 	t.FailNow()
-// }
+if info.MajorVersion == 0 {
+	t.Error(info.MajorVersion)
+}
+
+retCode, err = mod.Call("RtlGetVersion", uintptr(unsafe.Pointer(info)))
+if err != nil {
+	t.Error(err)
+}
+if err != nil {
+	t.Error(err)
+}
+
+if retCode != 0 {
+	t.Error(retCode)
+}
+
+if info.MajorVersion == 0 {
+	t.Error(info.MajorVersion)
+}
 ```
 ### TestDllConvertString
 ```go
@@ -362,36 +393,38 @@ if string(slice) != testStr {
 
 mod := NewDllMod("test.dll")
 
-var arg uintptr
-var err error
-arg, err = mod.convertArg(12345)
-if err != nil {
-	t.FailNow()
-}
+testDllConvertNum(t, mod, int(-1080))
+testDllConvertNum(t, mod, uint(1080))
+testDllConvertNum(t, mod, int8(-128))
+testDllConvertNum(t, mod, uint8(255))
+testDllConvertNum(t, mod, int16(-30000))
+testDllConvertNum(t, mod, uint16(30000))
+testDllConvertNum(t, mod, int32(-3000000))
+testDllConvertNum(t, mod, uint32(3000000))
+testDllConvertNum(t, mod, int64(-3000000))
+testDllConvertNum(t, mod, uint64(3000000))
+testDllConvertNum(t, mod, uintptr(11080))
 
-if arg != 12345 {
-	t.FailNow()
-}
+testData := 123
+up := unsafe.Pointer(&testData)
+testDllConvertNum(t, mod, up)
 
-intptr := int(1080)
-arg, err = mod.convertArg(&intptr)
-if err != nil {
-	t.FailNow()
-}
+testDllConvertNumPtr(t, mod, int(-1080))
+testDllConvertNumPtr(t, mod, uint(1080))
+testDllConvertNumPtr(t, mod, int8(-128))
+testDllConvertNumPtr(t, mod, uint8(255))
+testDllConvertNumPtr(t, mod, int16(-30000))
+testDllConvertNumPtr(t, mod, uint16(30000))
+testDllConvertNumPtr(t, mod, int32(-3000000))
+testDllConvertNumPtr(t, mod, uint32(3000000))
+testDllConvertNumPtr(t, mod, int64(-3000000))
+testDllConvertNumPtr(t, mod, uint64(3000000))
+testDllConvertNumPtr(t, mod, uintptr(11080))
 
-if *(*int)(unsafe.Pointer(arg)) != intptr {
-	t.FailNow()
-}
-
-uintptr1 := uintptr(11080)
-arg, err = mod.convertArg(&uintptr1)
-if err != nil {
-	t.FailNow()
-}
-
-if *(*uintptr)(unsafe.Pointer(arg)) != uintptr1 {
-	t.FailNow()
-}
+testDllConvertNumPtr(t, mod, float32(100.12))
+testDllConvertNumPtr(t, mod, float64(100.12))
+testDllConvertNumPtr(t, mod, complex64(100.12))
+testDllConvertNumPtr(t, mod, complex128(100.12))
 ```
 ### TestDllConvertBool
 ```go
@@ -469,6 +502,54 @@ origStr := mod.GetCStrFromUintptr(arg)
 
 if testStr != origStr {
 	t.FailNow()
+}
+```
+### TestDllConvertUnsupport
+```go
+
+mod := NewDllMod("test.dll")
+
+_, err := mod.convertArg(float32(11.12))
+if err != ErrUnsupportArg {
+	t.Error(err)
+}
+
+_, err = mod.convertArg(float64(11.12))
+if err != ErrUnsupportArg {
+	t.Error(err)
+}
+
+_, err = mod.convertArg(complex64(11.12))
+if err != ErrUnsupportArg {
+	t.Error(err)
+}
+
+_, err = mod.convertArg(complex128(11.12))
+if err != ErrUnsupportArg {
+	t.Error(err)
+}
+
+m := make(map[string]string)
+_, err = mod.convertArg(m)
+if err != ErrUnsupportArg {
+	t.Error(err)
+}
+
+c := make(chan struct{})
+_, err = mod.convertArg(c)
+if err != ErrUnsupportArg {
+	t.Error(err)
+}
+
+s := struct{}{}
+_, err = mod.convertArg(s)
+if err != ErrUnsupportArg {
+	t.Error(err)
+}
+
+_, err = mod.convertArg(interface{}(s))
+if err != ErrUnsupportArg {
+	t.Error(err)
 }
 ```
 ## docgen
@@ -568,6 +649,16 @@ if FileExt("aaa") != "" {
 runFile := os.Args[0]
 err := FileCopy(runFile, filepath.Join(testTempDirPath, "test_file"))
 if err != nil {
+	t.Error()
+}
+
+err = FileCopy(filepath.Join(testTempDirPath, "test_file"), filepath.Join(testTempDirPath, "test_file"))
+if err != nil {
+	t.Error()
+}
+
+err = FileCopy(filepath.Join(testTempDirPath, "test_file"), ".")
+if err == nil {
 	t.Error()
 }
 ```
@@ -705,6 +796,78 @@ if Abs(-1) != 1 {
 
 if Abs(1) != 1 {
 	t.FailNow()
+}
+```
+## reflectutils_test.go
+### TestAnyIndirect
+```go
+
+val := reflect.ValueOf(10)
+if AnyIndirect(val) != val {
+	t.Error(val)
+}
+
+x := 10
+val2 := reflect.ValueOf(&x)
+if AnyIndirect(val2) == val2 {
+	t.Error(val2)
+}
+
+if AnyIndirect(val2).Int() != int64(x) {
+	t.Error(val2)
+}
+```
+### TestIsNil
+```go
+
+var m map[string]string
+if !IsNil(m) {
+	t.Error(m)
+}
+
+var c chan string
+if !IsNil(c) {
+	t.Error(c)
+}
+
+var fun func()
+if !IsNil(fun) {
+	t.Error("func not nil")
+}
+
+var s []string
+if !IsNil(s) {
+	t.Error(s)
+}
+
+var sp *string
+if !IsNil(sp) {
+	t.Error(sp)
+}
+
+var up unsafe.Pointer
+if !IsNil(up) {
+	t.Error(up)
+}
+
+testIsNil[map[string]string](t)
+testIsNil[chan string](t)
+testIsNil[func()](t)
+testIsNil[[]string](t)
+testIsNil[*string](t)
+testIsNil[unsafe.Pointer](t)
+```
+### testIsNil[T any]
+```go
+
+value := testWrapperNil[T]()
+
+if value == nil {
+	t.Error(value)
+}
+
+if !IsNil(value) {
+	t.Error(value)
 }
 ```
 ## safego
@@ -872,6 +1035,112 @@ distincted := StringsDistinct(strs1)
 sort.Strings(distincted)
 if !reflect.DeepEqual(distincted, []string{"1", "2", "3", "4"}) {
 	t.FailNow()
+}
+```
+## struct_test.go
+### TestCopyStruct
+```go
+
+type SrcFoo struct {
+	A                int
+	B                []*string
+	C                map[string]*int
+	SrcUnique        string
+	SameNameDiffType time.Time
+}
+type DstFoo struct {
+	A                int
+	B                []*string
+	C                map[string]*int
+	DstUnique        int
+	SameNameDiffType string
+}
+
+// Create the initial value
+str1 := "hello"
+str2 := "bye bye"
+int1 := 1
+int2 := 2
+f1 := &SrcFoo{
+	A: 1,
+	B: []*string{&str1, &str2},
+	C: map[string]*int{
+		"A": &int1,
+		"B": &int2,
+	},
+	SrcUnique:        "unique",
+	SameNameDiffType: time.Now(),
+}
+var f2 DstFoo
+
+CopyStruct(f1, &f2, BaseConvert)
+
+if !reflect.DeepEqual(f1.A, f2.A) {
+	t.Error(f2)
+}
+
+if !reflect.DeepEqual(f1.B, f2.B) {
+	t.Error(f2)
+}
+
+if !reflect.DeepEqual(f1.C, f2.C) {
+	t.Error(f2)
+}
+
+if !reflect.DeepEqual(BaseConvert(f1.SameNameDiffType, reflect.TypeOf("")), f2.SameNameDiffType) {
+	t.Error(f2)
+}
+```
+### TestCopyStructs
+```go
+
+type SrcFoo struct {
+	A                int
+	B                []*string
+	C                map[string]*int
+	SrcUnique        string
+	SameNameDiffType time.Time
+}
+type DstFoo struct {
+	A                int
+	B                []*string
+	C                map[string]*int
+	DstUnique        int
+	SameNameDiffType string
+}
+
+// Create the initial value
+str1 := "hello"
+str2 := "bye bye"
+int1 := 1
+int2 := 2
+f1 := []SrcFoo{{
+	A: 1,
+	B: []*string{&str1, &str2},
+	C: map[string]*int{
+		"A": &int1,
+		"B": &int2,
+	},
+	SrcUnique:        "unique",
+	SameNameDiffType: time.Now(),
+}}
+var f2 []DstFoo
+CopyStructs(f1, &f2, BaseConvert)
+
+if !reflect.DeepEqual(f1[0].A, f2[0].A) {
+	t.Error(f2)
+}
+
+if !reflect.DeepEqual(f1[0].B, f2[0].B) {
+	t.Error(f2)
+}
+
+if !reflect.DeepEqual(f1[0].C, f2[0].C) {
+	t.Error(f2)
+}
+
+if !reflect.DeepEqual(BaseConvert(f1[0].SameNameDiffType, reflect.TypeOf("")), f2[0].SameNameDiffType) {
+	t.Error(f2)
 }
 ```
 ## tags_test.go
