@@ -46,6 +46,16 @@ func TestFileCopy(t *testing.T) {
 	if err != nil {
 		t.Error()
 	}
+
+	err = FileCopy(filepath.Join(testTempDirPath, "test_file"), filepath.Join(testTempDirPath, "test_file"))
+	if err != nil {
+		t.Error()
+	}
+
+	err = FileCopy(filepath.Join(testTempDirPath, "test_file"), ".")
+	if err == nil {
+		t.Error()
+	}
 }
 
 func TestIsPathTravOut(t *testing.T) {

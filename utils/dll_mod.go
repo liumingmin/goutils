@@ -148,7 +148,11 @@ func (d *DllMod) convertArgPtr(argValue reflect.Value) (uintptr, error) {
 		reflect.Uint32,
 		reflect.Uint64,
 		reflect.Uintptr,
-		reflect.Struct:
+		reflect.Struct,
+		reflect.Float32,
+		reflect.Float64,
+		reflect.Complex64,
+		reflect.Complex128:
 		return argValue.Pointer(), nil
 	}
 	return 0, ErrUnsupportArg
