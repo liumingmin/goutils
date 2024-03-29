@@ -7,26 +7,26 @@ const (
 	RED   RBColor = false
 )
 
-type Node struct {
+type RBNode struct {
 	Key         string
 	Value       interface{}
 	Color       RBColor
-	Left, Right *Node
+	Left, Right *RBNode
 }
 
 type RedBlackTree struct {
-	root *Node
+	root *RBNode
 	size int
 }
 
-func isRed(node *Node) bool {
+func (t *RedBlackTree) isRed(node *RBNode) bool {
 	if node == nil {
 		return false
 	}
 	return node.Color == RED
 }
 
-func rotateLeft(node *Node) *Node {
+func (t *RedBlackTree) rotateLeft(node *RBNode) *RBNode {
 	x := node.Right
 	node.Right = x.Left
 	x.Left = node
@@ -35,7 +35,7 @@ func rotateLeft(node *Node) *Node {
 	return x
 }
 
-func rotateRight(node *Node) *Node {
+func (t *RedBlackTree) rotateRight(node *RBNode) *RBNode {
 	x := node.Left
 	node.Left = x.Right
 	x.Right = node
@@ -44,7 +44,7 @@ func rotateRight(node *Node) *Node {
 	return x
 }
 
-func flipColors(node *Node) {
+func (t *RedBlackTree) flipColors(node *RBNode) {
 	node.Color = RED
 	node.Left.Color = BLACK
 	node.Right.Color = BLACK
@@ -55,10 +55,10 @@ func (t *RedBlackTree) Put(key string, value interface{}) {
 	t.root.Color = BLACK
 }
 
-func (t *RedBlackTree) put(node *Node, key string, value interface{}) *Node {
+func (t *RedBlackTree) put(node *RBNode, key string, value interface{}) *RBNode {
 	if node == nil {
 		t.size++
-		return &Node{Key: key, Value: value, Color: RED}
+		return &RBNode{Key: key, Value: value, Color: RED}
 	}
 
 	if key < node.Key {
@@ -69,14 +69,14 @@ func (t *RedBlackTree) put(node *Node, key string, value interface{}) *Node {
 		node.Value = value
 	}
 
-	if isRed(node.Right) && !isRed(node.Left) {
-		node = rotateLeft(node)
+	if t.isRed(node.Right) && !t.isRed(node.Left) {
+		node = t.rotateLeft(node)
 	}
-	if isRed(node.Left) && isRed(node.Left.Left) {
-		node = rotateRight(node)
+	if t.isRed(node.Left) && t.isRed(node.Left.Left) {
+		node = t.rotateRight(node)
 	}
-	if isRed(node.Left) && isRed(node.Right) {
-		flipColors(node)
+	if t.isRed(node.Left) && t.isRed(node.Right) {
+		t.flipColors(node)
 	}
 
 	return node
