@@ -4,7 +4,6 @@ import (
 	"context"
 	"io/ioutil"
 	"net/http"
-	"strconv"
 	"time"
 
 	"github.com/gorilla/websocket"
@@ -68,17 +67,11 @@ func AutoReDialConnect(ctx context.Context, sUrl string, header http.Header, can
 }
 
 func DialConnect(ctx context.Context, sUrl string, header http.Header, opts ...ConnOption) (IConnection, error) {
-	connection := &Connection{}
+	connection := newConnection()
 
-	connection.id = strconv.FormatInt(time.Now().UnixNano(), 10) //default
 	connection.typ = CONN_KIND_CLIENT
 	connection.dialer = defaultDialer
-	connection.dialRetryNum = 3
-	connection.dialRetryInterval = time.Second
-	connection.compressionLevel = 1
-	connection.maxMessageBytesSize = defaultMaxMessageBytesSize
-
-	defaultNetParamsOption()(connection)
+	connection.snCounter = 0
 
 	if len(opts) > 0 {
 		for _, opt := range opts {
@@ -118,10 +111,6 @@ func DialConnect(ctx context.Context, sUrl string, header http.Header, opts ...C
 
 	connection.conn = conn
 	connection.conn.SetCompressionLevel(connection.compressionLevel)
-	connection.commonData = make(map[string]interface{})
-	connection.writeStop = make(chan interface{})
-	connection.writeDone = make(chan interface{})
-	connection.readDone = make(chan interface{})
 
 	connection.createPullChannelMap()
 	if connection.sendBuffer == nil {

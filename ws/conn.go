@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io"
 	"net"
+	"strconv"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -81,6 +82,27 @@ type Connection struct {
 	dialer            *websocket.Dialer
 	dialRetryNum      int
 	dialRetryInterval time.Duration
+}
+
+func newConnection() *Connection {
+	connection := &Connection{}
+
+	connection.id = strconv.FormatInt(time.Now().UnixNano(), 10) //default
+	connection.compressionLevel = 1
+	connection.maxMessageBytesSize = defaultMaxMessageBytesSize
+
+	connection.commonData = make(map[string]interface{})
+	connection.writeStop = make(chan interface{})
+	connection.writeDone = make(chan interface{})
+	connection.readDone = make(chan interface{})
+
+	defaultNetParamsOption()(connection)
+
+	//client
+	connection.dialRetryNum = 3
+	connection.dialRetryInterval = time.Second
+
+	return connection
 }
 
 type ConnectionMeta struct {

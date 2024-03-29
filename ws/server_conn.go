@@ -53,11 +53,7 @@ func Accept(ctx context.Context, w http.ResponseWriter, r *http.Request, meta Co
 	connection.typ = CONN_KIND_SERVER
 	connection.meta = meta
 	connection.upgrader = defaultUpgrader
-	connection.compressionLevel = 1
-	connection.maxMessageBytesSize = defaultMaxMessageBytesSize
 	connection.snCounter = 1
-
-	defaultNetParamsOption()(connection)
 
 	if len(opts) > 0 {
 		for _, opt := range opts {
@@ -75,10 +71,6 @@ func Accept(ctx context.Context, w http.ResponseWriter, r *http.Request, meta Co
 
 	connection.conn = conn
 	connection.conn.SetCompressionLevel(connection.compressionLevel)
-	connection.commonData = make(map[string]interface{})
-	connection.writeStop = make(chan interface{})
-	connection.writeDone = make(chan interface{})
-	connection.readDone = make(chan interface{})
 
 	connection.createPullChannelMap()
 	if connection.sendBuffer == nil {

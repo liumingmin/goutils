@@ -2,11 +2,13 @@ package ws
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"strconv"
 	"testing"
 	"time"
 
+	"github.com/demdxx/gocast"
 	"github.com/liumingmin/goutils/log"
 	"github.com/liumingmin/goutils/utils/safego"
 	"go.uber.org/zap/zapcore"
@@ -241,6 +243,12 @@ func TestWssSendMessage(t *testing.T) {
 	)
 	const pullMsgFromDB = 1
 
+	uid := "100"
+	typed := 2
+	deviceId := "a100"
+	version := 2
+	charset := 1
+
 	//server reg handler
 	RegisterHandler(C2S_REQ, func(ctx context.Context, connection IConnection, message IMessage) error {
 		log.Info(ctx, "server recv: %v, %v", message.GetProtocolId(), string(message.GetData()))
@@ -281,15 +289,35 @@ func TestWssSendMessage(t *testing.T) {
 	handler.HandleFunc("/join", func(w http.ResponseWriter, r *http.Request) {
 		connMeta := ConnectionMeta{
 			UserId:   r.URL.Query().Get("uid"),
-			Typed:    0,
-			DeviceId: "",
-			Version:  0,
-			Charset:  0,
+			Typed:    gocast.ToInt(r.URL.Query().Get("typed")),
+			DeviceId: r.URL.Query().Get("deviceId"),
+			Version:  gocast.ToInt(r.URL.Query().Get("version")),
+			Charset:  gocast.ToInt(r.URL.Query().Get("charset")),
 		}
 		_, err := Accept(ctx, w, r, connMeta, DebugOption(true),
 			SrvUpgraderCompressOption(true),
 			CompressionLevelOption(2),
 			ConnEstablishHandlerOption(func(ctx context.Context, conn IConnection) {
+				if conn.UserId() != uid {
+					t.Error(conn.UserId())
+				}
+
+				if conn.Type() != typed {
+					t.Error(conn.Type())
+				}
+
+				if conn.DeviceId() != deviceId {
+					t.Error(conn.DeviceId())
+				}
+
+				if conn.Version() != version {
+					t.Error(conn.Version())
+				}
+
+				if conn.Charset() != charset {
+					t.Error(conn.Charset())
+				}
+
 				log.Debug(ctx, "server conn establish: %v, %p", conn.Id(), conn)
 				// In a cluster environment, it is necessary to check whether connId has already connected to the cluster.
 				// If it is necessary to kick off connections established on other nodes in the cluster,
@@ -325,8 +353,8 @@ func TestWssSendMessage(t *testing.T) {
 		return nil
 	})
 	//client connect
-	uid := "100"
-	url := "ws://127.0.0.1:8003/join?uid=" + uid
+
+	url := fmt.Sprintf("ws://127.0.0.1:8003/join?uid=%v&typed=%v&deviceId=%v&version=%v&charset=%v", uid, typed, deviceId, version, charset)
 	conn, _ := DialConnect(context.Background(), url, http.Header{},
 		DebugOption(true),
 		ClientIdOption("server1"),
@@ -470,5 +498,33 @@ func TestWssDialConnect(t *testing.T) {
 
 	if len(ClientConnHub.ConnectionIds()) != 100 {
 		t.Error(len(ClientConnHub.ConnectionIds()))
+	}
+}
+
+func TestDefaultPuller(t *testing.T) {
+	firstPull := false
+	pullSend := false
+
+	conn := newConnection()
+	conn.pullChannelIds = []int{1}
+	conn.createPullChannelMap()
+
+	puller := NewDefaultPuller(conn, 1, func(ctx context.Context, i IConnection) {
+		firstPull = true
+	}, func(ctx context.Context, i IConnection) {
+		pullSend = true
+	})
+
+	go puller.PullSend()
+
+	time.Sleep(time.Millisecond * 100)
+	conn.setStop(context.Background())
+
+	if !firstPull {
+		t.FailNow()
+	}
+
+	if !pullSend {
+		t.FailNow()
 	}
 }

@@ -19,7 +19,7 @@ var (
 
 	srvConnectionPool = sync.Pool{
 		New: func() interface{} {
-			return &Connection{}
+			return newConnection()
 		},
 	}
 )
