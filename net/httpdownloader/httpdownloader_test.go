@@ -36,6 +36,7 @@ func TestHttpDownloaderDownload(t *testing.T) {
 		ConBlockChan: make(chan struct{}, 10),
 		BlockSize:    1024 * 1024,
 		RetryCnt:     1,
+		Headers:      http.Header{"TestKey": []string{"TestValue"}},
 	}
 
 	savePath := filepath.Join(testTempDirPath, "vc_redist")

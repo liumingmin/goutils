@@ -91,6 +91,45 @@ func TestHttpXPost(t *testing.T) {
 	}
 }
 
+func TestHttpXDo(t *testing.T) {
+
+	clientX := getHcx()
+
+	for i := 0; i < 3; i++ {
+		req, _ := http.NewRequest("POST", "http://127.0.0.1:"+testHttpxPortH1+"/goutils/httpx", strings.NewReader(""))
+		req.Header.Set("Content-Type", "application/json")
+		resp, err := clientX.Do(req)
+		if err != nil {
+			t.Error(fmt.Errorf("error making request: %v", err))
+		}
+
+		if resp.StatusCode >= 400 {
+			t.Error(resp.StatusCode)
+		}
+
+		if resp.Proto != "HTTP/1.1" {
+			t.Error(resp.Proto)
+		}
+	}
+
+	for i := 0; i < 3; i++ {
+		req, _ := http.NewRequest("POST", "http://127.0.0.1:"+testHttpxPortH2+"/goutils/httpx", strings.NewReader(""))
+		req.Header.Set("Content-Type", "application/json")
+		resp, err := clientX.Do(req)
+		if err != nil {
+			t.Error(fmt.Errorf("error making request: %v", err))
+		}
+
+		if resp.StatusCode >= 400 {
+			t.Error(resp.StatusCode)
+		}
+
+		if resp.Proto != "HTTP/2.0" {
+			t.Error(resp.Proto)
+		}
+	}
+}
+
 func TestHttpXHead(t *testing.T) {
 
 	clientX := getHcx()
@@ -158,6 +197,58 @@ func TestHttpXPostForm(t *testing.T) {
 		if resp.Proto != "HTTP/2.0" {
 			t.Error(resp.Proto)
 		}
+	}
+}
+
+func TestHttpXRequestErrUrl(t *testing.T) {
+	clientX := getHcx()
+
+	_, err := clientX.Get("file://127.0.0.1:" + testHttpxPortH1 + "/goutils/httpx")
+	if err == nil {
+		t.FailNow()
+	}
+
+	_, err = clientX.Post("file://127.0.0.1:"+testHttpxPortH1+"/goutils/httpx", "application/json", strings.NewReader(""))
+	if err == nil {
+		t.FailNow()
+	}
+
+	req, _ := http.NewRequest("POST", "file://127.0.0.1:"+testHttpxPortH1+"/goutils/httpx", strings.NewReader(""))
+	req.Header.Set("Content-Type", "application/json")
+	_, err = clientX.Do(req)
+	if err == nil {
+		t.FailNow()
+	}
+
+	_, err = clientX.Head("file://127.0.0.1:" + testHttpxPortH1 + "/goutils/httpx")
+	if err == nil {
+		t.FailNow()
+	}
+}
+
+func TestHttpX2RequestErrUrl(t *testing.T) {
+	clientX := getHcx()
+
+	_, err := clientX.Get("file://127.0.0.1:" + testHttpxPortH2 + "/goutils/httpx")
+	if err == nil {
+		t.FailNow()
+	}
+
+	_, err = clientX.Post("file://127.0.0.1:"+testHttpxPortH2+"/goutils/httpx", "application/json", strings.NewReader(""))
+	if err == nil {
+		t.FailNow()
+	}
+
+	req, _ := http.NewRequest("POST", "file://127.0.0.1:"+testHttpxPortH2+"/goutils/httpx", strings.NewReader(""))
+	req.Header.Set("Content-Type", "application/json")
+	_, err = clientX.Do(req)
+	if err == nil {
+		t.FailNow()
+	}
+
+	_, err = clientX.Head("file://127.0.0.1:" + testHttpxPortH2 + "/goutils/httpx")
+	if err == nil {
+		t.FailNow()
 	}
 }
 
