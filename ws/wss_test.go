@@ -56,6 +56,14 @@ func TestWssRequestResponse(t *testing.T) {
 			ConnClosedHandlerOption(func(ctx context.Context, conn IConnection) {
 				log.Info(ctx, "server conn closed: %v, %p", conn.Id(), conn)
 			}),
+			NetMaxFailureRetryOption(int(time.Millisecond)*500),
+			NetReadWaitOption(3*time.Second),
+			NetWriteWaitOption(3*time.Second),
+			NetTemporaryWaitOption(time.Millisecond*500),
+			MaxMessageBytesSizeOption(1024*1024*32),
+			SrvCheckOriginOption(func(r *http.Request) bool {
+				return true
+			}),
 		)
 		if err != nil {
 			log.Error(ctx, "Accept client connection failed. error: %v", err)
@@ -80,6 +88,13 @@ func TestWssRequestResponse(t *testing.T) {
 		ClientDialWssOption(url, false),
 		ClientDialCompressOption(true),
 		CompressionLevelOption(2),
+		ClientDialHandshakeTimeoutOption(time.Second*5),
+		ClientDialRetryOption(2, time.Second*2),
+		NetReadWaitOption(3*time.Second),
+		NetWriteWaitOption(3*time.Second),
+		ClientDialConnFailedHandlerOption(func(ctx context.Context, conn IConnection) {
+			log.Error(ctx, "clien conn failed")
+		}),
 		ConnEstablishHandlerOption(func(ctx context.Context, conn IConnection) {
 			log.Info(ctx, "client conn establish: %v, %p", conn.Id(), conn)
 		}),
@@ -88,6 +103,12 @@ func TestWssRequestResponse(t *testing.T) {
 		}),
 		ConnClosedHandlerOption(func(ctx context.Context, conn IConnection) {
 			log.Info(ctx, "client conn closed: %v, %p", conn.Id(), conn)
+		}),
+		RecvPingHandlerOption(func(ctx context.Context, con IConnection) {
+			log.Debug(ctx, "client recv ping")
+		}),
+		RecvPongHandlerOption(func(ctx context.Context, con IConnection) {
+			log.Debug(ctx, "client recv pong")
 		}),
 	)
 	log.Info(ctx, "%v", conn)
@@ -107,6 +128,7 @@ func TestWssRequestResponse(t *testing.T) {
 
 		log.Info(ctx, "client recv: sn: %v, data: %v", resp.GetSn(), string(resp.GetData()))
 	}
+	time.Sleep(time.Second * 1)
 }
 
 func TestWssRequestResponseWithTimeout(t *testing.T) {
@@ -239,9 +261,13 @@ func TestWssSendMessage(t *testing.T) {
 			packet := GetPoolMessage(S2C_RESP)
 			packet.SetData([]byte("first msg from db"))
 			pullConn.SendMsg(ctx, packet, nil)
+
+			log.Debug(ctx, "first pull: %v, %p", conn.Id(), conn)
+
 		}, func(ctx context.Context, pullConn IConnection) {
+			log.Debug(ctx, "pull send: %v, %p", conn.Id(), conn)
 			//msg from db...
-			time.Sleep(time.Second * 1)
+			time.Sleep(time.Millisecond * 100)
 
 			packet := GetPoolMessage(S2C_RESP)
 			packet.SetData([]byte("pull msg from db"))
@@ -264,7 +290,7 @@ func TestWssSendMessage(t *testing.T) {
 			SrvUpgraderCompressOption(true),
 			CompressionLevelOption(2),
 			ConnEstablishHandlerOption(func(ctx context.Context, conn IConnection) {
-				log.Info(ctx, "server conn establish: %v, %p", conn.Id(), conn)
+				log.Debug(ctx, "server conn establish: %v, %p", conn.Id(), conn)
 				// In a cluster environment, it is necessary to check whether connId has already connected to the cluster.
 				// If it is necessary to kick off connections established on other nodes in the cluster,
 				// it can be done through Redis pub sub, and other nodes will receive a notification to call KickClient
@@ -332,12 +358,31 @@ func TestWssSendMessage(t *testing.T) {
 		}),
 	)
 
-	time.Sleep(time.Millisecond * 200)
+	time.Sleep(time.Second * 1)
 
 	//send msg by conn2
 	packet := GetPoolMessage(C2S_REQ)
 	packet.SetData([]byte("client request2"))
 	conn2.SendMsg(context.Background(), packet, nil)
+
+	packet = GetPoolMessage(C2S_REQ)
+	packet.SetData([]byte("client request3"))
+	conn2.SendMsg(context.Background(), packet, nil)
+
+	conn2.SetCommDataValue("gotuilskey", 100)
+	if num, _ := conn2.GetCommDataValue("gotuilskey"); num != 100 {
+		t.Error(num)
+	}
+
+	conn2.IncrCommDataValueBy("gotuilskey", 100)
+	if num, _ := conn2.GetCommDataValue("gotuilskey"); num != 200 {
+		t.Error(num)
+	}
+
+	conn2.RemoveCommDataValue("gotuilskey")
+	if _, ok := conn2.GetCommDataValue("gotuilskey"); ok {
+		t.FailNow()
+	}
 }
 
 func TestWssDialConnect(t *testing.T) {
