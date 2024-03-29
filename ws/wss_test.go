@@ -2,38 +2,19 @@ package ws
 
 import (
 	"context"
-	"fmt"
 	"net/http"
 	"strconv"
 	"testing"
 	"time"
 
-	"github.com/liumingmin/goutils/utils/safego"
-
 	"github.com/liumingmin/goutils/log"
+	"github.com/liumingmin/goutils/utils/safego"
+	"go.uber.org/zap/zapcore"
 )
 
-func TestMessage(t *testing.T) {
-	InitClient()
-
-	//poolMsg := GetPoolMessage(int32(P_S2C_s2c_err_displace))
-	//displace := poolMsg.DataMsg().(*P_DISPLACE)
-	//displace.Ts = time.Now().Unix()
-	//displace.OldIp = []byte("1")
-	//displace.NewIp = []byte("2")
-	//bs, _ := poolMsg.Marshal()
-	//for _, b := range bs {
-	//	fmt.Print(fmt.Sprintf("%v,", b))
-	//}
-
-	//m := NewMessage().(*Message)
-	//err := m.unmarshal([]byte{8, 255, 255, 255, 255, 255, 255, 255, 255, 255, 1, 18, 12, 10, 1, 49, 18, 1, 50, 24, 143, 186, 156, 152, 6})
-	//t.Log(err)
-	//t.Log(m.protocolId())
-	//t.Log(m.DataMsg())
-}
-
 func TestWssRequestResponse(t *testing.T) {
+	log.SetLogLevel(zapcore.WarnLevel) //if you need info log, commmet this line
+
 	InitServerWithOpt(ServerOption{[]HubOption{HubShardOption(4)}}) //server invoke
 	InitClient()                                                    //client invoke
 	ctx := context.Background()
@@ -43,20 +24,19 @@ func TestWssRequestResponse(t *testing.T) {
 		S2C_RESP = 3
 	)
 
+	serverResp := "server rpc resp info"
+
 	//server reg handler
 	RegisterHandler(C2S_REQ, func(ctx context.Context, connection IConnection, message IMessage) error {
 		log.Info(ctx, "server recv: %v, %v", message.GetSn(), string(message.GetData()))
 		packet := GetPoolMessage(S2C_RESP)
-		packet.SetData([]byte("server rpc resp info"))
+		packet.SetData([]byte(serverResp))
 		return connection.SendResponseMsg(ctx, packet, message.GetSn(), nil)
 	})
 
 	//server start
-	// e := gin.New()
-	// e.Static("/js", "js")
-	// e.Static("/ts", "ts")
-
-	http.HandleFunc("/join", func(w http.ResponseWriter, r *http.Request) {
+	handler := http.NewServeMux()
+	handler.HandleFunc("/join", func(w http.ResponseWriter, r *http.Request) {
 		connMeta := ConnectionMeta{
 			UserId:   r.URL.Query().Get("uid"),
 			Typed:    0,
@@ -83,7 +63,7 @@ func TestWssRequestResponse(t *testing.T) {
 		}
 	})
 
-	go http.ListenAndServe(":8003", nil)
+	go http.ListenAndServe(":8003", handler)
 
 	//client reg handler
 	RegisterHandler(S2C_RESP, func(ctx context.Context, connection IConnection, message IMessage) error {
@@ -111,21 +91,27 @@ func TestWssRequestResponse(t *testing.T) {
 		}),
 	)
 	log.Info(ctx, "%v", conn)
-	time.Sleep(time.Second * 1)
+	time.Sleep(time.Millisecond * 200)
 
 	for i := 0; i < 10; i++ {
 		packet := GetPoolMessage(C2S_REQ)
 		packet.SetData([]byte("client rpc req info"))
 		resp, err := conn.SendRequestMsg(context.Background(), packet, nil)
-		if err == nil {
-			log.Info(ctx, "client recv: sn: %v, data: %v", resp.GetSn(), string(resp.GetData()))
+		if err != nil {
+			t.Error(err)
 		}
-	}
 
-	time.Sleep(time.Second * 5)
+		if serverResp != string(resp.GetData()) {
+			t.Error(resp)
+		}
+
+		log.Info(ctx, "client recv: sn: %v, data: %v", resp.GetSn(), string(resp.GetData()))
+	}
 }
 
 func TestWssRequestResponseWithTimeout(t *testing.T) {
+	log.SetLogLevel(zapcore.WarnLevel) //if you need info log, commmet this line
+
 	InitServerWithOpt(ServerOption{[]HubOption{HubShardOption(4)}}) //server invoke
 	InitClient()                                                    //client invoke
 	ctx := context.Background()
@@ -139,14 +125,15 @@ func TestWssRequestResponseWithTimeout(t *testing.T) {
 	RegisterHandler(C2S_REQ_TIMEOUT, func(ctx context.Context, connection IConnection, message IMessage) error {
 		log.Info(ctx, "server recv: %v, %v", message.GetSn(), string(message.GetData()))
 
-		time.Sleep(time.Second * 4)
+		time.Sleep(time.Second * 2)
 		packet := GetPoolMessage(S2C_RESP_TIMEOUT)
 		packet.SetData([]byte("server rpc resp info timeout"))
 		return connection.SendResponseMsg(ctx, packet, message.GetSn(), nil)
 	})
 
 	//server start
-	http.HandleFunc("/join", func(w http.ResponseWriter, r *http.Request) {
+	handler := http.NewServeMux()
+	handler.HandleFunc("/join", func(w http.ResponseWriter, r *http.Request) {
 		connMeta := ConnectionMeta{
 			UserId:   r.URL.Query().Get("uid"),
 			Typed:    0,
@@ -172,7 +159,7 @@ func TestWssRequestResponseWithTimeout(t *testing.T) {
 			return
 		}
 	})
-	go http.ListenAndServe(":8003", nil)
+	go http.ListenAndServe(":8003", handler)
 
 	//client reg handler
 	RegisterHandler(S2C_RESP_TIMEOUT, func(ctx context.Context, connection IConnection, message IMessage) error {
@@ -201,23 +188,27 @@ func TestWssRequestResponseWithTimeout(t *testing.T) {
 	)
 
 	log.Info(ctx, "%v", conn)
-	time.Sleep(time.Second * 1)
+	time.Sleep(time.Millisecond * 200)
 
-	toCtx, _ := context.WithTimeout(ctx, time.Second*2)
+	toCtx, _ := context.WithTimeout(ctx, time.Second*1)
 	packet := GetPoolMessage(C2S_REQ_TIMEOUT)
 	packet.SetData([]byte("client rpc req info timeout"))
 	resp, err := conn.SendRequestMsg(toCtx, packet, nil)
+
+	if err != ErrWsRpcResponseTimeout {
+		t.Error(err)
+	}
+
 	if err == nil {
 		log.Info(ctx, "client recv: sn: %v, data: %v", resp.GetSn(), string(resp.GetData()))
 	} else {
 		log.Error(ctx, "client recv err: %v", err)
 	}
-
-	time.Sleep(time.Second * 5)
 }
 
 func TestWssSendMessage(t *testing.T) {
-	//InitServer()
+	log.SetLogLevel(zapcore.WarnLevel) //if you need info log, commmet this line
+
 	InitServerWithOpt(ServerOption{[]HubOption{HubShardOption(4)}}) //server invoke
 	InitClient()                                                    //client invoke
 	ctx := context.Background()
@@ -260,8 +251,8 @@ func TestWssSendMessage(t *testing.T) {
 		})
 	}
 
-	//e := gin.New()
-	http.HandleFunc("/join", func(w http.ResponseWriter, r *http.Request) {
+	handler := http.NewServeMux()
+	handler.HandleFunc("/join", func(w http.ResponseWriter, r *http.Request) {
 		connMeta := ConnectionMeta{
 			UserId:   r.URL.Query().Get("uid"),
 			Typed:    0,
@@ -300,7 +291,7 @@ func TestWssSendMessage(t *testing.T) {
 			return
 		}
 	})
-	go http.ListenAndServe(":8003", nil)
+	go http.ListenAndServe(":8003", handler)
 
 	//client reg handler
 	RegisterHandler(S2C_RESP, func(ctx context.Context, connection IConnection, message IMessage) error {
@@ -327,14 +318,7 @@ func TestWssSendMessage(t *testing.T) {
 		}),
 	)
 	log.Info(ctx, "%v", conn)
-	time.Sleep(time.Second * 1)
-
-	//send msg
-	packet := GetPoolMessage(C2S_REQ)
-	packet.SetData([]byte("client request"))
-	conn.SendMsg(context.Background(), packet, nil)
-
-	time.Sleep(time.Second * 1)
+	time.Sleep(time.Millisecond * 200)
 
 	//client connect displace
 	conn2, _ := DialConnect(context.Background(), url, http.Header{},
@@ -348,24 +332,24 @@ func TestWssSendMessage(t *testing.T) {
 		}),
 	)
 
-	time.Sleep(time.Second * 1)
+	time.Sleep(time.Millisecond * 200)
 
 	//send msg by conn2
-	packet = GetPoolMessage(C2S_REQ)
+	packet := GetPoolMessage(C2S_REQ)
 	packet.SetData([]byte("client request2"))
 	conn2.SendMsg(context.Background(), packet, nil)
-
-	time.Sleep(time.Second * 2)
 }
 
 func TestWssDialConnect(t *testing.T) {
+	log.SetLogLevel(zapcore.WarnLevel) //if you need info log, commmet this line
+
 	InitServerWithOpt(ServerOption{[]HubOption{HubShardOption(4)}}) //server invoke
 	InitClient()                                                    //client invoke
 	ctx := context.Background()
 
 	//server start
-	//e := gin.New()
-	http.HandleFunc("/join", func(w http.ResponseWriter, r *http.Request) {
+	handler := http.NewServeMux()
+	handler.HandleFunc("/join", func(w http.ResponseWriter, r *http.Request) {
 		connMeta := ConnectionMeta{
 			UserId:   r.URL.Query().Get("uid"),
 			Typed:    0,
@@ -399,7 +383,7 @@ func TestWssDialConnect(t *testing.T) {
 			return
 		}
 	})
-	go http.ListenAndServe(":8003", nil)
+	go http.ListenAndServe(":8003", handler)
 
 	//client connect
 	for i := 0; i < 100; i++ {
@@ -418,10 +402,13 @@ func TestWssDialConnect(t *testing.T) {
 		)
 	}
 
-	fmt.Println(len(ClientConnHub.ConnectionIds()))
-	time.Sleep(time.Second * 3)
+	time.Sleep(time.Second * 1)
 
-	//client connect again
+	if len(ClientConnHub.ConnectionIds()) != 100 {
+		t.Error(len(ClientConnHub.ConnectionIds()))
+	}
+
+	//kick client connect again
 	for i := 0; i < 100; i++ {
 		url := "ws://127.0.0.1:8003/join?uid=a" + strconv.Itoa(i)
 		DialConnect(context.Background(), url, http.Header{},
@@ -434,13 +421,9 @@ func TestWssDialConnect(t *testing.T) {
 		)
 	}
 
-	time.Sleep(time.Second * 3)
+	time.Sleep(time.Second * 1)
 
-	fmt.Println(len(ClientConnHub.ConnectionIds()))
-}
-
-func TestMain(m *testing.M) {
-	//ignore auto test
-
-	// m.Run()
+	if len(ClientConnHub.ConnectionIds()) != 100 {
+		t.Error(len(ClientConnHub.ConnectionIds()))
+	}
 }

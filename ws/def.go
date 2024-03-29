@@ -2,6 +2,7 @@ package ws
 
 import (
 	"context"
+	"errors"
 	"reflect"
 	"sync"
 
@@ -11,7 +12,10 @@ import (
 var ClientConnHub IHub //服务端管理的来自客户端的连接
 var ServerConnHub IHub //客户端管理的连向服务端的连接
 
-//server invoke 服务端调用
+var ErrWsRpcResponseTimeout = errors.New("rpc cancel or timeout")
+var ErrWsRpcWaitChanClosed = errors.New("sn channel is closed")
+
+// server invoke 服务端调用
 func InitServer() {
 	InitServerWithOpt(ServerOption{})
 }
@@ -20,7 +24,7 @@ func InitServerWithOpt(serverOpt ServerOption) {
 	ClientConnHub = initServer(serverOpt)
 }
 
-//client invoke 客户端调用
+// client invoke 客户端调用
 func InitClient() {
 	ServerConnHub = initClient()
 }
@@ -80,7 +84,7 @@ type IHub interface {
 	run()
 }
 
-//normal message 普通消息
+// normal message 普通消息
 func NewMessage(protocolId uint32) IMessage {
 	return &Message{
 		protocolId: protocolId,
@@ -88,7 +92,7 @@ func NewMessage(protocolId uint32) IMessage {
 	}
 }
 
-//pool message 对象池消息
+// pool message 对象池消息
 func GetPoolMessage(protocolId uint32) IMessage {
 	msg := getPoolMessage()
 	msg.protocolId = protocolId

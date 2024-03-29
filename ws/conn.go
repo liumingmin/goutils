@@ -263,10 +263,10 @@ func (c *Connection) SendRequestMsg(ctx context.Context, reqMsg IMessage, sc Sen
 	select {
 	case respMsg, ok = <-ch:
 		if !ok {
-			err = errors.New("sn channel is closed")
+			err = ErrWsRpcWaitChanClosed
 		}
 	case <-ctx.Done():
-		err = errors.New("rpc cancel or timeout")
+		err = ErrWsRpcResponseTimeout
 	}
 	c.snChanMap.Delete(sn)
 
