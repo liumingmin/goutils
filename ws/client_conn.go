@@ -67,7 +67,8 @@ func AutoReDialConnect(ctx context.Context, sUrl string, header http.Header, can
 }
 
 func DialConnect(ctx context.Context, sUrl string, header http.Header, opts ...ConnOption) (IConnection, error) {
-	connection := newConnection()
+	connection := &Connection{}
+	connection.init()
 
 	connection.typ = CONN_KIND_CLIENT
 	connection.dialer = defaultDialer

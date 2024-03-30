@@ -19,7 +19,8 @@ var (
 
 	srvConnectionPool = sync.Pool{
 		New: func() interface{} {
-			return newConnection()
+			connection := &Connection{}
+			return connection
 		},
 	}
 )
@@ -79,6 +80,7 @@ func putPoolDataMsg(protocolId uint32, dataMsg IDataMessage) {
 
 func getPoolConnection() *Connection {
 	conn := srvConnectionPool.Get().(*Connection)
+	conn.init()
 	conn.isPool = true
 	return conn
 }
@@ -88,6 +90,6 @@ func putPoolConnection(conn *Connection) {
 		return
 	}
 
-	conn.Reset()
+	conn.reset()
 	srvConnectionPool.Put(conn)
 }

@@ -52,7 +52,6 @@ type IConnection interface {
 	Version() int
 	Charset() int
 	ClientIp() string
-	Reset()
 	IsStopped() bool
 	IsDisplaced() bool
 	RefreshDeadline()

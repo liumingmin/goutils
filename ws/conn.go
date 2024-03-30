@@ -84,25 +84,22 @@ type Connection struct {
 	dialRetryInterval time.Duration
 }
 
-func newConnection() *Connection {
-	connection := &Connection{}
+func (c *Connection) init() {
+	c.id = strconv.FormatInt(time.Now().UnixNano(), 10) //default
+	c.compressionLevel = 0
+	c.maxMessageBytesSize = defaultMaxMessageBytesSize
 
-	connection.id = strconv.FormatInt(time.Now().UnixNano(), 10) //default
-	connection.compressionLevel = 1
-	connection.maxMessageBytesSize = defaultMaxMessageBytesSize
+	c.stopped = 0
+	c.commonData = make(map[string]interface{})
+	c.writeStop = make(chan interface{})
+	c.writeDone = make(chan interface{})
+	c.readDone = make(chan interface{})
 
-	connection.commonData = make(map[string]interface{})
-	connection.writeStop = make(chan interface{})
-	connection.writeDone = make(chan interface{})
-	connection.readDone = make(chan interface{})
-
-	defaultNetParamsOption()(connection)
+	defaultNetParamsOption()(c)
 
 	//client
-	connection.dialRetryNum = 3
-	connection.dialRetryInterval = time.Second
-
-	return connection
+	c.dialRetryNum = 3
+	c.dialRetryInterval = time.Second
 }
 
 type ConnectionMeta struct {
@@ -152,7 +149,7 @@ func (c *Connection) ConnType() ConnType {
 	return c.typ
 }
 
-func (c *Connection) Reset() {
+func (c *Connection) reset() {
 	c.id = ""
 	c.meta = ConnectionMeta{}
 	c.conn = nil
