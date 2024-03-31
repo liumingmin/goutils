@@ -48,6 +48,8 @@ func (c *defaultPuller) PullSend() {
 	}
 
 	for {
+		ctx = log.ContextWithTraceId()
+
 		if c.conn.IsStopped() {
 			log.Info(ctx, "agent is stopped: %v", c.conn.Id())
 			return
@@ -59,7 +61,5 @@ func (c *defaultPuller) PullSend() {
 			log.Debug(ctx, "Connect stop pull channel. connId: %v, channelId: %v", c.conn.Id(), c.pullChannelId)
 			return
 		}
-
-		ctx = log.ContextWithTraceId()
 	}
 }

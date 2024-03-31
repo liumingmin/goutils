@@ -72,7 +72,6 @@ func Accept(ctx context.Context, w http.ResponseWriter, r *http.Request, meta Co
 	connection.conn = conn
 	connection.conn.SetCompressionLevel(connection.compressionLevel)
 
-	connection.createPullChannelMap()
 	if connection.sendBuffer == nil {
 		SendBufferOption(8)(connection)
 	}

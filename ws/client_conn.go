@@ -25,47 +25,38 @@ func (c *Connection) KickServer() {
 	ServerConnHub.unregisterConn(c)
 }
 
-func AutoReDialConnect(ctx context.Context, sUrl string, header http.Header, cancelAutoConn chan interface{}, connInterval time.Duration,
-	opts ...ConnOption) {
-
-	closedAutoReconChan := make(chan interface{}, 1)
-
-	if cancelAutoConn == nil {
-		cancelAutoConn = make(chan interface{})
-	}
+// ctx only use for dial phase and stop auto redial
+func AutoReDialConnect(ctx context.Context, sUrl string, header http.Header, connInterval time.Duration, opts ...ConnOption) {
 	if connInterval == 0 {
 		connInterval = time.Second * 5
 	}
 
-	reConnOpts := append(opts, ClientAutoReconHandlerOption(func(context.Context, IConnection) {
-		select {
-		case closedAutoReconChan <- struct{}{}:
-		default:
-		}
-	}))
-
 	for {
-		conn, err := DialConnect(ctx, sUrl, header, reConnOpts...)
+		conn, err := DialConnect(ctx, sUrl, header, opts...)
 		if err != nil || conn == nil {
 			select {
-			case <-cancelAutoConn:
+			case <-ctx.Done():
 				return
 			default:
 			}
 
+			time.Sleep(connInterval)
 			continue
 		}
 
 		select {
-		case <-cancelAutoConn:
+		case <-ctx.Done():
 			return
-		case <-closedAutoReconChan:
+		case <-conn.(*Connection).readDone:
+			<-conn.(*Connection).writeDone
+			<-conn.(*Connection).writeStop
 		}
 
 		time.Sleep(connInterval)
 	}
 }
 
+// ctx only use for dial phase
 func DialConnect(ctx context.Context, sUrl string, header http.Header, opts ...ConnOption) (IConnection, error) {
 	connection := &Connection{}
 	connection.init()
@@ -113,7 +104,6 @@ func DialConnect(ctx context.Context, sUrl string, header http.Header, opts ...C
 	connection.conn = conn
 	connection.conn.SetCompressionLevel(connection.compressionLevel)
 
-	connection.createPullChannelMap()
 	if connection.sendBuffer == nil {
 		SendBufferOption(8)(connection)
 	}

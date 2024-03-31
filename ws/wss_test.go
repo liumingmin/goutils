@@ -18,6 +18,10 @@ import (
 )
 
 func TestWsPb(t *testing.T) {
+	if *P_BASE_s2c_err_displace.Enum() != P_BASE_s2c_err_displace {
+		t.FailNow()
+	}
+
 	if int32(P_BASE_s2c_err_displace.Number()) != int32(P_BASE_s2c_err_displace) {
 		t.FailNow()
 	}
@@ -41,16 +45,94 @@ func TestWsPb(t *testing.T) {
 		t.Error(err)
 	}
 
-	if !bytes.Equal(displace.NewIp, displace2.NewIp) {
+	if !bytes.Equal(displace.GetNewIp(), displace2.NewIp) {
 		t.FailNow()
 	}
 
-	if !bytes.Equal(displace.OldIp, displace2.OldIp) {
+	if !bytes.Equal(displace.GetOldIp(), displace2.OldIp) {
 		t.FailNow()
 	}
 
-	if displace.Ts != displace2.Ts {
+	if displace.GetTs() != displace2.Ts {
 		t.FailNow()
+	}
+}
+
+func TestWsHub(t *testing.T) {
+	InitServerWithOpt(ServerOption{[]HubOption{HubShardOption(4)}}) //server invoke
+
+	conn, err := ClientConnHub.Find("dummy")
+	if err == nil {
+		t.Error(conn)
+	}
+
+	conn1 := &Connection{}
+	conn1.init()
+	ClientConnHub.registerConn(conn1)
+
+	time.Sleep(time.Millisecond * 200)
+	conn, err = ClientConnHub.Find(conn1.Id())
+	if err != nil {
+		t.Error(err)
+	}
+
+	if conn != conn1 {
+		t.Error(conn)
+	}
+}
+
+func TestWsOption(t *testing.T) {
+	upgrader := &websocket.Upgrader{}
+	conn := &Connection{}
+	SrvUpgraderOption(upgrader)(conn)
+
+	if conn.upgrader != upgrader {
+		t.Error(conn.upgrader)
+	}
+
+	pullChannelIds := []int{}
+	SrvPullChannelsOption(pullChannelIds)(conn)
+	if conn.pullChannelMap != nil {
+		t.Error(conn.pullChannelMap)
+	}
+
+	pullChannelIds = []int{0, 1, 2}
+	SrvPullChannelsOption(pullChannelIds)(conn)
+	if len(conn.pullChannelMap) != 3 {
+		t.Error(conn.pullChannelMap)
+	}
+
+	ClientDialOption(&websocket.Dialer{})(conn)
+
+	ClientDialWssOption("gou://127.0.0.1:8080", false)(conn)
+	if conn.dialer.TLSClientConfig != nil {
+		t.Error(conn.dialer.TLSClientConfig)
+	}
+
+	ClientDialWssOption("wss://127.0.0.1:8080", false)(conn)
+
+	if !conn.dialer.TLSClientConfig.InsecureSkipVerify {
+		t.FailNow()
+	}
+
+	NetMaxFailureRetryOption(-1)(conn)
+	if conn.maxFailureRetry == -1 {
+		t.Error(conn.maxFailureRetry)
+	}
+
+	NetReadWaitOption(-1)(conn)
+	if conn.readWait == -1 {
+		t.Error(conn.readWait)
+	}
+
+	NetWriteWaitOption(-1)(conn)
+	if conn.writeWait == -1 {
+		t.Error(conn.writeWait)
+	}
+
+	NetTemporaryWaitOption(-1)(conn)
+	if conn.temporaryWait == -1 {
+		t.Error(conn.temporaryWait)
 	}
 }
 
@@ -653,12 +735,10 @@ func TestAutoReDialConnect(t *testing.T) {
 
 	url := "ws://127.0.0.1:8003/join?uid=a1"
 
-	cancelAutoConn := make(chan interface{})
-	go func() {
-		time.Sleep(time.Second * 1)
-		close(cancelAutoConn)
-	}()
-	AutoReDialConnect(context.Background(), url, http.Header{}, cancelAutoConn, time.Millisecond*500,
+	ctxTimeout, cancel := context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
+
+	AutoReDialConnect(ctxTimeout, url, http.Header{}, time.Millisecond*500,
 		DebugOption(true),
 		ClientDialWssOption(url, false),
 		//ClientDialRetryOption(4, time.Millisecond*100),
@@ -674,8 +754,9 @@ func TestDefaultPuller(t *testing.T) {
 
 	conn := &Connection{}
 	conn.init()
-	conn.pullChannelIds = []int{1}
-	conn.createPullChannelMap()
+
+	pullChannelIds := []int{1}
+	SrvPullChannelsOption(pullChannelIds)(conn)
 
 	puller := NewDefaultPuller(conn, 1, func(ctx context.Context, i IConnection) {
 		firstPull = true

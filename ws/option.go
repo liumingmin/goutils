@@ -167,18 +167,26 @@ func MaxMessageBytesSizeOption(size uint32) ConnOption {
 	}
 }
 
-//服务端特有
-//upgrader定制
+// 服务端特有
+// upgrader定制
 func SrvUpgraderOption(upgrader *websocket.Upgrader) ConnOption {
 	return func(conn *Connection) {
 		conn.upgrader = upgrader
 	}
 }
 
-//为每种消息拉取逻辑分别注册不同的通道
+// 为每种消息拉取逻辑分别注册不同的通道
 func SrvPullChannelsOption(pullChannelIds []int) ConnOption {
 	return func(conn *Connection) {
-		conn.pullChannelIds = pullChannelIds
+		if len(pullChannelIds) == 0 {
+			return
+		}
+
+		pullChannelMap := make(map[int]chan struct{})
+		for _, channel := range pullChannelIds {
+			pullChannelMap[channel] = make(chan struct{}, 1)
+		}
+		conn.pullChannelMap = pullChannelMap
 	}
 }
 
@@ -246,20 +254,6 @@ func ClientDialConnFailedHandlerOption(handler EventHandler) ConnOption {
 			conn.dialConnFailedHandler = func(ctx context.Context, c IConnection) {
 				defer log.Recover(ctx, func(e interface{}) string {
 					return fmt.Sprintf("%v dialConnFailedHandler panic, error is: %v", c.ConnType(), e)
-				})
-
-				handler(ctx, c)
-			}
-		}
-	}
-}
-
-func ClientAutoReconHandlerOption(handler EventHandler) ConnOption {
-	return func(conn *Connection) {
-		if handler != nil {
-			conn.connAutoReconHandler = func(ctx context.Context, c IConnection) {
-				defer log.Recover(ctx, func(e interface{}) string {
-					return fmt.Sprintf("%v connAutoReconHandler panic, error is: %v", c.ConnType(), e)
 				})
 
 				handler(ctx, c)

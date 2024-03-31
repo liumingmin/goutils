@@ -48,7 +48,6 @@ type Connection struct {
 	displaced      int32                 //连接被顶号
 	displaceIp     string                //displaced by ip(cluster use) 顶号IP(集群下使用)
 	sendBuffer     chan *Message         //发送缓冲区
-	pullChannelIds []int                 //to construct pullChannelMap
 	pullChannelMap map[int]chan struct{} //pullSendNotify 拉取通知通道
 	debug          bool                  //debug日志输出
 	isPool         bool                  //poolObject 池对象
@@ -59,7 +58,6 @@ type Connection struct {
 	connEstablishHandler  EventHandler
 	connClosingHandler    EventHandler
 	connClosedHandler     EventHandler
-	connAutoReconHandler  EventHandler
 	recvPingHandler       EventHandler
 	recvPongHandler       EventHandler
 	dialConnFailedHandler EventHandler
@@ -156,61 +154,48 @@ func (c *Connection) reset() {
 	c.connEstablishHandler = nil
 	c.connClosingHandler = nil
 	c.connClosedHandler = nil
-	c.connAutoReconHandler = nil
 	c.recvPingHandler = nil
 	c.recvPongHandler = nil
 	c.dialConnFailedHandler = nil
-	c.commonData = nil
+
+	c.compressionLevel = 0
+	c.maxMessageBytesSize = defaultMaxMessageBytesSize
+
 	c.stopped = 0
+	c.commonData = nil
 	c.writeStop = nil
 	c.writeDone = nil
 	c.readDone = nil
-	c.displaced = 0
-	c.displaceIp = ""
-
-	c.sendBuffer = nil
-	c.pullChannelIds = nil
-	c.pullChannelMap = nil
-	c.compressionLevel = 0
-	c.debug = false
-	c.isPool = false
-
-	c.snCounter = 0
-	var snChanMapHasVal bool
-	c.snChanMap.Range(func(key, value interface{}) bool {
-		snChanMapHasVal = true
-		return false
-	})
-	if snChanMapHasVal {
-		c.snChanMap = sync.Map{}
-	}
 
 	c.maxFailureRetry = 0
 	c.readWait = 0
 	c.writeWait = 0
 	c.temporaryWait = 0
 
-	c.upgrader = nil
-
-	c.dialer = nil
 	c.dialRetryNum = 0
 	c.dialRetryInterval = 0
-	c.maxMessageBytesSize = defaultMaxMessageBytesSize
-}
 
-func (c *Connection) createPullChannelMap() {
-	pullChannelMap := make(map[int]chan struct{})
+	c.displaced = 0
+	c.displaceIp = ""
 
-	if len(c.pullChannelIds) > 0 {
-		for _, channel := range c.pullChannelIds {
-			pullChannelMap[channel] = make(chan struct{}, 1)
-		}
-	}
+	c.sendBuffer = nil
+	c.pullChannelMap = nil
 
-	c.pullChannelMap = pullChannelMap
+	c.debug = false
+	c.isPool = false
+
+	c.snCounter = 0
+	c.snChanMap = sync.Map{}
+
+	c.upgrader = nil
+	c.dialer = nil
 }
 
 func (c *Connection) GetPullChannel(pullChannelId int) (chan struct{}, bool) {
+	if c.pullChannelMap == nil {
+		return nil, false
+	}
+
 	v, ok := c.pullChannelMap[pullChannelId]
 	return v, ok
 }
@@ -220,13 +205,9 @@ func (c *Connection) IsStopped() bool {
 }
 
 func (c *Connection) setStop(ctx context.Context) {
-	ok := atomic.CompareAndSwapInt32(&c.stopped, 0, 1)
-	if !ok {
-		return
-	}
+	atomic.CompareAndSwapInt32(&c.stopped, 0, 1)
 
 	close(c.writeStop)
-	c.closePull(ctx)
 }
 
 func (c *Connection) setDisplaced() bool {
@@ -303,6 +284,10 @@ func (c *Connection) SendPullNotify(ctx context.Context, pullChannelId int) (err
 
 // 通知指定消息通道转发消息
 func (c *Connection) SignalPullSend(ctx context.Context, pullChannelId int) (err error) {
+	if c.pullChannelMap == nil {
+		return nil
+	}
+
 	defer log.Recover(ctx, func(e interface{}) string {
 		err, _ = e.(error)
 		return fmt.Sprintf("%v SendPullNotify err: %v", c.typ, e)
@@ -379,10 +364,6 @@ func (c *Connection) handleClosed(ctx context.Context) {
 	if c.connClosedHandler != nil {
 		c.connClosedHandler(ctx, c)
 	}
-
-	if c.connAutoReconHandler != nil {
-		c.connAutoReconHandler(ctx, c)
-	}
 }
 
 func (c *Connection) closeSocket(ctx context.Context) error {
@@ -410,8 +391,12 @@ func (c *Connection) writeToConnection() {
 		ticker.Stop()
 
 		ctx := log.ContextWithTraceId()
-		c.setStop(ctx)
+
+		atomic.CompareAndSwapInt32(&c.stopped, 0, 1)
+
+		c.closePull(ctx)
 		c.closeWrite(ctx)
+
 		close(c.writeDone)
 
 		log.Debug(ctx, "%v write finish. id: %v, ptr: %p", c.typ, c.id, c)
@@ -472,6 +457,8 @@ func (c *Connection) writeToConnection() {
 
 func (c *Connection) readFromConnection() {
 	defer func() {
+		atomic.CompareAndSwapInt32(&c.stopped, 0, 1)
+
 		close(c.readDone)
 		log.Debug(context.Background(), "%v read finish. id: %v, ptr: %p", c.typ, c.id, c)
 
