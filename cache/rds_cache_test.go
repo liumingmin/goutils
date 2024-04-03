@@ -352,3 +352,10 @@ func isRdsRun() bool {
 
 	return true
 }
+
+func TestMain(m *testing.M) {
+	if !isRdsRun() {
+		return
+	}
+	m.Run()
+}
