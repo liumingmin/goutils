@@ -13,6 +13,10 @@ import (
 )
 
 func TestRdscCacheFunc(t *testing.T) {
+	if !isRdsRun() {
+		return
+	}
+
 	redisDao.InitRedises()
 	ctx := context.Background()
 
@@ -30,6 +34,10 @@ func TestRdscCacheFunc(t *testing.T) {
 }
 
 func TestRdsDeleteCacheTestMore(t *testing.T) {
+	if !isRdsRun() {
+		return
+	}
+
 	redisDao.InitRedises()
 	ctx := context.Background()
 
@@ -299,6 +307,10 @@ func rawGetFunc9(p1, p2 string) (map[string]string, error) {
 //}
 
 func TestRdsCacheMultiFunc(t *testing.T) {
+	if !isRdsRun() {
+		return
+	}
+
 	redisDao.InitRedises()
 	ctx := context.Background()
 	const RDSC_DB = "rdscdb"
@@ -330,13 +342,13 @@ func getThingsByIds(ctx context.Context, ids []string) (map[string]*Thing, error
 	}, nil
 }
 
-func TestMain(m *testing.M) {
+func isRdsRun() bool {
 	conn, err := net.DialTimeout("tcp", "127.0.0.1:6379", time.Second*2)
 	if err != nil {
 		fmt.Println("Please install redis on local and start at port: 6379, then run test.")
-		return
+		return false
 	}
 	conn.Close()
 
-	m.Run()
+	return true
 }
