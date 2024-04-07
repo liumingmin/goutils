@@ -420,23 +420,23 @@ func TestWssSendMessage(t *testing.T) {
 			SrvUpgraderCompressOption(true),
 			CompressionLevelOption(2),
 			ConnEstablishHandlerOption(func(ctx context.Context, conn IConnection) {
-				if conn.UserId() != uid {
+				if conn.(*Connection).UserId() != uid {
 					t.Error(conn.UserId())
 				}
 
-				if conn.Type() != typed {
+				if conn.(*Connection).Type() != typed {
 					t.Error(conn.Type())
 				}
 
-				if conn.DeviceId() != deviceId {
+				if conn.(*Connection).DeviceId() != deviceId {
 					t.Error(conn.DeviceId())
 				}
 
-				if conn.Version() != version {
+				if conn.(*Connection).Version() != version {
 					t.Error(conn.Version())
 				}
 
-				if conn.Charset() != charset {
+				if conn.(*Connection).Charset() != charset {
 					t.Error(conn.Charset())
 				}
 
@@ -750,7 +750,7 @@ func TestAutoReDialConnect(t *testing.T) {
 
 func TestDefaultPuller(t *testing.T) {
 	firstPull := false
-	pullSend := false
+	pullSendCnt := 0
 
 	conn := &Connection{}
 	conn.init()
@@ -761,19 +761,71 @@ func TestDefaultPuller(t *testing.T) {
 	puller := NewDefaultPuller(conn, 1, func(ctx context.Context, i IConnection) {
 		firstPull = true
 	}, func(ctx context.Context, i IConnection) {
-		pullSend = true
+		pullSendCnt++
 	})
 
-	go puller.PullSend()
+	go func() {
+		puller.PullSend()
+	}()
+
+	go func() {
+		time.Sleep(time.Millisecond * 100)
+
+		if puller.(*defaultPuller).isRunning != 1 {
+			t.Error(puller.(*defaultPuller).isRunning)
+		}
+
+		puller.PullSend()
+	}()
 
 	time.Sleep(time.Millisecond * 100)
-	conn.setStop(context.Background())
 
 	if !firstPull {
-		t.FailNow()
+		t.Error(firstPull)
 	}
 
-	if !pullSend {
-		t.FailNow()
+	if pullSendCnt != 1 {
+		t.Error(pullSendCnt)
+	}
+
+	conn.SignalPullSend(context.Background(), 1)
+	time.Sleep(time.Millisecond * 100)
+	if pullSendCnt != 2 {
+		t.Error(pullSendCnt)
+	}
+
+	conn.SignalPullSend(context.Background(), 2)
+	time.Sleep(time.Millisecond * 100)
+	if pullSendCnt != 2 {
+		t.Error(pullSendCnt)
+	}
+
+	firstPullNo := false
+	pullSendNo := false
+	pullerNoChan := NewDefaultPuller(conn, 2, func(ctx context.Context, i IConnection) {
+		firstPullNo = true
+	}, func(ctx context.Context, i IConnection) {
+		pullSendNo = true
+	})
+
+	go func() {
+		pullerNoChan.PullSend()
+	}()
+	time.Sleep(time.Millisecond * 100)
+	if firstPullNo {
+		t.Error(firstPullNo)
+	}
+
+	if pullSendNo {
+		t.Error(pullSendNo)
+	}
+
+	conn.SignalPullSend(context.Background(), 1)
+	conn.closePull(context.Background())
+
+	chann, _ := conn.GetPullChannel(1)
+	_, ok := <-chann
+	if ok {
+		t.Error(chann)
 	}
 }
