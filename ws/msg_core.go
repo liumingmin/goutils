@@ -6,7 +6,7 @@ import (
 	"google.golang.org/protobuf/proto"
 )
 
-//不能手动创建，必须使用 NewMessage() 或 GetPoolMessage()
+// 不能手动创建，必须使用 NewMessage() 或 GetPoolMessage()
 type Message struct {
 	protocolId uint32       // 消息协议ID
 	sn         uint32       // message sequence number

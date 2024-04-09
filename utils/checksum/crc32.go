@@ -10,7 +10,6 @@ import (
 	"fmt"
 	"hash/crc32"
 	"io"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -52,7 +51,7 @@ func AddFolderSuffix(folder string) string {
 func CompareChecksumFiles(ctx context.Context, root string, checksumPath string) error {
 	info, err := os.Stat(root)
 	if err != nil || !info.IsDir() {
-		return errors.New(fmt.Sprintf("open src dir %s faild", root))
+		return fmt.Errorf("open src dir %s faild", root)
 	}
 	checkInfo, err := GetChecksumInfo(ctx, checksumPath)
 	if err != nil {
@@ -70,7 +69,7 @@ func CompareChecksumFiles(ctx context.Context, root string, checksumPath string)
 }
 
 func IsChecksumFileValid(ctx context.Context, checksumPath, md5Path string) bool {
-	bContent, err := ioutil.ReadFile(md5Path)
+	bContent, err := os.ReadFile(md5Path)
 	if err != nil {
 		log.Error(ctx, "open md5Path:%s error:%v", md5Path, err)
 		return false
@@ -184,7 +183,7 @@ func GenerateChecksumFileWithIgnore(ctx context.Context, folder string, checksum
 	}
 	// 生成文件checksum文件
 	checkSumPath = filepath.Join(folder, fmt.Sprintf("%s.checksum", checksumName))
-	err = ioutil.WriteFile(checkSumPath, []byte(builder.String()), OS_FILE_R_W)
+	err = os.WriteFile(checkSumPath, []byte(builder.String()), OS_FILE_R_W)
 	return
 }
 
@@ -210,7 +209,7 @@ func GenerateChecksumMd5File(ctx context.Context, checksumPath string) (checksum
 	log.Info(ctx, "checksumPath:%s generate md5 val: %s", checksumPath, hexVal)
 	checksumMd5Path = checksumPath + ".md5"
 	// 写入文件
-	err = ioutil.WriteFile(checksumMd5Path, []byte(hexVal), OS_FILE_R_W)
+	err = os.WriteFile(checksumMd5Path, []byte(hexVal), OS_FILE_R_W)
 	return
 }
 
@@ -244,7 +243,7 @@ func GetChecksumInfo(ctx context.Context, checksumPath string) (checkInfo map[st
 	if err != nil {
 		return
 	}
-	content, err := ioutil.ReadFile(checksumPath)
+	content, err := os.ReadFile(checksumPath)
 	if err != nil {
 		log.Error(ctx, "read checksum file error:%v", err)
 		return checkInfo, err

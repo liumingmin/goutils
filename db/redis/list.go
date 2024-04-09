@@ -14,7 +14,7 @@ func ListPush(ctx context.Context, rds redis.UniversalClient, key string, data .
 	return rds.LPush(ctx, key, data...).Err()
 }
 
-//list结构主要用来做异步操作,相当于一对一发送接收
+// list结构主要用来做异步操作,相当于一对一发送接收
 func ListPop(rds redis.UniversalClient, keys []string, timeout, goPoolSize int, handler func(key, data string)) {
 	goPool := make(chan struct{}, goPoolSize)
 

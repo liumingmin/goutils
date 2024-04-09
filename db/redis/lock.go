@@ -58,7 +58,7 @@ func RdsAllowActionByMTs(ctx context.Context, rds redis.UniversalClient, actionK
 	return int64(cdMillSeconds), true
 }
 
-//RdsLockResWithCD(ctx context.Context, rds redis.UniversalClient, resKeyName, config.ServerId, runtimeSeconds*2)
+// RdsLockResWithCD(ctx context.Context, rds redis.UniversalClient, resKeyName, config.ServerId, runtimeSeconds*2)
 func RdsLockResWithCD(ctx context.Context, rds redis.UniversalClient, resKey, resValue string, cdSeconds int) bool {
 	origResValue, err := rds.Get(ctx, resKey).Result()
 	if err == nil {
