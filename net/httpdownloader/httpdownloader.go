@@ -114,8 +114,8 @@ func (t *HttpDownloader) downloadBlock(ctx context.Context, url string, header h
 	rangeHeader := fmt.Sprintf("bytes=%d-%d", min, max-1)
 	req.Header.Set("Range", rangeHeader)
 
-	buff := container.GetPoolBuff(container.BUFF_4M)
-	defer container.PutPoolBuff(container.BUFF_4M, buff)
+	buff := container.PoolBuffer4M.Get()
+	defer container.PoolBuffer4M.Put(buff)
 
 	for j := 0; j < t.RetryCnt; j++ {
 		err := t.downloadToWriter(req, writer, buff)
