@@ -1002,7 +1002,7 @@ rds := Get("rdscdb")
 ctx := context.Background()
 dimValues := [][]string{{"dim1a", "dim1b"}, {"dim2a", "dim2b", "dim2c", "dim2d"}, {"dim3a", "dim3b", "dim3c"}}
 
-dt, err := csv.ReadCsvToDataTable(ctx, "data.csv", ',',
+dt, err := csv.ReadCsvFileToDataTable(ctx, "data.csv", ',',
 	[]string{"id", "name", "createtime", "dim1", "dim2", "dim3", "member"}, "id", []string{})
 if err != nil {
 	t.Error(err)

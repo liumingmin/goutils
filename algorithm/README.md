@@ -6,6 +6,7 @@
 
 - [algorithm](#algorithm)
   * [circ2buffer_test.go](#circ2buffer_testgo)
+  * [crc16-kermit_test.go](#crc16-kermit_testgo)
   * [crc16_test.go](#crc16_testgo)
   * [descartes_test.go](#descartes_testgo)
   * [xor_io_test.go](#xor_io_testgo)
@@ -175,16 +176,35 @@ if bytes.Compare(block, []byte{4, 5, 6, 7, 8, 9, 34, 46}) != 0 {
 		len(block))
 }
 ```
+## crc16-kermit_test.go
+### TestKermit
+```go
+
+a := Kermit([]byte("abcdefg汉字"))
+b := Kermit([]byte("abcdefg汉字"))
+if a != b {
+	t.Error(a, b)
+}
+```
 ## crc16_test.go
 ### TestCrc16
 ```go
 
-t.Log(Crc16([]byte("abcdefg汉字")))
+a := Crc16([]byte("abcdefg汉字"))
+b := Crc16([]byte("abcdefg汉字"))
+if a != b {
+	t.Error(Crc16([]byte("abcdefg汉字")))
+}
 ```
 ### TestCrc16s
 ```go
 
-t.Log(Crc16s("abcdefg汉字") == Crc16([]byte("abcdefg汉字")))
+a := Crc16s("abcdefg汉字")
+b := Crc16([]byte("abcdefg汉字"))
+
+if a != b {
+	t.Error(Crc16([]byte("abcdefg汉字")))
+}
 ```
 ## descartes_test.go
 ### TestDescartes

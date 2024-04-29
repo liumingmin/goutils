@@ -21,6 +21,7 @@
   * [reflectutils_test.go](#reflectutils_testgo)
   * [安全的go协程](#%E5%AE%89%E5%85%A8%E7%9A%84go%E5%8D%8F%E7%A8%8B)
   * [snowflake](#snowflake)
+  * [stringparse_test.go](#stringparse_testgo)
   * [stringutils_test.go](#stringutils_testgo)
   * [struct_test.go](#struct_testgo)
   * [结构体TAG生成器](#%E7%BB%93%E6%9E%84%E4%BD%93tag%E7%94%9F%E6%88%90%E5%99%A8)
@@ -177,7 +178,7 @@ if err != nil {
 #### TestReadCsvToDataTable
 ```go
 
-dt, err := ReadCsvToDataTable(context.Background(), filepath.Join(testTempDirPath, testCsvFilePath), ',',
+dt, err := ReadCsvFileToDataTable(context.Background(), filepath.Join(testTempDirPath, testCsvFilePath), ',',
 	[]string{"id", "name", "age", "remark"}, "id", []string{"name"})
 if err != nil {
 	t.Error(err)
@@ -217,8 +218,8 @@ records := ParseCsvRaw(context.Background(),
 18	name18	18	remark18
 19	name19	19	remark19`)
 
-dt := container.NewDataTable([]string{"id", "name", "age", "remark"}, "id", []string{"name"}, 20)
-dt.PushAll(records)
+dt := container.NewDataTable(records[0], "id", []string{"name"}, 20)
+dt.PushAll(records[1:])
 
 if !reflect.DeepEqual(dt.Row("10").Data(), []string{"10", "name10", "10", "remark10"}) {
 	t.FailNow()
@@ -226,6 +227,72 @@ if !reflect.DeepEqual(dt.Row("10").Data(), []string{"10", "name10", "10", "remar
 
 if !reflect.DeepEqual(dt.RowsBy("name", "name10")[0].Data(), []string{"10", "name10", "10", "remark10"}) {
 	t.FailNow()
+}
+```
+#### TestParseCsvGBK
+```go
+
+u8 := `id	name	age	remark
+0	name0	0	描述0
+1	name1	1	描述1
+2	name2	2	描述2
+3	name3	3	描述3
+4	name4	4	描述4
+5	name5	5	描述5
+6	name6	6	描述6
+7	name7	7	描述7
+8	name8	8	描述8
+9	name9	9	描述9
+10	name10	10	描述10
+11	name11	11	描述11
+12	name12	12	描述12
+13	name13	13	描述13
+14	name14	14	描述14
+15	name15	15	描述15
+16	name16	16	描述16
+17	name17	17	描述17
+18	name18	18	描述18
+19	name19	19	描述19`
+
+reader := transform.NewReader(bytes.NewReader([]byte(u8)), simplifiedchinese.GB18030.NewEncoder())
+
+dt, err := ReadCsvToDataTable(context.Background(), reader, '\t',
+	[]string{"id", "name", "remark"}, "", []string{"name"}) //pk default cols[0]
+if err != nil {
+	t.Error(err)
+}
+
+if !reflect.DeepEqual(dt.Row("10").Data(), []string{"10", "name10", "描述10"}) {
+
+	t.Error(dt.Row("10"))
+}
+
+if !reflect.DeepEqual(dt.RowsBy("name", "name10")[0].Data(), []string{"10", "name10", "描述10"}) {
+	t.FailNow()
+}
+```
+#### TestParseShortCsv
+```go
+
+data := `id	name	age	remark`
+dt, err := ReadCsvToDataTable(context.Background(), strings.NewReader(data), '\t',
+	[]string{"id", "name", "remark"}, "", []string{"name"}) //pk default cols[0]
+if err != nil {
+	t.Error(err)
+}
+
+if dt == nil {
+	t.FailNow()
+}
+
+if len(dt.Rows()) != 0 {
+	t.Error(dt.Rows())
+}
+
+dt, err = ReadCsvToDataTable(context.Background(), strings.NewReader(""), '\t',
+	[]string{"id", "name", "remark"}, "", []string{"name"}) //pk default cols[0]
+if err != ErrCsvIsEmpty {
+	t.Error(err)
 }
 ```
 ## 分布式锁
@@ -976,6 +1043,51 @@ if idtemp != id1 {
 	t.FailNow()
 }
 ```
+## stringparse_test.go
+### TestParseContentByTag
+```go
+
+tagStr := "<a href='goutils' ></a>"
+str, nextOffset := ParseContentByTag(tagStr, "<a", ">")
+
+if strings.TrimSpace(str) != "href='goutils'" {
+	t.Error(str)
+}
+
+if tagStr[nextOffset:] != "</a>" {
+	t.Error(tagStr[nextOffset:])
+}
+```
+### TestCheckKeyValueExpected
+```go
+
+keyValues := make(map[string]string)
+keyValues["gotuils1"] = "tim"
+keyValues["gotuils2"] = "jack"
+if !CheckKeyValueExpected(keyValues, "gotuils1", "eric", []string{"tim"}) {
+	t.FailNow()
+}
+
+if CheckKeyValueExpected(keyValues, "gotuils3", "eric", []string{"tim"}) {
+	t.FailNow()
+}
+
+if !CheckKeyValueExpected(keyValues, "gotuils3", "tim", []string{"tim"}) {
+	t.FailNow()
+}
+
+if CheckKeyValueExpected(keyValues, "gotuils1", "eric", []string{"carry"}) {
+	t.FailNow()
+}
+
+if CheckKeyValueExpected(keyValues, "gotuils3", "eric", []string{"carry"}) {
+	t.FailNow()
+}
+
+if !CheckKeyValueExpected(keyValues, "gotuils3", "carry", []string{"carry"}) {
+	t.FailNow()
+}
+```
 ## stringutils_test.go
 ### TestStringsReverse
 ```go
@@ -1073,7 +1185,7 @@ f1 := &SrcFoo{
 }
 var f2 DstFoo
 
-CopyStruct(f1, &f2, BaseConvert)
+CopyStructDefault(f1, &f2)
 
 if !reflect.DeepEqual(f1.A, f2.A) {
 	t.Error(f2)
@@ -1089,6 +1201,36 @@ if !reflect.DeepEqual(f1.C, f2.C) {
 
 if !reflect.DeepEqual(BaseConvert(f1.SameNameDiffType, reflect.TypeOf("")), f2.SameNameDiffType) {
 	t.Error(f2)
+}
+
+f3 := &DstFoo{
+	A: 1,
+	B: []*string{&str1, &str2},
+	C: map[string]*int{
+		"A": &int1,
+		"B": &int2,
+	},
+	DstUnique:        1,
+	SameNameDiffType: time.Now().Format(STRUCT_DATE_TIME_FORMAT_LAYOUT),
+}
+var f4 SrcFoo
+CopyStruct(f3, &f4, BaseConvert)
+
+if !reflect.DeepEqual(f3.A, f4.A) {
+	t.Error(f4)
+}
+
+if !reflect.DeepEqual(f3.B, f4.B) {
+	t.Error(f4)
+}
+
+if !reflect.DeepEqual(f3.C, f4.C) {
+	t.Error(f4)
+}
+
+f3Time, _ := time.ParseInLocation(STRUCT_DATE_TIME_FORMAT_LAYOUT, f3.SameNameDiffType, time.Local)
+if !reflect.DeepEqual(f3Time, f4.SameNameDiffType) {
+	t.Error(f4)
 }
 ```
 ### TestCopyStructs
@@ -1141,6 +1283,25 @@ if !reflect.DeepEqual(f1[0].C, f2[0].C) {
 
 if !reflect.DeepEqual(BaseConvert(f1[0].SameNameDiffType, reflect.TypeOf("")), f2[0].SameNameDiffType) {
 	t.Error(f2)
+}
+
+var f3 []*DstFoo
+CopyStructsDefault(f1, &f3)
+
+if !reflect.DeepEqual(f1[0].A, f3[0].A) {
+	t.Error(f3)
+}
+
+if !reflect.DeepEqual(f1[0].B, f3[0].B) {
+	t.Error(f3)
+}
+
+if !reflect.DeepEqual(f1[0].C, f3[0].C) {
+	t.Error(f3)
+}
+
+if !reflect.DeepEqual(BaseConvert(f1[0].SameNameDiffType, reflect.TypeOf("")), f3[0].SameNameDiffType) {
+	t.Error(f3)
 }
 ```
 ## 结构体TAG生成器

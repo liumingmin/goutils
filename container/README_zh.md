@@ -8,6 +8,7 @@
   * [比特位表](#%E6%AF%94%E7%89%B9%E4%BD%8D%E8%A1%A8)
   * [buff_pool_test.go](#buff_pool_testgo)
   * [一致性HASH](#%E4%B8%80%E8%87%B4%E6%80%A7hash)
+  * [lockable_test.go](#lockable_testgo)
   * [mdb_test.go](#mdb_testgo)
   * [queue_test.go](#queue_testgo)
   * [red_black_tree_test.go](#red_black_tree_testgo)
@@ -184,38 +185,96 @@ if ringchash.GetByC32(100, false).Id() != "node10" {
 
 t.Log(ringchash.GetByKey("goutils", false))
 ```
+## lockable_test.go
+### TestLockable
+```go
+
+var i Lockable[int]
+i.Set(100)
+if i.Get() != 100 {
+	t.Error(i.Get())
+}
+
+var wg sync.WaitGroup
+wg.Add(3)
+go func() {
+	i.Update(func(i int) int { return i + 1 })
+	wg.Done()
+}()
+go func() {
+	i.Update(func(i int) int { return i + 2 })
+	wg.Done()
+}()
+go func() {
+	i.Update(func(i int) int { return i - 3 })
+	wg.Done()
+}()
+wg.Wait()
+
+if i.Get() != 100 {
+	t.Error(i.Get())
+}
+```
 ## mdb_test.go
 ### TestDataTable
 ```go
 
 if len(testDt.Rows()) != 10 {
-	t.FailNow()
+	t.Error(len(testDt.Rows()))
+}
+
+if !reflect.DeepEqual(testDt.Cols(), []string{"id", "code", "name"}) {
+	t.Error(testDt.Cols())
+}
+
+if testDt.PkCol() != "id" {
+	t.Error(testDt.PkCol())
+}
+
+if !reflect.DeepEqual(testDt.Indexes(), []string{"code"}) {
+	t.Error(testDt.Indexes())
 }
 
 if testDt.PkString(testDt.Row("9")) != "9" {
-	t.FailNow()
+	t.Error(testDt.PkString(testDt.Row("9")))
 }
 
 if testDt.PkInt(testDt.Row("8")) != 8 {
-	t.FailNow()
+	t.Error(testDt.PkInt(testDt.Row("8")))
 }
 
-if reflect.DeepEqual(testDt.Row("2"), []string{"2", "C2", "N2"}) {
-	t.FailNow()
+if testDt.Row("9").Int64("id") != 9 {
+	t.Error(testDt.Row("9").Int64("id"))
 }
 
-if reflect.DeepEqual(testDt.RowsBy("code", "C2")[0], []string{"2", "C2", "N2"}) {
-	t.FailNow()
+if testDt.Row("9").UInt64("id") != 9 {
+	t.Error(testDt.Row("9").Int64("id"))
 }
 
-if reflect.DeepEqual(testDt.RowsByPredicate(func(dr *DataRow) bool { return dr.String("name") == "N4" })[0], []string{"4", "C4", "N4"}) {
-	t.FailNow()
+if testDt.Row("9").String("code") != "C9" {
+	t.Error(testDt.Row("9").String("code"))
+}
+
+if testDt.Row("9").String("nop") != "" {
+	t.Error(testDt.Row("9").String("nop"))
+}
+
+if !reflect.DeepEqual(testDt.Row("2").Data(), []string{"2", "C2", "N2"}) {
+	t.Error(testDt.Row("2").Data())
+}
+
+if !reflect.DeepEqual(testDt.RowsBy("code", "C2")[0].Data(), []string{"2", "C2", "N2"}) {
+	t.Error(testDt.RowsBy("code", "C2")[0].Data())
+}
+
+if !reflect.DeepEqual(testDt.RowsByPredicate(func(dr *DataRow) bool { return dr.String("name") == "N4" })[0].Data(), []string{"4", "C4", "N4"}) {
+	t.Error("RowsByPredicate")
 }
 
 testDt.Push([]string{"2", "C2", "N3"})
 
-if reflect.DeepEqual(testDt.RowsByIndexPredicate("code", "C2", func(dr *DataRow) bool { return dr.String("name") == "N3" })[0], []string{"2", "C2", "N2"}) {
-	t.FailNow()
+if !reflect.DeepEqual(testDt.RowsByIndexPredicate("code", "C2", func(dr *DataRow) bool { return dr.String("name") == "N3" })[0].Data(), []string{"2", "C2", "N3"}) {
+	t.Error("RowsByIndexPredicate")
 }
 ```
 ### TestDataSet
@@ -438,6 +497,23 @@ for _, item := range items {
 		t.Error(item)
 	}
 }
+```
+### TestQueueRange
+```go
+
+q := NewQueue[int](10)
+for i := 0; i < 25; i++ {
+	q.EnqueueBack(i)
+}
+
+j := 15
+q.Range(func(i int) bool {
+	if i != j {
+		t.Error(i)
+	}
+	j++
+	return true
+})
 ```
 ## red_black_tree_test.go
 ### TestReaBlackTree

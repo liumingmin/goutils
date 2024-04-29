@@ -527,6 +527,10 @@ _memCacheFuncTestMore(ctx, lCache, cacheKey)
 ### TestRdscCacheFunc
 ```go
 
+if !isRdsRun() {
+	return
+}
+
 redisDao.InitRedises()
 ctx := context.Background()
 
@@ -544,6 +548,10 @@ log.Info(ctx, "%v %v %v", result, err, printKind(result))
 ```
 ### TestRdsDeleteCacheTestMore
 ```go
+
+if !isRdsRun() {
+	return
+}
 
 redisDao.InitRedises()
 ctx := context.Background()
@@ -724,6 +732,10 @@ if err != nil {
 ```
 ### TestRdsCacheMultiFunc
 ```go
+
+if !isRdsRun() {
+	return
+}
 
 redisDao.InitRedises()
 ctx := context.Background()

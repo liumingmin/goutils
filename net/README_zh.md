@@ -71,6 +71,7 @@ downloader := &HttpDownloader{
 	ConBlockChan: make(chan struct{}, 10),
 	BlockSize:    1024 * 1024,
 	RetryCnt:     1,
+	Headers:      http.Header{"TestKey": []string{"TestValue"}},
 }
 
 savePath := filepath.Join(testTempDirPath, "vc_redist")
@@ -180,6 +181,46 @@ for i := 0; i < 3; i++ {
 	}
 }
 ```
+#### TestHttpXDo
+```go
+
+
+clientX := getHcx()
+
+for i := 0; i < 3; i++ {
+	req, _ := http.NewRequest("POST", "http://127.0.0.1:"+testHttpxPortH1+"/goutils/httpx", strings.NewReader(""))
+	req.Header.Set("Content-Type", "application/json")
+	resp, err := clientX.Do(req)
+	if err != nil {
+		t.Error(fmt.Errorf("error making request: %v", err))
+	}
+
+	if resp.StatusCode >= 400 {
+		t.Error(resp.StatusCode)
+	}
+
+	if resp.Proto != "HTTP/1.1" {
+		t.Error(resp.Proto)
+	}
+}
+
+for i := 0; i < 3; i++ {
+	req, _ := http.NewRequest("POST", "http://127.0.0.1:"+testHttpxPortH2+"/goutils/httpx", strings.NewReader(""))
+	req.Header.Set("Content-Type", "application/json")
+	resp, err := clientX.Do(req)
+	if err != nil {
+		t.Error(fmt.Errorf("error making request: %v", err))
+	}
+
+	if resp.StatusCode >= 400 {
+		t.Error(resp.StatusCode)
+	}
+
+	if resp.Proto != "HTTP/2.0" {
+		t.Error(resp.Proto)
+	}
+}
+```
 #### TestHttpXHead
 ```go
 
@@ -250,6 +291,60 @@ for i := 0; i < 3; i++ {
 	if resp.Proto != "HTTP/2.0" {
 		t.Error(resp.Proto)
 	}
+}
+```
+#### TestHttpXRequestErrUrl
+```go
+
+clientX := getHcx()
+
+_, err := clientX.Get("file://127.0.0.1:" + testHttpxPortH1 + "/goutils/httpx")
+if err == nil {
+	t.FailNow()
+}
+
+_, err = clientX.Post("file://127.0.0.1:"+testHttpxPortH1+"/goutils/httpx", "application/json", strings.NewReader(""))
+if err == nil {
+	t.FailNow()
+}
+
+req, _ := http.NewRequest("POST", "file://127.0.0.1:"+testHttpxPortH1+"/goutils/httpx", strings.NewReader(""))
+req.Header.Set("Content-Type", "application/json")
+_, err = clientX.Do(req)
+if err == nil {
+	t.FailNow()
+}
+
+_, err = clientX.Head("file://127.0.0.1:" + testHttpxPortH1 + "/goutils/httpx")
+if err == nil {
+	t.FailNow()
+}
+```
+#### TestHttpX2RequestErrUrl
+```go
+
+clientX := getHcx()
+
+_, err := clientX.Get("file://127.0.0.1:" + testHttpxPortH2 + "/goutils/httpx")
+if err == nil {
+	t.FailNow()
+}
+
+_, err = clientX.Post("file://127.0.0.1:"+testHttpxPortH2+"/goutils/httpx", "application/json", strings.NewReader(""))
+if err == nil {
+	t.FailNow()
+}
+
+req, _ := http.NewRequest("POST", "file://127.0.0.1:"+testHttpxPortH2+"/goutils/httpx", strings.NewReader(""))
+req.Header.Set("Content-Type", "application/json")
+_, err = clientX.Do(req)
+if err == nil {
+	t.FailNow()
+}
+
+_, err = clientX.Head("file://127.0.0.1:" + testHttpxPortH2 + "/goutils/httpx")
+if err == nil {
+	t.FailNow()
 }
 ```
 ## ip
