@@ -40,3 +40,7 @@ func SafeIsNil(value *reflect.Value) bool {
 		return false
 	}
 }
+
+func Ptr[T any](v T) *T {
+	return &v
+}

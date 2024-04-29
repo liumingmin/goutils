@@ -1,6 +1,7 @@
 package utils
 
 import (
+	"context"
 	"testing"
 	"time"
 )
@@ -77,6 +78,22 @@ func TestAsyncInvokesWithTimeout(t *testing.T) {
 	}
 
 	if !f2 {
+		t.FailNow()
+	}
+}
+
+func TestSleep(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	t1 := time.Now()
+	go func() {
+		cancel()
+	}()
+
+	Sleep(ctx, 2*time.Second)
+
+	if time.Since(t1) > time.Second {
 		t.FailNow()
 	}
 }

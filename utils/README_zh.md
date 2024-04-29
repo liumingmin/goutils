@@ -109,6 +109,23 @@ if !f2 {
 	t.FailNow()
 }
 ```
+### TestSleep
+```go
+
+ctx, cancel := context.WithCancel(context.Background())
+defer cancel()
+
+t1 := time.Now()
+go func() {
+	cancel()
+}()
+
+Sleep(ctx, 2*time.Second)
+
+if time.Since(t1) > time.Second {
+	t.FailNow()
+}
+```
 ## 熔断器
 ### cbk_test.go
 #### TestCbkFailed
@@ -935,6 +952,19 @@ if value == nil {
 
 if !IsNil(value) {
 	t.Error(value)
+}
+```
+### TestPtr
+```go
+
+intPtr := Ptr(100)
+if *intPtr != 100 {
+	t.Error(intPtr)
+}
+
+strPtr := Ptr("this content")
+if *strPtr != "this content" {
+	t.Error(strPtr)
 }
 ```
 ## 安全的go协程

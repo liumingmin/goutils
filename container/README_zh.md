@@ -87,17 +87,18 @@ if bitmap.Exists(66) {
 ### TestBuffPool
 ```go
 
-buf1 := GetPoolBuff(BUFF_128K)
+buf1 := PoolBuffer128K.Get()
 ptr1 := uintptr(unsafe.Pointer(&buf1[0]))
 len1 := len(buf1)
-PutPoolBuff(BUFF_128K, buf1)
 
-buf2 := GetPoolBuff(BUFF_128K)
+PoolBuffer128K.Put(buf1)
+
+buf2 := PoolBuffer128K.Get()
 ptr2 := uintptr(unsafe.Pointer(&buf2[0]))
 len2 := len(buf2)
-PutPoolBuff(BUFF_128K, buf2)
+PoolBuffer128K.Put(buf2)
 
-if len1 != BUFF_128K {
+if len1 != 128*1024 {
 	t.Error("pool get BUFF_128K len failed")
 }
 
@@ -110,25 +111,25 @@ if ptr1 != ptr2 {
 }
 
 //4M
-buf1 = GetPoolBuff(BUFF_4M)
-ptr1 = uintptr(unsafe.Pointer(&buf1[0]))
-len1 = len(buf1)
-PutPoolBuff(BUFF_4M, buf1)
+buf3 := PoolBuffer4M.Get()
+ptr3 := uintptr(unsafe.Pointer(&buf3[0]))
+len3 := len(buf3)
+PoolBuffer4M.Put(buf3)
 
-buf2 = GetPoolBuff(BUFF_4M)
-ptr2 = uintptr(unsafe.Pointer(&buf2[0]))
-len2 = len(buf2)
-PutPoolBuff(BUFF_4M, buf2)
+buf4 := PoolBuffer4M.Get()
+ptr4 := uintptr(unsafe.Pointer(&buf4[0]))
+len4 := len(buf4)
+PoolBuffer4M.Put(buf4)
 
-if len1 != BUFF_4M {
+if len3 != 4*1024*1024 {
 	t.Error("pool get BUFF_4M len failed")
 }
 
-if len1 != len2 {
+if len3 != len4 {
 	t.Error("pool get BUFF_4M len failed")
 }
 
-if ptr1 != ptr2 {
+if ptr3 != ptr4 {
 	t.Error("pool get BUFF_4M failed")
 }
 ```

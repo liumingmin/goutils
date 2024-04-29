@@ -1,6 +1,7 @@
 package utils
 
 import (
+	"context"
 	"sync"
 	"time"
 )
@@ -56,10 +57,26 @@ func waitInvokeTimeout(wg *sync.WaitGroup, timeout time.Duration) bool {
 		defer close(c)
 		wg.Wait()
 	}()
+
+	timer := time.NewTimer(timeout)
+	defer timer.Stop()
+
 	select {
 	case <-c:
 		return true // completed normally
-	case <-time.After(timeout):
+	case <-timer.C:
 		return false // timed out
+	}
+}
+
+func Sleep(ctx context.Context, duration time.Duration) {
+	timer := time.NewTimer(duration)
+	defer timer.Stop()
+
+	select {
+	case <-ctx.Done():
+		return
+	case <-timer.C:
+		return
 	}
 }

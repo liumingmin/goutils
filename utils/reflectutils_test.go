@@ -78,3 +78,15 @@ func testWrapperNil[T any]() interface{} {
 	var data T
 	return data
 }
+
+func TestPtr(t *testing.T) {
+	intPtr := Ptr(100)
+	if *intPtr != 100 {
+		t.Error(intPtr)
+	}
+
+	strPtr := Ptr("this content")
+	if *strPtr != "this content" {
+		t.Error(strPtr)
+	}
+}
