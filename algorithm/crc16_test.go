@@ -3,11 +3,20 @@ package algorithm
 import "testing"
 
 func TestCrc16(t *testing.T) {
-	t.Log(Crc16([]byte("abcdefg汉字")))
+	a := Crc16([]byte("abcdefg汉字"))
+	b := Crc16([]byte("abcdefg汉字"))
+	if a != b {
+		t.Error(Crc16([]byte("abcdefg汉字")))
+	}
 }
 
 func TestCrc16s(t *testing.T) {
-	t.Log(Crc16s("abcdefg汉字") == Crc16([]byte("abcdefg汉字")))
+	a := Crc16s("abcdefg汉字")
+	b := Crc16([]byte("abcdefg汉字"))
+
+	if a != b {
+		t.Error(Crc16([]byte("abcdefg汉字")))
+	}
 }
 
 func BenchmarkCrc16(b *testing.B) {

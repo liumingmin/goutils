@@ -212,6 +212,22 @@ func TestQueueFindBy(t *testing.T) {
 	}
 }
 
+func TestQueueRange(t *testing.T) {
+	q := NewQueue[int](10)
+	for i := 0; i < 25; i++ {
+		q.EnqueueBack(i)
+	}
+
+	j := 15
+	q.Range(func(i int) bool {
+		if i != j {
+			t.Error(i)
+		}
+		j++
+		return true
+	})
+}
+
 func InitQueue() *Queue[string] {
 	return NewQueue[string](10)
 }
