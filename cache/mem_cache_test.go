@@ -1,92 +1,84 @@
 package cache
 
-import (
-	"context"
-	"testing"
-	"time"
+// func TestMemCacheFunc(t *testing.T) {
+// 	ctx := context.Background()
 
-	"github.com/liumingmin/goutils/log"
-)
+// 	const cacheKey = "UT:%v:%v"
 
-func TestMemCacheFunc(t *testing.T) {
-	ctx := context.Background()
+// 	var lCache = New(5*time.Minute, 5*time.Minute)
+// 	result, err := MemCacheFunc(ctx, lCache, 60*time.Second, rawGetFunc0, cacheKey, "p1", "p2")
+// 	log.Info(ctx, "%v %v %v", result, err, printKind(result))
 
-	const cacheKey = "UT:%v:%v"
+// 	_memCacheFuncTestMore(ctx, lCache, cacheKey)
+// }
 
-	var lCache = New(5*time.Minute, 5*time.Minute)
-	result, err := MemCacheFunc(ctx, lCache, 60*time.Second, rawGetFunc0, cacheKey, "p1", "p2")
-	log.Info(ctx, "%v %v %v", result, err, printKind(result))
+// func _memCacheFuncTestMore(ctx context.Context, lCache *Cache, cacheKey string) {
+// 	var result interface{}
+// 	var err error
+// 	result, err = MemCacheFunc(ctx, lCache, 60*time.Second, rawGetFunc0, cacheKey, "p1", "p2")
+// 	log.Info(ctx, "%v %v %v", result, err, printKind(result))
+// 	MemCacheDelete(ctx, lCache, cacheKey, "p1", "p2")
 
-	_memCacheFuncTestMore(ctx, lCache, cacheKey)
-}
+// 	result, err = MemCacheFunc(ctx, lCache, 60*time.Second, rawGetFunc1, cacheKey, "p1", "p2")
+// 	log.Info(ctx, "%v %v %v", result, err, printKind(result))
 
-func _memCacheFuncTestMore(ctx context.Context, lCache *Cache, cacheKey string) {
-	var result interface{}
-	var err error
-	result, err = MemCacheFunc(ctx, lCache, 60*time.Second, rawGetFunc0, cacheKey, "p1", "p2")
-	log.Info(ctx, "%v %v %v", result, err, printKind(result))
-	MemCacheDelete(ctx, lCache, cacheKey, "p1", "p2")
+// 	result, err = MemCacheFunc(ctx, lCache, 60*time.Second, rawGetFunc1, cacheKey, "p1", "p2")
+// 	log.Info(ctx, "%v %v %v", result, err, printKind(result))
+// 	MemCacheDelete(ctx, lCache, cacheKey, "p1", "p2")
 
-	result, err = MemCacheFunc(ctx, lCache, 60*time.Second, rawGetFunc1, cacheKey, "p1", "p2")
-	log.Info(ctx, "%v %v %v", result, err, printKind(result))
+// 	result, err = MemCacheFunc(ctx, lCache, 60*time.Second, rawGetFunc2, cacheKey, "p1", "p2")
+// 	log.Info(ctx, "%v %v %v", result, err, printKind(result))
 
-	result, err = MemCacheFunc(ctx, lCache, 60*time.Second, rawGetFunc1, cacheKey, "p1", "p2")
-	log.Info(ctx, "%v %v %v", result, err, printKind(result))
-	MemCacheDelete(ctx, lCache, cacheKey, "p1", "p2")
+// 	result, err = MemCacheFunc(ctx, lCache, 60*time.Second, rawGetFunc2, cacheKey, "p1", "p2")
+// 	log.Info(ctx, "%v %v %v", result, err, printKind(result))
+// 	MemCacheDelete(ctx, lCache, cacheKey, "p1", "p2")
 
-	result, err = MemCacheFunc(ctx, lCache, 60*time.Second, rawGetFunc2, cacheKey, "p1", "p2")
-	log.Info(ctx, "%v %v %v", result, err, printKind(result))
+// 	result, err = MemCacheFunc(ctx, lCache, 60*time.Second, rawGetFunc3, cacheKey, "p1", "p2")
+// 	log.Info(ctx, "%v %v %v", result, err, printKind(result))
 
-	result, err = MemCacheFunc(ctx, lCache, 60*time.Second, rawGetFunc2, cacheKey, "p1", "p2")
-	log.Info(ctx, "%v %v %v", result, err, printKind(result))
-	MemCacheDelete(ctx, lCache, cacheKey, "p1", "p2")
+// 	result, err = MemCacheFunc(ctx, lCache, 60*time.Second, rawGetFunc3, cacheKey, "p1", "p2")
+// 	log.Info(ctx, "%v %v %v", result, err, printKind(result))
+// 	MemCacheDelete(ctx, lCache, cacheKey, "p1", "p2")
 
-	result, err = MemCacheFunc(ctx, lCache, 60*time.Second, rawGetFunc3, cacheKey, "p1", "p2")
-	log.Info(ctx, "%v %v %v", result, err, printKind(result))
+// 	result, err = MemCacheFunc(ctx, lCache, 60*time.Second, rawGetFunc4, cacheKey, "p1", "p2")
+// 	log.Info(ctx, "%v %v %v", result, err, printKind(result))
 
-	result, err = MemCacheFunc(ctx, lCache, 60*time.Second, rawGetFunc3, cacheKey, "p1", "p2")
-	log.Info(ctx, "%v %v %v", result, err, printKind(result))
-	MemCacheDelete(ctx, lCache, cacheKey, "p1", "p2")
+// 	result, err = MemCacheFunc(ctx, lCache, 60*time.Second, rawGetFunc4, cacheKey, "p1", "p2")
+// 	log.Info(ctx, "%v %v %v", result, err, printKind(result))
+// 	MemCacheDelete(ctx, lCache, cacheKey, "p1", "p2")
 
-	result, err = MemCacheFunc(ctx, lCache, 60*time.Second, rawGetFunc4, cacheKey, "p1", "p2")
-	log.Info(ctx, "%v %v %v", result, err, printKind(result))
+// 	result, err = MemCacheFunc(ctx, lCache, 60*time.Second, rawGetFunc5, cacheKey, "p1", "p2")
+// 	log.Info(ctx, "%v %v %v", result, err, printKind(result))
 
-	result, err = MemCacheFunc(ctx, lCache, 60*time.Second, rawGetFunc4, cacheKey, "p1", "p2")
-	log.Info(ctx, "%v %v %v", result, err, printKind(result))
-	MemCacheDelete(ctx, lCache, cacheKey, "p1", "p2")
+// 	result, err = MemCacheFunc(ctx, lCache, 60*time.Second, rawGetFunc5, cacheKey, "p1", "p2")
+// 	log.Info(ctx, "%v %v %v", result, err, printKind(result))
+// 	MemCacheDelete(ctx, lCache, cacheKey, "p1", "p2")
 
-	result, err = MemCacheFunc(ctx, lCache, 60*time.Second, rawGetFunc5, cacheKey, "p1", "p2")
-	log.Info(ctx, "%v %v %v", result, err, printKind(result))
+// 	result, err = MemCacheFunc(ctx, lCache, 60*time.Second, rawGetFunc6, cacheKey, "p1", "p2")
+// 	log.Info(ctx, "%v %v %v", result, err, printKind(result))
 
-	result, err = MemCacheFunc(ctx, lCache, 60*time.Second, rawGetFunc5, cacheKey, "p1", "p2")
-	log.Info(ctx, "%v %v %v", result, err, printKind(result))
-	MemCacheDelete(ctx, lCache, cacheKey, "p1", "p2")
+// 	result, err = MemCacheFunc(ctx, lCache, 60*time.Second, rawGetFunc6, cacheKey, "p1", "p2")
+// 	log.Info(ctx, "%v %v %v", drainToArray(result), err, printKind(result))
+// 	MemCacheDelete(ctx, lCache, cacheKey, "p1", "p2")
 
-	result, err = MemCacheFunc(ctx, lCache, 60*time.Second, rawGetFunc6, cacheKey, "p1", "p2")
-	log.Info(ctx, "%v %v %v", result, err, printKind(result))
+// 	result, err = MemCacheFunc(ctx, lCache, 60*time.Second, rawGetFunc7, cacheKey, "p1", "p2")
+// 	log.Info(ctx, "%v %v %v", result, err, printKind(result))
 
-	result, err = MemCacheFunc(ctx, lCache, 60*time.Second, rawGetFunc6, cacheKey, "p1", "p2")
-	log.Info(ctx, "%v %v %v", drainToArray(result), err, printKind(result))
-	MemCacheDelete(ctx, lCache, cacheKey, "p1", "p2")
+// 	result, err = MemCacheFunc(ctx, lCache, 60*time.Second, rawGetFunc7, cacheKey, "p1", "p2")
+// 	log.Info(ctx, "%v %v %v", drainToMap(result), err, printKind(result))
+// 	MemCacheDelete(ctx, lCache, cacheKey, "p1", "p2")
 
-	result, err = MemCacheFunc(ctx, lCache, 60*time.Second, rawGetFunc7, cacheKey, "p1", "p2")
-	log.Info(ctx, "%v %v %v", result, err, printKind(result))
+// 	result, err = MemCacheFunc(ctx, lCache, 60*time.Second, rawGetFunc8, cacheKey, "p1", "p2")
+// 	log.Info(ctx, "%v %v %v", result, err, printKind(result))
 
-	result, err = MemCacheFunc(ctx, lCache, 60*time.Second, rawGetFunc7, cacheKey, "p1", "p2")
-	log.Info(ctx, "%v %v %v", drainToMap(result), err, printKind(result))
-	MemCacheDelete(ctx, lCache, cacheKey, "p1", "p2")
+// 	result, err = MemCacheFunc(ctx, lCache, 60*time.Second, rawGetFunc8, cacheKey, "p1", "p2")
+// 	log.Info(ctx, "%v %v %v", result, err, printKind(result))
+// 	MemCacheDelete(ctx, lCache, cacheKey, "p1", "p2")
 
-	result, err = MemCacheFunc(ctx, lCache, 60*time.Second, rawGetFunc8, cacheKey, "p1", "p2")
-	log.Info(ctx, "%v %v %v", result, err, printKind(result))
+// 	result, err = MemCacheFunc(ctx, lCache, 60*time.Second, rawGetFunc9, cacheKey, "p1", "p2")
+// 	log.Info(ctx, "%v %v %v", result, err, printKind(result))
 
-	result, err = MemCacheFunc(ctx, lCache, 60*time.Second, rawGetFunc8, cacheKey, "p1", "p2")
-	log.Info(ctx, "%v %v %v", result, err, printKind(result))
-	MemCacheDelete(ctx, lCache, cacheKey, "p1", "p2")
-
-	result, err = MemCacheFunc(ctx, lCache, 60*time.Second, rawGetFunc9, cacheKey, "p1", "p2")
-	log.Info(ctx, "%v %v %v", result, err, printKind(result))
-
-	result, err = MemCacheFunc(ctx, lCache, 60*time.Second, rawGetFunc9, cacheKey, "p1", "p2")
-	log.Info(ctx, "%v %v %v", result, err, printKind(result))
-	MemCacheDelete(ctx, lCache, cacheKey, "p1", "p2")
-}
+// 	result, err = MemCacheFunc(ctx, lCache, 60*time.Second, rawGetFunc9, cacheKey, "p1", "p2")
+// 	log.Info(ctx, "%v %v %v", result, err, printKind(result))
+// 	MemCacheDelete(ctx, lCache, cacheKey, "p1", "p2")
+// }

@@ -45,13 +45,14 @@ func StringToValue[T any](str string) (t T, err error) {
 		return
 	}
 
-	typ := reflect.TypeOf(&t)
-	if typ.Implements(_pbIface) {
+	ptyp := reflect.TypeOf(&t)
+	if ptyp.Implements(_pbIface) {
 		var pb interface{} = &t
 		err = proto.Unmarshal([]byte(str), pb.(proto.Message))
 		return
 	}
 
+	typ := reflect.TypeOf(t)
 	switch typ.Kind() {
 	case reflect.String:
 		var s interface{} = t

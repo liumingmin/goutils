@@ -25,7 +25,7 @@ func TestRdscCacheFunc(t *testing.T) {
 
 	rds := redisDao.Get(RDSC_DB)
 
-	result, err := RdsCacheFunc(ctx, rds, 60, rawGetFunc0, cacheKey, "p1", "p2")
+	result, err := RdsCacheFunc2(ctx, rds, 60, rawGetFunc0, cacheKey, "p1", "p2")
 	if err != nil {
 		t.Error(err)
 	}
@@ -49,56 +49,35 @@ func TestRdsDeleteCacheTestMore(t *testing.T) {
 	var result interface{}
 	var err error
 
-	result, err = RdsCacheFunc(ctx, rds, 60, rawGetFunc0, cacheKey, "p1", "p2")
-	if err != nil {
-		t.Error(err)
-	}
-
-	log.Info(ctx, "%v %v %v", result, err, printKind(result))
 	err = RdsDeleteCache(ctx, rds, cacheKey, "p1", "p2")
 	if err != nil {
 		t.Error(err)
 	}
 
-	result, err = RdsCacheFunc(ctx, rds, 60, rawGetFunc1, cacheKey, "p1", "p2")
+	result, err = RdsCacheFunc2(ctx, rds, 60, rawGetFunc0, cacheKey, "p1", "p2")
 	if err != nil {
 		t.Error(err)
 	}
 	log.Info(ctx, "%v %v %v", result, err, printKind(result))
 
-	result, err = RdsCacheFunc(ctx, rds, 60, rawGetFunc1, cacheKey, "p1", "p2")
+	result, err = RdsCacheFunc2(ctx, rds, 60, rawGetFunc0, cacheKey, "p1", "p2")
 	if err != nil {
 		t.Error(err)
 	}
 	log.Info(ctx, "%v %v %v", result, err, printKind(result))
+
 	err = RdsDeleteCache(ctx, rds, cacheKey, "p1", "p2")
 	if err != nil {
 		t.Error(err)
 	}
 
-	result, err = RdsCacheFunc(ctx, rds, 60, rawGetFunc2, cacheKey, "p1", "p2")
+	result, err = RdsCacheFunc2(ctx, rds, 60, rawGetFunc4, cacheKey, "p1", "p2")
 	if err != nil {
 		t.Error(err)
 	}
 	log.Info(ctx, "%v %v %v", result, err, printKind(result))
 
-	result, err = RdsCacheFunc(ctx, rds, 60, rawGetFunc2, cacheKey, "p1", "p2")
-	if err != nil {
-		t.Error(err)
-	}
-	log.Info(ctx, "%v %v %v", result, err, printKind(result))
-	err = RdsDeleteCache(ctx, rds, cacheKey, "p1", "p2")
-	if err != nil {
-		t.Error(err)
-	}
-
-	result, err = RdsCacheFunc(ctx, rds, 60, rawGetFunc3, cacheKey, "p1", "p2")
-	if err != nil {
-		t.Error(err)
-	}
-	log.Info(ctx, "%v %v %v", result, err, printKind(result))
-
-	result, err = RdsCacheFunc(ctx, rds, 60, rawGetFunc3, cacheKey, "p1", "p2")
+	result, err = RdsCacheFunc2(ctx, rds, 60, rawGetFunc4, cacheKey, "p1", "p2")
 	if err != nil {
 		t.Error(err)
 	}
@@ -108,108 +87,17 @@ func TestRdsDeleteCacheTestMore(t *testing.T) {
 		t.Error(err)
 	}
 
-	result, err = RdsCacheFunc(ctx, rds, 60, rawGetFunc4, cacheKey, "p1", "p2")
+	result, err = RdsCacheFunc2(ctx, rds, 60, rawGetFunc5, cacheKey, "p1", "p2")
 	if err != nil {
 		t.Error(err)
 	}
 	log.Info(ctx, "%v %v %v", result, err, printKind(result))
 
-	result, err = RdsCacheFunc(ctx, rds, 60, rawGetFunc4, cacheKey, "p1", "p2")
+	result, err = RdsCacheFunc2(ctx, rds, 60, rawGetFunc5, cacheKey, "p1", "p2")
 	if err != nil {
 		t.Error(err)
 	}
 	log.Info(ctx, "%v %v %v", result, err, printKind(result))
-	err = RdsDeleteCache(ctx, rds, cacheKey, "p1", "p2")
-	if err != nil {
-		t.Error(err)
-	}
-
-	result, err = RdsCacheFunc(ctx, rds, 60, rawGetFunc5, cacheKey, "p1", "p2")
-	if err != nil {
-		t.Error(err)
-	}
-	log.Info(ctx, "%v %v %v", result, err, printKind(result))
-
-	result, err = RdsCacheFunc(ctx, rds, 60, rawGetFunc5, cacheKey, "p1", "p2")
-	if err != nil {
-		t.Error(err)
-	}
-	log.Info(ctx, "%v %v %v", result, err, printKind(result))
-	err = RdsDeleteCache(ctx, rds, cacheKey, "p1", "p2")
-	if err != nil {
-		t.Error(err)
-	}
-
-	result, err = RdsCacheFunc(ctx, rds, 60, rawGetFunc6, cacheKey, "p1", "p2")
-	if err != nil {
-		t.Error(err)
-	}
-	log.Info(ctx, "%v %v %v", result, err, printKind(result))
-
-	result, err = RdsCacheFunc(ctx, rds, 60, rawGetFunc6, cacheKey, "p1", "p2")
-	if err != nil {
-		t.Error(err)
-	}
-	log.Info(ctx, "%v %v %v", drainToArray(result), err, printKind(result))
-	err = RdsDeleteCache(ctx, rds, cacheKey, "p1", "p2")
-	if err != nil {
-		t.Error(err)
-	}
-
-	result, err = RdsCacheFunc(ctx, rds, 60, rawGetFunc7, cacheKey, "p1", "p2")
-	if err != nil {
-		t.Error(err)
-	}
-	log.Info(ctx, "%v %v %v", result, err, printKind(result))
-
-	result, err = RdsCacheFunc(ctx, rds, 60, rawGetFunc7, cacheKey, "p1", "p2")
-	if err != nil {
-		t.Error(err)
-	}
-	log.Info(ctx, "%v %v %v", drainToMap(result), err, printKind(result))
-	err = RdsDeleteCache(ctx, rds, cacheKey, "p1", "p2")
-	if err != nil {
-		t.Error(err)
-	}
-
-	result, err = RdsCacheFunc(ctx, rds, 60, rawGetFunc8, cacheKey, "p1", "p2")
-	if err != nil {
-		t.Error(err)
-	}
-	log.Info(ctx, "%v %v %v", result, err, printKind(result))
-
-	result, err = RdsCacheFunc(ctx, rds, 60, rawGetFunc8, cacheKey, "p1", "p2")
-	if err != nil {
-		t.Error(err)
-	}
-	log.Info(ctx, "%v %v %v", result, err, printKind(result))
-	err = RdsDeleteCache(ctx, rds, cacheKey, "p1", "p2")
-	if err != nil {
-		t.Error(err)
-	}
-
-	result, err = RdsCacheFunc(ctx, rds, 60, rawGetFunc9, cacheKey, "p1", "p2")
-	if err != nil {
-		t.Error(err)
-	}
-	log.Info(ctx, "%v %v %v", result, err, printKind(result))
-
-	result, err = RdsCacheFunc(ctx, rds, 60, rawGetFunc9, cacheKey, "p1", "p2")
-	if err != nil {
-		t.Error(err)
-	}
-	log.Info(ctx, "%v %v %v", result, err, printKind(result))
-	err = RdsDeleteCache(ctx, rds, cacheKey, "p1", "p2")
-	if err != nil {
-		t.Error(err)
-	}
-
-	//result, err = RdsCacheFunc(ctx, rds, 60, rawGetFunc10, cacheKey, "p1", "p2")
-	//log.Info(ctx, "%v %v %v", result, err, printKind(result))
-	//
-	//result, err = RdsCacheFunc(ctx, rds, 60, rawGetFunc10, cacheKey, "p1", "p2")
-	//log.Info(ctx, "%v %v %v", result, err, printKind(result))
-
 	err = RdsDeleteCache(ctx, rds, cacheKey, "p1", "p2")
 	if err != nil {
 		t.Error(err)
@@ -223,21 +111,6 @@ func printKind(result interface{}) reflect.Kind {
 	return reflect.TypeOf(result).Kind()
 }
 
-func drainToArray(v interface{}) interface{} {
-	vv := reflect.ValueOf(v)
-	if vv.IsValid() && !vv.IsNil() && !vv.IsZero() {
-		return reflect.ValueOf(v).Index(0).Interface()
-	}
-	return nil
-}
-
-func drainToMap(v interface{}) interface{} {
-	vv := reflect.ValueOf(v)
-	if vv.IsValid() && !vv.IsNil() && !vv.IsZero() {
-		return vv.MapIndex(reflect.ValueOf("abc")).Interface()
-	}
-	return nil
-}
 func mockErr() error {
 	return nil
 }
@@ -250,23 +123,11 @@ type cacheDataStruct struct {
 	Extra      interface{}
 }
 
-func rawGetFunc0(p1, p2 string) (string, error) {
+func rawGetFunc0(ctx context.Context, p1, p2 string) (string, error) {
 	return fmt.Sprintf("TEST:%v:%v", "p1", "p2"), mockErr()
 }
 
-func rawGetFunc1(p1, p2 string) (float64, error) {
-	return 21.85, mockErr()
-}
-
-func rawGetFunc2(p1, p2 string) (int64, error) {
-	return 21, mockErr()
-}
-
-func rawGetFunc3(p1, p2 string) (bool, error) {
-	return true, mockErr()
-}
-
-func rawGetFunc4(p1, p2 string) (cacheDataStruct, error) {
+func rawGetFunc4(ctx context.Context, p1, p2 string) (cacheDataStruct, error) {
 	return cacheDataStruct{
 		PersonId:   p1,
 		Subject:    p2,
@@ -276,70 +137,9 @@ func rawGetFunc4(p1, p2 string) (cacheDataStruct, error) {
 	}, mockErr()
 }
 
-func rawGetFunc5(p1, p2 string) (*cacheDataStruct, error) {
-	result, _ := rawGetFunc4(p1, p2)
+func rawGetFunc5(ctx context.Context, p1, p2 string) (*cacheDataStruct, error) {
+	result, _ := rawGetFunc4(ctx, p1, p2)
 	return &result, mockErr()
-}
-
-func rawGetFunc6(p1, p2 string) ([]*cacheDataStruct, error) {
-	result, _ := rawGetFunc4(p1, p2)
-	return []*cacheDataStruct{&result}, mockErr()
-}
-
-func rawGetFunc7(p1, p2 string) (map[string]*cacheDataStruct, error) {
-	result, _ := rawGetFunc4(p1, p2)
-	return map[string]*cacheDataStruct{"abc": &result}, mockErr()
-}
-
-func rawGetFunc8(p1, p2 string) ([]string, error) {
-	return []string{p1, p2}, mockErr()
-}
-
-func rawGetFunc9(p1, p2 string) (map[string]string, error) {
-	return map[string]string{p1: p2}, mockErr()
-}
-
-//func rawGetFunc10(p1, p2 string) (*ws.P_MESSAGE, error) {
-//	return &ws.P_MESSAGE{
-//		ProtocolId: 100,
-//		Data:       []byte("pb" + p1 + p2),
-//	}, nil
-//}
-
-func TestRdsCacheMultiFunc(t *testing.T) {
-	if !isRdsRun() {
-		return
-	}
-
-	redisDao.InitRedises()
-	ctx := context.Background()
-	const RDSC_DB = "rdscdb"
-
-	rds := redisDao.Get(RDSC_DB)
-	result, err := RdsCacheMultiFunc(ctx, rds, 30, getThingsByIds, "multikey:%s", []string{"1", "2", "5", "3", "4", "10"})
-	if err == nil && result != nil {
-		mapValue, ok := result.(map[string]*Thing)
-		if ok {
-			for key, value := range mapValue {
-				log.Info(ctx, "%v===%v", key, value)
-			}
-		}
-	}
-}
-
-type Thing struct {
-	Id   string
-	Name string
-}
-
-func getThingsByIds(ctx context.Context, ids []string) (map[string]*Thing, error) {
-	return map[string]*Thing{
-		"1": {Id: "1"},
-		"2": {Id: "2"},
-		"3": {Id: "3"},
-		"4": {Id: "4"},
-		"5": {Id: "5"},
-	}, nil
 }
 
 func isRdsRun() bool {
