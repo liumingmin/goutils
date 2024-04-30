@@ -25,7 +25,17 @@ func TestRdscCacheFunc(t *testing.T) {
 
 	rds := redisDao.Get(RDSC_DB)
 
-	result, err := RdsCacheFunc2(ctx, rds, 60, rawGetFunc0, cacheKey, "p1", "p2")
+	result, err := RdsCacheFunc0(ctx, rds, 60, rawGetFunc1, cacheKey)
+	if err != nil {
+		t.Error(err)
+	}
+
+	result, err = RdsCacheFunc1(ctx, rds, 60, rawGetFunc2, cacheKey, "p1")
+	if err != nil {
+		t.Error(err)
+	}
+
+	result, err = RdsCacheFunc2(ctx, rds, 60, rawGetFunc0, cacheKey, "p1", "p2")
 	if err != nil {
 		t.Error(err)
 	}
@@ -124,7 +134,15 @@ type cacheDataStruct struct {
 }
 
 func rawGetFunc0(ctx context.Context, p1, p2 string) (string, error) {
-	return fmt.Sprintf("TEST:%v:%v", "p1", "p2"), mockErr()
+	return fmt.Sprintf("TEST:%v:%v", p1, p2), mockErr()
+}
+
+func rawGetFunc1(ctx context.Context) (string, error) {
+	return "TEST", mockErr()
+}
+
+func rawGetFunc2(ctx context.Context, p1 string) (string, error) {
+	return fmt.Sprintf("TEST:%v", p1), mockErr()
 }
 
 func rawGetFunc4(ctx context.Context, p1, p2 string) (cacheDataStruct, error) {
