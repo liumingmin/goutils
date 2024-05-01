@@ -55,7 +55,7 @@ func StringToValue[T any](str string) (t T, err error) {
 	typ := reflect.TypeOf(t)
 	switch typ.Kind() {
 	case reflect.String:
-		var s interface{} = t
+		var s interface{} = str
 		return s.(T), nil
 	case reflect.Ptr, reflect.Slice, reflect.Array, reflect.Map, reflect.Interface, reflect.Struct:
 		err = json.Unmarshal([]byte(str), &t)

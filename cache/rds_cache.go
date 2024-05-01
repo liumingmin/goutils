@@ -14,7 +14,8 @@ import (
 )
 
 var (
-	sg = singleflight.Group{}
+	sg                  = singleflight.Group{}
+	DurPrevCacheThrough = 10 * time.Second //防止缓存穿透
 )
 
 func RdsDeleteCache(ctx context.Context, rds redis.UniversalClient, keyFmt string, args ...interface{}) (err error) {
@@ -25,11 +26,11 @@ func RdsDeleteCache(ctx context.Context, rds redis.UniversalClient, keyFmt strin
 	return rds.Del(ctx, key).Err()
 }
 
-func RdsCacheFunc0[Tr any](ctx context.Context, rds redis.UniversalClient, rdsExpire int, fn func(context.Context) (Tr, error),
+func RdsCacheFunc0[Tr any](ctx context.Context, rds redis.UniversalClient, expire time.Duration, fn func(context.Context) (Tr, error),
 	key string) (tr Tr, err error) {
 	retValue, err := rds.Get(ctx, key).Result()
 	if err == nil {
-		log.Debug(ctx, "RdsCacheFunc hit cache : %v", retValue)
+		log.Debug(ctx, "RdsCacheFunc0 hit cache: key: %v, value: %v", key, retValue)
 
 		return conv.StringToValue[Tr](retValue)
 	}
@@ -39,24 +40,24 @@ func RdsCacheFunc0[Tr any](ctx context.Context, rds redis.UniversalClient, rdsEx
 		if err == nil {
 			str, err := conv.ValueToString(tr)
 			if err == nil {
-				rds.Set(ctx, key, str, time.Duration(rdsExpire)*time.Second)
+				rds.Set(ctx, key, str, expire)
 				return tr, nil
 			}
 		}
 
-		rds.Set(ctx, key, "", time.Duration(utils.Min(rdsExpire, 10))*time.Second) //防止缓存穿透
+		rds.Set(ctx, key, "", utils.Min(expire, DurPrevCacheThrough))
 		return tr, err
 	})
 	return data.(Tr), err
 }
 
-func RdsCacheFunc1[T1 any, Tr any](ctx context.Context, rds redis.UniversalClient, rdsExpire int, fn func(context.Context, T1) (Tr, error),
+func RdsCacheFunc1[T1 any, Tr any](ctx context.Context, rds redis.UniversalClient, expire time.Duration, fn func(context.Context, T1) (Tr, error),
 	keyFmt string, t1 T1) (tr Tr, err error) {
 	key := fmt.Sprintf(keyFmt, t1)
 
 	retValue, err := rds.Get(ctx, key).Result()
 	if err == nil {
-		log.Debug(ctx, "RdsCacheFunc hit cache : %v", retValue)
+		log.Debug(ctx, "RdsCacheFunc1 hit cache: key: %v, value: %v", key, retValue)
 
 		return conv.StringToValue[Tr](retValue)
 	}
@@ -66,24 +67,24 @@ func RdsCacheFunc1[T1 any, Tr any](ctx context.Context, rds redis.UniversalClien
 		if err == nil {
 			str, err := conv.ValueToString(tr)
 			if err == nil {
-				rds.Set(ctx, key, str, time.Duration(rdsExpire)*time.Second)
+				rds.Set(ctx, key, str, expire)
 				return tr, nil
 			}
 		}
 
-		rds.Set(ctx, key, "", time.Duration(utils.Min(rdsExpire, 10))*time.Second) //防止缓存穿透
+		rds.Set(ctx, key, "", utils.Min(expire, DurPrevCacheThrough))
 		return tr, err
 	})
 	return data.(Tr), err
 }
 
-func RdsCacheFunc2[T1 any, T2 any, Tr any](ctx context.Context, rds redis.UniversalClient, rdsExpire int, fn func(context.Context, T1, T2) (Tr, error),
+func RdsCacheFunc2[T1 any, T2 any, Tr any](ctx context.Context, rds redis.UniversalClient, expire time.Duration, fn func(context.Context, T1, T2) (Tr, error),
 	keyFmt string, t1 T1, t2 T2) (tr Tr, err error) {
 	key := fmt.Sprintf(keyFmt, t1, t2)
 
 	retValue, err := rds.Get(ctx, key).Result()
 	if err == nil {
-		log.Debug(ctx, "RdsCacheFunc hit cache : %v", retValue)
+		log.Debug(ctx, "RdsCacheFunc2 hit cache: key: %v, value: %v", key, retValue)
 
 		return conv.StringToValue[Tr](retValue)
 	}
@@ -93,12 +94,12 @@ func RdsCacheFunc2[T1 any, T2 any, Tr any](ctx context.Context, rds redis.Univer
 		if err == nil {
 			str, err := conv.ValueToString(tr)
 			if err == nil {
-				rds.Set(ctx, key, str, time.Duration(rdsExpire)*time.Second)
+				rds.Set(ctx, key, str, expire)
 				return tr, nil
 			}
 		}
 
-		rds.Set(ctx, key, "", time.Duration(utils.Min(rdsExpire, 10))*time.Second) //防止缓存穿透
+		rds.Set(ctx, key, "", utils.Min(expire, DurPrevCacheThrough))
 		return tr, err
 	})
 	return data.(Tr), err
