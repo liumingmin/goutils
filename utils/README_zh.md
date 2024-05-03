@@ -8,6 +8,7 @@
   * [async_test.go](#async_testgo)
   * [熔断器](#%E7%86%94%E6%96%AD%E5%99%A8)
   * [checksum](#checksum)
+  * [conv](#conv)
   * [CSV文件解析为MDB内存表](#csv%E6%96%87%E4%BB%B6%E8%A7%A3%E6%9E%90%E4%B8%BAmdb%E5%86%85%E5%AD%98%E8%A1%A8)
   * [分布式锁](#%E5%88%86%E5%B8%83%E5%BC%8F%E9%94%81)
   * [dll_mod_test.go](#dll_mod_testgo)
@@ -189,6 +190,93 @@ if err != nil {
 	t.Error(err)
 	return
 }
+```
+## conv
+### conv_test.go
+#### TestValueToString
+```go
+
+var str string
+var err error
+
+str, err = ValueToString(100.2)
+if err != nil {
+	t.FailNow()
+}
+
+if val, err := StringToValue[float64](str); err != nil || val != 100.2 {
+	t.Error(val, err)
+}
+
+str, err = ValueToString(200)
+if err != nil {
+	t.FailNow()
+}
+
+if val, err := StringToValue[int64](str); err != nil || val != 200 {
+	t.Error(val, err)
+}
+
+str, err = ValueToString(true)
+if err != nil {
+	t.FailNow()
+}
+
+if val, err := StringToValue[bool](str); err != nil || val != true {
+	t.Error(val, err)
+}
+
+st := testDataStruct{
+	Field1: "f1",
+	Field2: 1000,
+	Field3: 2,
+}
+str, err = ValueToString(st)
+if err != nil {
+	t.FailNow()
+}
+
+if val, err := StringToValue[testDataStruct](str); err != nil || !reflect.DeepEqual(val, st) {
+	t.Error(val, err)
+}
+
+if val, err := StringToValue[*testDataStruct](str); err != nil || !reflect.DeepEqual(*val, st) {
+	t.Error(val, err)
+}
+
+mst := map[string]*testDataStruct{"one": &st}
+str, err = ValueToString(mst)
+if err != nil {
+	t.FailNow()
+}
+
+if val, err := StringToValue[map[string]*testDataStruct](str); err != nil || !reflect.DeepEqual(val, mst) {
+	t.Error(val, err)
+}
+
+slice := []string{"a", "b", "c"}
+str, err = ValueToString(slice)
+if err != nil {
+	t.FailNow()
+}
+
+if val, err := StringToValue[[]string](str); err != nil || !reflect.DeepEqual(val, slice) {
+	t.Error(val, err)
+}
+
+// displace := &ws.P_DISPLACE{
+// 	OldIp: []byte("192.168.0.1"),
+// 	NewIp: []byte("192.168.0.100"),
+// 	Ts:    12345,
+// }
+// str, err = ValueToString(displace)
+// if err != nil {
+// 	t.FailNow()
+// }
+
+// if val, err := StringToValue[ws.P_DISPLACE](str); err != nil || val.Ts != displace.Ts {
+// 	t.Error(val, err)
+// }
 ```
 ## CSV文件解析为MDB内存表
 ### csv_parse_test.go

@@ -236,19 +236,18 @@ if len(descartMap) != 24 {
 ### TestXorIO
 ```go
 
-key := []byte("goutils_is_great")
 data := []byte("1234567890abcdefhijklmn")
 
 w := &bytes.Buffer{}
 
-xw := NewXORWriter(w, key)
+xw := NewXORWriter(w, testXorKey)
 _, err := io.Copy(xw, bytes.NewReader(data))
 if err != nil {
 	t.Fatal(err)
 }
 
 cipherBs := w.Bytes()
-xr := NewXORReader(bytes.NewReader(cipherBs), key)
+xr := NewXORReader(bytes.NewReader(cipherBs), testXorKey)
 rdata, err := ioutil.ReadAll(xr)
 if err != nil {
 	t.Fatal(err)
@@ -258,25 +257,24 @@ if bytes.Compare(data, rdata) != 0 {
 	t.FailNow()
 }
 ```
-### TestCipherXor
+### cipherXor
 ```go
 
-key := []byte("goutils_is_great")
 writerIndex := uint64(0)
 
-f, err := os.Open("../.tools/protoc-3.19.4-win64.zip")
+f, err := os.Open(testXorOrigFilePath)
 if err != nil {
 	t.Fatal(err)
 }
 defer f.Close()
 
-cf, err := os.OpenFile("../.tools/protoc-3.19.4-win64.zip.xor", os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0666)
+cf, err := os.OpenFile(testXorCrpytoFilePath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0666)
 if err != nil {
 	t.Fatal(err)
 }
 defer cf.Close()
 
-w := NewXORWriterWithOffset(cf, key, &writerIndex)
+w := NewXORWriterWithOffset(cf, testXorKey, &writerIndex)
 
 _, err = io.Copy(w, f)
 if err != nil {
@@ -286,19 +284,20 @@ if err != nil {
 ### TestDeCipherXor
 ```go
 
-key := []byte("goutils_is_great")
 readerIndex := uint64(0)
 
+cipherXor(t)
+
 func() {
-	f, err := os.Open("../.tools/protoc-3.19.4-win64.zip.xor")
+	f, err := os.Open(testXorCrpytoFilePath)
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer f.Close()
 
-	r := NewXORReaderWithOffset(f, key, &readerIndex)
+	r := NewXORReaderWithOffset(f, testXorKey, &readerIndex)
 
-	rf, err := os.OpenFile("../.tools/protoc-3.19.4-win64.zip.recover", os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0666)
+	rf, err := os.OpenFile(testXorRecoverFilePath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0666)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -310,8 +309,8 @@ func() {
 	}
 }()
 
-bs1, _ := ioutil.ReadFile("../.tools/protoc-3.19.4-win64.zip")
-bs2, _ := ioutil.ReadFile("../.tools/protoc-3.19.4-win64.zip.recover")
+bs1, _ := ioutil.ReadFile(testXorOrigFilePath)
+bs2, _ := ioutil.ReadFile(testXorRecoverFilePath)
 
 if bytes.Compare(bs1, bs2) != 0 {
 	t.FailNow()
@@ -320,23 +319,22 @@ if bytes.Compare(bs1, bs2) != 0 {
 ### TestXORReaderAt
 ```go
 
-key := []byte("goutils_is_great")
-
+cipherXor(t)
 func() {
 
-	f, err := os.Open("../.tools/protoc-3.19.4-win64.zip.xor")
+	f, err := os.Open(testXorCrpytoFilePath)
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer f.Close()
 
-	rf, err := os.OpenFile("../.tools/protoc-3.19.4-win64.zip.recover", os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0666)
+	rf, err := os.OpenFile(testXorRecoverFilePath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0666)
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer rf.Close()
 
-	fileInfo, err := os.Stat("../.tools/protoc-3.19.4-win64.zip.xor")
+	fileInfo, err := os.Stat(testXorCrpytoFilePath)
 	if err != nil {
 		return
 	}
@@ -349,7 +347,7 @@ func() {
 		}
 
 		t.Logf("read section offset: %v, size: %v\n", offset, rdsize)
-		sr := io.NewSectionReader(NewXORReaderAt(f, key), offset, rdsize)
+		sr := io.NewSectionReader(NewXORReaderAt(f, testXorKey), offset, rdsize)
 
 		_, err = io.Copy(rf, sr)
 		if err != nil {
@@ -360,8 +358,8 @@ func() {
 	}
 }()
 
-bs1, _ := ioutil.ReadFile("../.tools/protoc-3.19.4-win64.zip")
-bs2, _ := ioutil.ReadFile("../.tools/protoc-3.19.4-win64.zip.recover")
+bs1, _ := ioutil.ReadFile(testXorOrigFilePath)
+bs2, _ := ioutil.ReadFile(testXorRecoverFilePath)
 
 if bytes.Compare(bs1, bs2) != 0 {
 	t.FailNow()
