@@ -1,0 +1,11 @@
+syntax = "proto3";
+package conv;
+
+option go_package = "/conv";
+
+message ConvSample
+{
+    string                  field1                  = 1;
+    string                  field2                  = 2;
+    int64                   ts                      = 3;
+}

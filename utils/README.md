@@ -192,6 +192,7 @@ if err != nil {
 }
 ```
 ## conv
+### conv.pb_test.go
 ### conv_test.go
 #### TestValueToString
 ```go
@@ -264,19 +265,19 @@ if val, err := StringToValue[[]string](str); err != nil || !reflect.DeepEqual(va
 	t.Error(val, err)
 }
 
-// displace := &ws.P_DISPLACE{
-// 	OldIp: []byte("192.168.0.1"),
-// 	NewIp: []byte("192.168.0.100"),
-// 	Ts:    12345,
-// }
-// str, err = ValueToString(displace)
-// if err != nil {
-// 	t.FailNow()
-// }
+sample := &ConvSample{
+	Field1: "192.168.0.1",
+	Field2: "192.168.0.100",
+	Ts:     12345,
+}
+str, err = ValueToString(sample)
+if err != nil {
+	t.FailNow()
+}
 
-// if val, err := StringToValue[ws.P_DISPLACE](str); err != nil || val.Ts != displace.Ts {
-// 	t.Error(val, err)
-// }
+if val, err := StringToValue[ConvSample](str); err != nil || val.Field1 != sample.Field1 || val.Field2 != sample.Field2 || val.Ts != sample.Ts {
+	t.Error(val, err)
+}
 ```
 ## csv
 ### csv_parse_test.go
