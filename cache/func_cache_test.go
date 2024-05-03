@@ -22,12 +22,12 @@ func TestRdscCacheFunc(t *testing.T) {
 		t.Error(err)
 	}
 
-	value1, err := CacheFunc0(ctx, cacher, 60*time.Second, rawGetFunc1, "UTKey")
+	value1, err := CacheFunc0(ctx, cacher, 60*time.Second, rawGetFunc0, "UTKey")
 	if err != nil {
 		t.Error(err)
 	}
 
-	value2, err := CacheFunc0(ctx, cacher, 60*time.Second, rawGetFunc1, "UTKey")
+	value2, err := CacheFunc0(ctx, cacher, 60*time.Second, rawGetFunc0, "UTKey")
 	if err != nil {
 		t.Error(err)
 	}
@@ -41,12 +41,12 @@ func TestRdscCacheFunc(t *testing.T) {
 		t.Error(err)
 	}
 
-	value1, err = CacheFunc1(ctx, cacher, 60*time.Second, rawGetFunc2, fmt.Sprintf("UT:%v", "p1"), "p1")
+	value1, err = CacheFunc1(ctx, cacher, 60*time.Second, rawGetFunc1, fmt.Sprintf("UT:%v", "p1"), "p1")
 	if err != nil {
 		t.Error(err)
 	}
 
-	value2, err = CacheFunc1(ctx, cacher, 60*time.Second, rawGetFunc2, fmt.Sprintf("UT:%v", "p1"), "p1")
+	value2, err = CacheFunc1(ctx, cacher, 60*time.Second, rawGetFunc1, fmt.Sprintf("UT:%v", "p1"), "p1")
 	if err != nil {
 		t.Error(err)
 	}
@@ -60,12 +60,12 @@ func TestRdscCacheFunc(t *testing.T) {
 		t.Error(err)
 	}
 
-	value1, err = CacheFunc2(ctx, cacher, 60*time.Second, rawGetFunc0, fmt.Sprintf("UT:%v:%v", "p1", "p2"), "p1", "p2")
+	value1, err = CacheFunc2(ctx, cacher, 60*time.Second, rawGetFunc2, fmt.Sprintf("UT:%v:%v", "p1", "p2"), "p1", "p2")
 	if err != nil {
 		t.Error(err)
 	}
 
-	value2, err = CacheFunc2(ctx, cacher, 60*time.Second, rawGetFunc0, fmt.Sprintf("UT:%v:%v", "p1", "p2"), "p1", "p2")
+	value2, err = CacheFunc2(ctx, cacher, 60*time.Second, rawGetFunc2, fmt.Sprintf("UT:%v:%v", "p1", "p2"), "p1", "p2")
 	if err != nil {
 		t.Error(err)
 	}
@@ -90,6 +90,59 @@ func TestRdscCacheFunc(t *testing.T) {
 		t.Error(err)
 	}
 
+	if value1 != value2 {
+		t.Error(value1, value2)
+	}
+}
+
+func TestRdscCacheFuncErr(t *testing.T) {
+	ctx := context.Background()
+	cacher := mockGetCacher()
+
+	err := DeleteCache(ctx, cacher, "UTKey")
+	if err != nil {
+		t.Error(err)
+	}
+
+	value1, _ := CacheFunc0(ctx, cacher, 60*time.Second, rawGetFunc0Err, "UTKey")
+	value2, _ := CacheFunc0(ctx, cacher, 60*time.Second, rawGetFunc0Err, "UTKey")
+
+	if value1 != value2 {
+		t.Error(value1, value2)
+	}
+
+	err = DeleteCache(ctx, cacher, fmt.Sprintf("UT:%v", "error"))
+	if err != nil {
+		t.Error(err)
+	}
+
+	value1, _ = CacheFunc1(ctx, cacher, 60*time.Second, rawGetFunc1, fmt.Sprintf("UT:%v", "error"), "error")
+	value2, _ = CacheFunc1(ctx, cacher, 60*time.Second, rawGetFunc1, fmt.Sprintf("UT:%v", "error"), "error")
+
+	if value1 != value2 {
+		t.Error(value1, value2)
+	}
+
+	err = DeleteCache(ctx, cacher, fmt.Sprintf("UT:%v:%v", "error", "p2"))
+	if err != nil {
+		t.Error(err)
+	}
+
+	value1, _ = CacheFunc2(ctx, cacher, 60*time.Second, rawGetFunc2, fmt.Sprintf("UT:%v:%v", "error", "p2"), "error", "p2")
+	value2, _ = CacheFunc2(ctx, cacher, 60*time.Second, rawGetFunc2, fmt.Sprintf("UT:%v:%v", "error", "p2"), "error", "p2")
+
+	if value1 != value2 {
+		t.Error(value1, value2)
+	}
+
+	param3 := &testCacheParam{Param1: "p3"}
+	err = DeleteCache(ctx, cacher, fmt.Sprintf("UT:%v:%v:%v", "error", "p2", param3.Param1))
+	if err != nil {
+		t.Error(err)
+	}
+
+	value1, _ = CacheFunc3(ctx, cacher, 60*time.Second, rawGetFunc3, fmt.Sprintf("UT:%v:%v:%v", "error", "p2", param3.Param1), "error", "p2", param3)
+	value2, _ = CacheFunc3(ctx, cacher, 60*time.Second, rawGetFunc3, fmt.Sprintf("UT:%v:%v:%v", "error", "p2", param3.Param1), "error", "p2", param3)
 	if value1 != value2 {
 		t.Error(value1, value2)
 	}
@@ -204,19 +257,34 @@ type mockCacheDataStruct struct {
 	Amount     float64 `json:"amount" `
 }
 
-func rawGetFunc0(ctx context.Context, p1, p2 string) (string, error) {
-	return fmt.Sprintf("TEST:%v:%v", p1, p2), mockErr()
-}
-
-func rawGetFunc1(ctx context.Context) (string, error) {
+func rawGetFunc0(ctx context.Context) (string, error) {
 	return "TEST", mockErr()
 }
 
-func rawGetFunc2(ctx context.Context, p1 string) (string, error) {
+func rawGetFunc0Err(ctx context.Context) (string, error) {
+	return "", errors.New("func error")
+}
+
+func rawGetFunc1(ctx context.Context, p1 string) (string, error) {
+	if p1 == "error" {
+		return "", errors.New("func error")
+	}
+
 	return fmt.Sprintf("TEST:%v", p1), mockErr()
 }
 
+func rawGetFunc2(ctx context.Context, p1, p2 string) (string, error) {
+	if p1 == "error" {
+		return "", errors.New("func error")
+	}
+	return fmt.Sprintf("TEST:%v:%v", p1, p2), mockErr()
+}
+
 func rawGetFunc3(ctx context.Context, p1, p2 string, p3 *testCacheParam) (string, error) {
+	if p1 == "error" {
+		return "", errors.New("func error")
+	}
+
 	return fmt.Sprintf("TEST:%v:%v:%v", p1, p2, p3.Param1), mockErr()
 }
 

@@ -22,12 +22,12 @@ if err != nil {
 	t.Error(err)
 }
 
-value1, err := CacheFunc0(ctx, cacher, 60*time.Second, rawGetFunc1, "UTKey")
+value1, err := CacheFunc0(ctx, cacher, 60*time.Second, rawGetFunc0, "UTKey")
 if err != nil {
 	t.Error(err)
 }
 
-value2, err := CacheFunc0(ctx, cacher, 60*time.Second, rawGetFunc1, "UTKey")
+value2, err := CacheFunc0(ctx, cacher, 60*time.Second, rawGetFunc0, "UTKey")
 if err != nil {
 	t.Error(err)
 }
@@ -41,12 +41,12 @@ if err != nil {
 	t.Error(err)
 }
 
-value1, err = CacheFunc1(ctx, cacher, 60*time.Second, rawGetFunc2, fmt.Sprintf("UT:%v", "p1"), "p1")
+value1, err = CacheFunc1(ctx, cacher, 60*time.Second, rawGetFunc1, fmt.Sprintf("UT:%v", "p1"), "p1")
 if err != nil {
 	t.Error(err)
 }
 
-value2, err = CacheFunc1(ctx, cacher, 60*time.Second, rawGetFunc2, fmt.Sprintf("UT:%v", "p1"), "p1")
+value2, err = CacheFunc1(ctx, cacher, 60*time.Second, rawGetFunc1, fmt.Sprintf("UT:%v", "p1"), "p1")
 if err != nil {
 	t.Error(err)
 }
@@ -60,12 +60,12 @@ if err != nil {
 	t.Error(err)
 }
 
-value1, err = CacheFunc2(ctx, cacher, 60*time.Second, rawGetFunc0, fmt.Sprintf("UT:%v:%v", "p1", "p2"), "p1", "p2")
+value1, err = CacheFunc2(ctx, cacher, 60*time.Second, rawGetFunc2, fmt.Sprintf("UT:%v:%v", "p1", "p2"), "p1", "p2")
 if err != nil {
 	t.Error(err)
 }
 
-value2, err = CacheFunc2(ctx, cacher, 60*time.Second, rawGetFunc0, fmt.Sprintf("UT:%v:%v", "p1", "p2"), "p1", "p2")
+value2, err = CacheFunc2(ctx, cacher, 60*time.Second, rawGetFunc2, fmt.Sprintf("UT:%v:%v", "p1", "p2"), "p1", "p2")
 if err != nil {
 	t.Error(err)
 }
@@ -90,6 +90,60 @@ if err != nil {
 	t.Error(err)
 }
 
+if value1 != value2 {
+	t.Error(value1, value2)
+}
+```
+### TestRdscCacheFuncErr
+```go
+
+ctx := context.Background()
+cacher := mockGetCacher()
+
+err := DeleteCache(ctx, cacher, "UTKey")
+if err != nil {
+	t.Error(err)
+}
+
+value1, _ := CacheFunc0(ctx, cacher, 60*time.Second, rawGetFunc0Err, "UTKey")
+value2, _ := CacheFunc0(ctx, cacher, 60*time.Second, rawGetFunc0Err, "UTKey")
+
+if value1 != value2 {
+	t.Error(value1, value2)
+}
+
+err = DeleteCache(ctx, cacher, fmt.Sprintf("UT:%v", "error"))
+if err != nil {
+	t.Error(err)
+}
+
+value1, _ = CacheFunc1(ctx, cacher, 60*time.Second, rawGetFunc1, fmt.Sprintf("UT:%v", "error"), "error")
+value2, _ = CacheFunc1(ctx, cacher, 60*time.Second, rawGetFunc1, fmt.Sprintf("UT:%v", "error"), "error")
+
+if value1 != value2 {
+	t.Error(value1, value2)
+}
+
+err = DeleteCache(ctx, cacher, fmt.Sprintf("UT:%v:%v", "error", "p2"))
+if err != nil {
+	t.Error(err)
+}
+
+value1, _ = CacheFunc2(ctx, cacher, 60*time.Second, rawGetFunc2, fmt.Sprintf("UT:%v:%v", "error", "p2"), "error", "p2")
+value2, _ = CacheFunc2(ctx, cacher, 60*time.Second, rawGetFunc2, fmt.Sprintf("UT:%v:%v", "error", "p2"), "error", "p2")
+
+if value1 != value2 {
+	t.Error(value1, value2)
+}
+
+param3 := &testCacheParam{Param1: "p3"}
+err = DeleteCache(ctx, cacher, fmt.Sprintf("UT:%v:%v:%v", "error", "p2", param3.Param1))
+if err != nil {
+	t.Error(err)
+}
+
+value1, _ = CacheFunc3(ctx, cacher, 60*time.Second, rawGetFunc3, fmt.Sprintf("UT:%v:%v:%v", "error", "p2", param3.Param1), "error", "p2", param3)
+value2, _ = CacheFunc3(ctx, cacher, 60*time.Second, rawGetFunc3, fmt.Sprintf("UT:%v:%v:%v", "error", "p2", param3.Param1), "error", "p2", param3)
 if value1 != value2 {
 	t.Error(value1, value2)
 }
