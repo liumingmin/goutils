@@ -36,6 +36,15 @@ func TestValueToString(t *testing.T) {
 		t.Error(val, err)
 	}
 
+	str, err = ValueToString("this is str")
+	if err != nil {
+		t.FailNow()
+	}
+
+	if val, err := StringToValue[string](str); err != nil || val != "this is str" {
+		t.Error(val, err)
+	}
+
 	st := testDataStruct{
 		Field1: "f1",
 		Field2: 1000,
