@@ -11,12 +11,13 @@ import (
 	"time"
 
 	"go.uber.org/zap"
+	"go.uber.org/zap/zapcore"
 )
 
 type GameDefaultFieldGenerator struct {
 }
 
-func (f *GameDefaultFieldGenerator) GetDefaultFields() []zap.Field {
+func (f *GameDefaultFieldGenerator) Generate(ctx context.Context) []zapcore.Field {
 	return []zap.Field{
 		zap.String("gameCode", "lol"),
 		zap.String("version", "1.0"),
@@ -25,7 +26,8 @@ func (f *GameDefaultFieldGenerator) GetDefaultFields() []zap.Field {
 
 func TestZap(t *testing.T) {
 	testRunLogServer(t, "log1", "log2")
-	SetDefaultGenerator(new(GameDefaultFieldGenerator))
+
+	BaseFieldsGenerator = &GameDefaultFieldGenerator{}
 	SetLogLevel(zap.DebugLevel)
 
 	ctx := ContextWithTraceId()
@@ -55,9 +57,6 @@ func TestZap(t *testing.T) {
 		panic(errors.New("I am log1"))
 	})
 
-	testPanicLog(func() {
-		Panic(context.Background(), "I am panic log1")
-	})
 	time.Sleep(time.Second)
 }
 
