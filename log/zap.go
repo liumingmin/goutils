@@ -35,6 +35,14 @@ type ZapLogImpl struct {
 func NewZapLogImpl() ILog {
 	loggerLevel := populateLogLevel()
 
+	if len(conf.Conf.Logs) == 0 {
+		return &ZapLogImpl{
+			logger:      zap.NewNop(),
+			stackLogger: zap.NewNop(),
+			loggerLevel: loggerLevel,
+		}
+	}
+
 	// 开启开发模式，堆栈跟踪
 	caller := zap.AddCaller()
 	// 开启文件及行号
@@ -62,7 +70,7 @@ func NewZapLogImpl() ILog {
 		cores = append(cores, zapcore.NewCore(
 			populateEncoder(logConf)(encoderConfig),                      // 编码器配置
 			zapcore.NewMultiWriteSyncer(populateWriteSyncer(logConf)...), // 打印到控制台、文件、HTTP
-			loggerLevel, // 日志级别
+			loggerLevel,
 		))
 	}
 
@@ -139,10 +147,6 @@ func populateLogLevel() zap.AtomicLevel {
 		loggerLevel.UnmarshalText([]byte(conf.Conf.LogLevel))
 	}
 	return loggerLevel
-}
-
-func CnTimeEncoder(t time.Time, enc zapcore.PrimitiveArrayEncoder) {
-	enc.AppendString(t.Format("2006-01-02 15:04:05.000"))
 }
 
 func (l *ZapLogImpl) Log(ctx context.Context, level zapcore.Level, msg string, args ...interface{}) {

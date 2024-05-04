@@ -9,7 +9,7 @@ import (
 type Handler func(err interface{})
 
 var DefaultHandler = func(err interface{}) {
-	log.ErrorStack(context.Background(), err)
+	log.ErrorStack(context.Background(), "goroutine: ", err)
 }
 
 func Go(f func(), handler ...Handler) {

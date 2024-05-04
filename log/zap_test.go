@@ -8,9 +8,12 @@ import (
 	"net/http"
 	"strings"
 	"testing"
+	"time"
 
+	"github.com/liumingmin/goutils/conf"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
+	"gopkg.in/natefinch/lumberjack.v2"
 )
 
 type GameDefaultFieldGenerator struct {
@@ -24,7 +27,17 @@ func (f *GameDefaultFieldGenerator) Generate(ctx context.Context) []zapcore.Fiel
 }
 
 func TestZapConsole(t *testing.T) {
-	testRunLogServer(t, "log1", "log2")
+	conf.Conf.Logs = []*conf.Log{{
+		Logger:        lumberjack.Logger{Filename: "goutils.log"},
+		OutputEncoder: "console",
+		Stdout:        true,
+		FileOut:       true,
+		HttpOut:       false,
+		HttpUrl:       "http://127.0.0.1:8053/goutils/log",
+		HttpDebug:     false,
+	}}
+	LogImpl = NewZapLogImpl()
+
 	SetLogLevel(zap.DebugLevel)
 
 	ctx := ContextWithTraceId()
@@ -58,19 +71,34 @@ func TestZapConsole(t *testing.T) {
 }
 
 func TestZapJson(t *testing.T) {
+	conf.Conf.Logs = []*conf.Log{{
+		Logger:        lumberjack.Logger{Filename: "goutils.json"},
+		OutputEncoder: "json",
+		Stdout:        true,
+		FileOut:       true,
+		HttpOut:       true,
+		HttpUrl:       "http://127.0.0.1:8053/goutils/log",
+		HttpDebug:     false,
+	}}
+	LogImpl = NewZapLogImpl()
+
+	testRunLogServer(t, "log1", "log2")
+
 	ctx := ContextWithTraceId()
 
 	BaseFieldsGenerator = &GameDefaultFieldGenerator{}
 	Debug(ctx, "I am debug log1")
 	LogLess()
 	Debug(ctx, "I am debug log2")
+
+	time.Sleep(time.Second)
 }
 
 func testRunLogServer(t *testing.T, incldueTag, excludeTag string) {
 	http.HandleFunc("/goutils/log", func(w http.ResponseWriter, r *http.Request) {
 		data, _ := io.ReadAll(r.Body)
 		str := string(data)
-
+		//fmt.Println(str)
 		if !strings.Contains(str, "I am") {
 			return
 		}

@@ -1,7 +1,8 @@
-log:
-  filename: "test.log"
-  logLevel: debug
-  stdout: true
+logLevel: debug
+logs:
+  - filename: "test.log"
+    logLevel: debug
+    stdout: true
 redises:
   -
     key: rds-sentinel
