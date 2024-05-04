@@ -10,7 +10,6 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/liumingmin/goutils/conf"
@@ -31,8 +30,6 @@ type ZapLogImpl struct {
 	stackLogger *zap.Logger
 
 	loggerLevel zap.AtomicLevel
-
-	generatorLock sync.Mutex
 }
 
 func NewZapLogImpl() ILog {

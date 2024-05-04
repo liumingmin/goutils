@@ -8,7 +8,6 @@ import (
 	"net/http"
 	"strings"
 	"testing"
-	"time"
 
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
@@ -24,10 +23,8 @@ func (f *GameDefaultFieldGenerator) Generate(ctx context.Context) []zapcore.Fiel
 	}
 }
 
-func TestZap(t *testing.T) {
+func TestZapConsole(t *testing.T) {
 	testRunLogServer(t, "log1", "log2")
-
-	BaseFieldsGenerator = &GameDefaultFieldGenerator{}
 	SetLogLevel(zap.DebugLevel)
 
 	ctx := ContextWithTraceId()
@@ -57,7 +54,16 @@ func TestZap(t *testing.T) {
 		panic(errors.New("I am log1"))
 	})
 
-	time.Sleep(time.Second)
+	//time.Sleep(time.Second)
+}
+
+func TestZapJson(t *testing.T) {
+	ctx := ContextWithTraceId()
+
+	BaseFieldsGenerator = &GameDefaultFieldGenerator{}
+	Debug(ctx, "I am debug log1")
+	LogLess()
+	Debug(ctx, "I am debug log2")
 }
 
 func testRunLogServer(t *testing.T, incldueTag, excludeTag string) {

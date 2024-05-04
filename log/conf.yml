@@ -1,17 +1,16 @@
+logLevel: debug
 logs:
   - filename: "goutils.json"
-    logLevel: debug
     stdout: true
     fileOut: true
-    httpOut: true
+    #httpOut: true
     outputEncoder: json
     contentEncoder: utf-8
     #httpUrl: "http://127.0.0.1:8053/goutils/log"
     #httpDebug: true
-  - filename: "goutils.log"
-    logLevel: debug
-    stdout: true
-    fileOut: true
-    httpOut: true
-    outputEncoder: console
-    contentEncoder: utf-8    
+  # - filename: "goutils.log"
+  #   stdout: true
+  #   fileOut: true
+  #   #httpOut: true
+  #   outputEncoder: console
+  #   contentEncoder: utf-8    
