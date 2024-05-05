@@ -26,9 +26,13 @@ func (f *GameDefaultFieldGenerator) Generate(ctx context.Context) []zapcore.Fiel
 	}
 }
 
+func (f *GameDefaultFieldGenerator) GenerateStr(ctx context.Context) string {
+	return fmt.Sprintf("gameCode: %v, version: %v", "lol", "1.0")
+}
+
 func TestZapConsole(t *testing.T) {
+	conf.Conf.LogLevel = "debug"
 	conf.Conf.Logs = []*conf.Log{{
-		Logger:        lumberjack.Logger{Filename: "goutils.log"},
 		OutputEncoder: "console",
 		Stdout:        true,
 		FileOut:       true,
@@ -37,8 +41,6 @@ func TestZapConsole(t *testing.T) {
 		HttpDebug:     false,
 	}}
 	LogImpl = NewZapLogImpl()
-
-	SetLogLevel(zap.DebugLevel)
 
 	ctx := ContextWithTraceId()
 	Debug(ctx, "I am debug log1")

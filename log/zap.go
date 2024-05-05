@@ -7,9 +7,6 @@ import (
 	"io"
 	"net/http"
 	"os"
-	"os/exec"
-	"path/filepath"
-	"strings"
 	"time"
 
 	"github.com/liumingmin/goutils/conf"
@@ -18,9 +15,6 @@ import (
 )
 
 const (
-	LOG_TRACE_ID            = "__GTraceId__"
-	LOG_JSON_FIELD_TRACE_ID = "traceId"
-
 	LOGGER_ENCODER_JSON    = "json"
 	LOGGER_ENCODER_CONSOLE = "console"
 )
@@ -118,24 +112,17 @@ func populateWriteSyncer(logConf *conf.Log) []zapcore.WriteSyncer {
 
 func populateLogHook(logConf *conf.Log) {
 	if logConf.Logger.Filename == "" {
-		file, _ := exec.LookPath(os.Args[0])
-		filename := filepath.Base(file)
-		extName := filepath.Ext(filename)
-		logFileName := ""
-		if extName != "" {
-			extIndex := strings.LastIndex(filename, extName)
-			logFileName = filename[:extIndex] + ".log"
-		} else {
-			logFileName = filename + ".log"
-		}
-		logConf.Logger.Filename = logFileName // 日志文件路径
+		logConf.Logger.Filename = os.Args[0] + ".log" // 日志文件路径
 	}
+
 	if logConf.Logger.MaxSize == 0 {
 		logConf.Logger.MaxSize = 128 // 每个日志文件保存的最大尺寸 单位：M
 	}
+
 	if logConf.Logger.MaxBackups == 0 {
 		logConf.Logger.MaxBackups = 7
 	}
+
 	if logConf.Logger.MaxAge == 0 {
 		logConf.Logger.MaxAge = 7
 	}
@@ -149,6 +136,52 @@ func populateLogLevel() zap.AtomicLevel {
 	return loggerLevel
 }
 
+func (l *ZapLogImpl) Debug(ctx context.Context, msg string, args ...interface{}) {
+	if !l.logger.Core().Enabled(zap.DebugLevel) {
+		return
+	}
+
+	l.logWithLevelFn(l.logger.Debug, ctx, msg, args...)
+}
+
+func (l *ZapLogImpl) Info(ctx context.Context, msg string, args ...interface{}) {
+	if !l.logger.Core().Enabled(zap.InfoLevel) {
+		return
+	}
+
+	l.logWithLevelFn(l.logger.Info, ctx, msg, args...)
+}
+
+func (l *ZapLogImpl) Warn(ctx context.Context, msg string, args ...interface{}) {
+	if !l.logger.Core().Enabled(zap.WarnLevel) {
+		return
+	}
+
+	l.logWithLevelFn(l.logger.Warn, ctx, msg, args...)
+}
+
+func (l *ZapLogImpl) Error(ctx context.Context, msg string, args ...interface{}) {
+	if !l.logger.Core().Enabled(zap.ErrorLevel) {
+		return
+	}
+
+	l.logWithLevelFn(l.logger.Error, ctx, msg, args...)
+}
+
+func (l *ZapLogImpl) Recover(ctx context.Context, errHandler func(interface{}) string) {
+	if err := recover(); err != nil {
+		l.logWithLevelFn(l.stackLogger.Error, ctx, errHandler(err))
+	}
+}
+
+func (l *ZapLogImpl) ErrorStack(ctx context.Context, msg string, args ...interface{}) {
+	if !l.stackLogger.Core().Enabled(zap.ErrorLevel) {
+		return
+	}
+
+	l.logWithLevelFn(l.stackLogger.Error, ctx, msg, args...)
+}
+
 func (l *ZapLogImpl) Log(ctx context.Context, level zapcore.Level, msg string, args ...interface{}) {
 	if !l.logger.Core().Enabled(level) {
 		return
@@ -159,123 +192,35 @@ func (l *ZapLogImpl) Log(ctx context.Context, level zapcore.Level, msg string, a
 		case zapcore.Field:
 			l.logger.Log(level, msg, l.argsToZapFields(ctx, args...)...)
 		default:
-			l.logger.Log(level, l.argsToMsg(ctx, msg, args...), BaseFieldsGenerator.Generate(ctx)...)
+			l.logger.Log(level, l.argsToMsg(ctx, msg, args...))
 		}
 		return
 	}
 	l.logger.Log(level, msg)
 }
 
-func (l *ZapLogImpl) Debug(ctx context.Context, msg string, args ...interface{}) {
-	if !l.logger.Core().Enabled(zap.DebugLevel) {
-		return
-	}
-
+func (l *ZapLogImpl) logWithLevelFn(levelFn func(string, ...zapcore.Field), ctx context.Context, msg string, args ...interface{}) {
 	if len(args) > 0 {
 		switch args[0].(type) {
 		case zapcore.Field:
-			l.logger.Debug(msg, l.argsToZapFields(ctx, args...)...)
+			levelFn(msg, l.argsToZapFields(ctx, args...)...)
 		default:
-			l.logger.Debug(l.argsToMsg(ctx, msg, args...), BaseFieldsGenerator.Generate(ctx)...)
+			levelFn(l.argsToMsg(ctx, msg, args...))
 		}
 		return
 	}
 
-	l.logger.Debug(msg)
-}
-
-func (l *ZapLogImpl) Info(ctx context.Context, msg string, args ...interface{}) {
-	if !l.logger.Core().Enabled(zap.InfoLevel) {
-		return
-	}
-
-	if len(args) > 0 {
-		switch args[0].(type) {
-		case zapcore.Field:
-			l.logger.Info(msg, l.argsToZapFields(ctx, args...)...)
-		default:
-			l.logger.Info(l.argsToMsg(ctx, msg, args...), BaseFieldsGenerator.Generate(ctx)...)
-		}
-		return
-	}
-
-	l.logger.Info(msg)
-}
-
-func (l *ZapLogImpl) Warn(ctx context.Context, msg string, args ...interface{}) {
-	if !l.logger.Core().Enabled(zap.WarnLevel) {
-		return
-	}
-
-	if len(args) > 0 {
-		switch args[0].(type) {
-		case zapcore.Field:
-			l.logger.Warn(msg, l.argsToZapFields(ctx, args...)...)
-		default:
-			l.logger.Warn(l.argsToMsg(ctx, msg, args...), BaseFieldsGenerator.Generate(ctx)...)
-		}
-		return
-	}
-
-	l.logger.Warn(msg)
-}
-
-func (l *ZapLogImpl) Error(ctx context.Context, msg string, args ...interface{}) {
-	if !l.logger.Core().Enabled(zap.ErrorLevel) {
-		return
-	}
-
-	if len(args) > 0 {
-		switch args[0].(type) {
-		case zapcore.Field:
-			l.logger.Error(msg, l.argsToZapFields(ctx, args...)...)
-		default:
-			l.logger.Error(l.argsToMsg(ctx, msg, args...), BaseFieldsGenerator.Generate(ctx)...)
-		}
-		return
-	}
-
-	l.logger.Error(msg)
-}
-
-func (l *ZapLogImpl) Recover(ctx context.Context, errHandler func(interface{}) string) {
-	if err := recover(); err != nil {
-		traceStr := ""
-		traceId := ctx.Value(LOG_TRACE_ID)
-		if traceId != nil {
-			traceStr = "<" + fmt.Sprint(traceId) + "> "
-		}
-
-		l.stackLogger.Error(traceStr+" panic: "+errHandler(err), BaseFieldsGenerator.Generate(ctx)...)
-	}
-}
-
-func (l *ZapLogImpl) ErrorStack(ctx context.Context, msg string, args ...interface{}) {
-	if !l.stackLogger.Core().Enabled(zap.ErrorLevel) {
-		return
-	}
-
-	if len(args) > 0 {
-		switch args[0].(type) {
-		case zapcore.Field:
-			l.stackLogger.Error(msg, l.argsToZapFields(ctx, args...)...)
-		default:
-			l.stackLogger.Error(l.argsToMsg(ctx, msg, args...), BaseFieldsGenerator.Generate(ctx)...)
-		}
-		return
-	}
-
-	l.stackLogger.Error(msg)
+	levelFn(msg)
 }
 
 func (l *ZapLogImpl) argsToMsg(ctx context.Context, msg string, args ...interface{}) string {
 	traceStr := ""
-	traceId := ctx.Value(LOG_TRACE_ID)
+	traceId := ctx.Value(LOG_TRACE_CTX_KEY)
 	if traceId != nil {
 		traceStr = "<" + fmt.Sprint(traceId) + "> "
 	}
 
-	return traceStr + fmt.Sprintf(msg, args...)
+	return traceStr + fmt.Sprintf(msg, args...) + BaseFieldsGenerator.GenerateStr(ctx)
 }
 
 func (l *ZapLogImpl) argsToZapFields(ctx context.Context, args ...interface{}) []zap.Field {
@@ -284,9 +229,9 @@ func (l *ZapLogImpl) argsToZapFields(ctx context.Context, args ...interface{}) [
 		fields = append(fields, arg.(zap.Field))
 	}
 
-	traceId := ctx.Value(LOG_TRACE_ID)
+	traceId := ctx.Value(LOG_TRACE_CTX_KEY)
 	if traceId != nil {
-		fields = append(fields, zap.String(LOG_JSON_FIELD_TRACE_ID, fmt.Sprint(traceId)))
+		fields = append(fields, zap.String(LOG_TRACE_CTX_KEY, fmt.Sprint(traceId)))
 	}
 
 	if BaseFieldsGenerator != nil {
@@ -332,6 +277,10 @@ type DefaultFieldsGenerator struct {
 
 func (f *DefaultFieldsGenerator) Generate(ctx context.Context) []zapcore.Field {
 	return f.Nop
+}
+
+func (f *DefaultFieldsGenerator) GenerateStr(context.Context) string {
+	return ""
 }
 
 type httpWriter struct {

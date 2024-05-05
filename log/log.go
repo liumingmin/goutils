@@ -26,8 +26,10 @@ type ILog interface {
 // IFieldsGenerator default json field
 type IFieldsGenerator interface {
 	Generate(context.Context) []zapcore.Field
+	GenerateStr(context.Context) string
 }
 
+var LOG_TRACE_CTX_KEY = "__GTraceId__"
 var LogImpl = NewZapLogImpl()
 var BaseFieldsGenerator IFieldsGenerator = &DefaultFieldsGenerator{Nop: make([]zapcore.Field, 0)}
 
@@ -79,7 +81,7 @@ func ContextWithTraceId() context.Context {
 }
 
 func ContextWithTraceIdFromParent(parent context.Context) context.Context {
-	return context.WithValue(parent, LOG_TRACE_ID, NewTraceId())
+	return context.WithValue(parent, LOG_TRACE_CTX_KEY, NewTraceId())
 }
 
 func NewTraceId() string {
