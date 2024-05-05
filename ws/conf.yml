@@ -1,5 +1,6 @@
-log:
-  #filename: "test.log"
-  logLevel: info
-  stdout: true
-  fileOut: true
+logLevel: info
+logs:
+  - filename: "goutils.log"
+    stdout: true
+    fileOut: true
+    outputEncoder: console 

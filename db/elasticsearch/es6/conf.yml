@@ -1,7 +1,9 @@
-log:
-  filename: "test.log"
-  logLevel: debug
-  stdout: true
+logLevel: debug
+logs:
+  - filename: "goutils.log"
+    stdout: true
+    fileOut: true
+    outputEncoder: console 
 elasticsearches:
   -
     key: testUser

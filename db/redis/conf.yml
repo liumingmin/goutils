@@ -1,8 +1,10 @@
 logLevel: debug
 logs:
-  - filename: "test.log"
-    logLevel: debug
+  - filename: "goutils.log"
     stdout: true
+    fileOut: true
+    outputEncoder: console 
+    
 redises:
   -
     key: rds-sentinel

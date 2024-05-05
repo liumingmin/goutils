@@ -33,12 +33,10 @@ func (f *GameDefaultFieldGenerator) GenerateStr(ctx context.Context) string {
 func TestZapConsole(t *testing.T) {
 	conf.Conf.LogLevel = "debug"
 	conf.Conf.Logs = []*conf.Log{{
+		Logger:        lumberjack.Logger{Filename: "goutils.log"},
 		OutputEncoder: "console",
-		Stdout:        true,
+		Stdout:        false,
 		FileOut:       true,
-		HttpOut:       false,
-		HttpUrl:       "http://127.0.0.1:8053/goutils/log",
-		HttpDebug:     false,
 	}}
 	LogImpl = NewZapLogImpl()
 
@@ -48,28 +46,38 @@ func TestZapConsole(t *testing.T) {
 	Debug(ctx, "I am debug log2")
 
 	Info(ctx, "I am info log1: %v", "hello")
+	Log(ctx, zap.InfoLevel, "I am info level log1")
 	LogLess()
+	Log(ctx, zap.InfoLevel, "I am info level log2")
 	Info(ctx, "I am info log2: %v", "hello")
 
-	Warn(ctx, "I am warn log1: %v", "hello sam")
+	Warn(ctx, "I am warn log1: %v", "hello tom")
+	Log(ctx, zap.WarnLevel, "I am warn level log1: %v", "hello sam")
 	LogLess()
-	Warn(ctx, "I am warn log2: %v", "hello sam")
-
-	Error(ctx, "I am error log1: %v, %v", "admin", "eee")
-	LogLess()
-	Error(ctx, "I am error log2: %v, %v", "admin", "eee")
-
-	ErrorStack(ctx, "I am panic error log1")
-	LogLess()
-	ErrorStack(ctx, "I am panic error log2")
-
-	Log(ctx, zap.DebugLevel, "I am debug, log1")
+	Warn(ctx, "I am warn log2: %v", "hello tom")
+	Log(ctx, zap.WarnLevel, "I am warn level log2: %v", "hello sam")
 
 	testPanicLog(func() {
-		panic(errors.New("I am log1"))
+		panic(errors.New("test panic"))
 	})
 
-	//time.Sleep(time.Second)
+	Error(ctx, "I am error log1: %v, %v", "admin", "eee")
+	ErrorStack(ctx, "test panic log1")
+
+	LogLess()
+
+	Error(ctx, "I am error log2: %v, %v", "admin", "eee")
+	ErrorStack(ctx, "test panic log2")
+}
+
+func testPanicLog(f func()) {
+	ctx := ContextWithTraceId()
+
+	defer Recover(ctx, func(e interface{}) string {
+		return fmt.Sprintf("catch panic: %v", e)
+	})
+
+	f()
 }
 
 func TestZapJson(t *testing.T) {
@@ -78,17 +86,33 @@ func TestZapJson(t *testing.T) {
 		OutputEncoder: "json",
 		Stdout:        true,
 		FileOut:       true,
-		HttpOut:       true,
-		HttpUrl:       "http://127.0.0.1:8053/goutils/log",
-		HttpDebug:     false,
 	}}
 	LogImpl = NewZapLogImpl()
-
-	testRunLogServer(t, "log1", "log2")
 
 	ctx := ContextWithTraceId()
 
 	BaseFieldsGenerator = &GameDefaultFieldGenerator{}
+	Debug(ctx, "I am debug log1")
+
+	Info(ctx, "I am info log1", zap.String("userId", "0001"), zap.Bool("isAdmin", true))
+
+	Log(ctx, zap.WarnLevel, "I am warn log1", zap.String("userId", "0002"), zap.Bool("isAdmin", false))
+}
+
+func TestZapHttpOut(t *testing.T) {
+	conf.Conf.LogLevel = "debug"
+	conf.Conf.Logs = []*conf.Log{{
+		OutputEncoder: "console",
+		Stdout:        true,
+		FileOut:       true,
+		HttpOut:       true,
+		HttpUrl:       "http://127.0.0.1:8053/goutils/log",
+		HttpDebug:     true,
+	}}
+	LogImpl = NewZapLogImpl()
+	testRunLogServer(t, "log1", "log2")
+
+	ctx := ContextWithTraceId()
 	Debug(ctx, "I am debug log1")
 	LogLess()
 	Debug(ctx, "I am debug log2")
@@ -114,16 +138,6 @@ func testRunLogServer(t *testing.T, incldueTag, excludeTag string) {
 		}
 	})
 	go http.ListenAndServe(":8053", nil)
-}
-
-func testPanicLog(f func()) {
-	ctx := ContextWithTraceId()
-
-	defer Recover(ctx, func(e interface{}) string {
-		return fmt.Sprintf("catch panic: %v", e)
-	})
-
-	f()
 }
 
 func TestLevelChange(t *testing.T) {
