@@ -43,8 +43,8 @@ func DeleteCache(ctx context.Context, cacher ICacher, key string) (err error) {
 	return cacher.Del(ctx, key) //rds
 }
 
-func CacheFunc0[Tr any](ctx context.Context, cacher ICacher, expire time.Duration, fn func(context.Context) (Tr, error),
-	key string) (tr Tr, err error) {
+func CacheFunc0[Tr any](ctx context.Context, cacher ICacher, key string, expire time.Duration,
+	fn func(context.Context) (Tr, error)) (tr Tr, err error) {
 	retValue, err := cacher.Get(ctx, key)
 	if err == nil {
 		log.Debug(ctx, "CacheFunc0 hit cache: key: %v, value: %v", key, retValue)
@@ -68,8 +68,8 @@ func CacheFunc0[Tr any](ctx context.Context, cacher ICacher, expire time.Duratio
 	return data.(Tr), err
 }
 
-func CacheFunc1[T1, Tr any](ctx context.Context, cacher ICacher, expire time.Duration, fn func(context.Context, T1) (Tr, error),
-	key string, t1 T1) (tr Tr, err error) {
+func CacheFunc1[T1, Tr any](ctx context.Context, cacher ICacher, key string, expire time.Duration,
+	fn func(context.Context, T1) (Tr, error), t1 T1) (tr Tr, err error) {
 
 	retValue, err := cacher.Get(ctx, key)
 	if err == nil {
@@ -94,8 +94,8 @@ func CacheFunc1[T1, Tr any](ctx context.Context, cacher ICacher, expire time.Dur
 	return data.(Tr), err
 }
 
-func CacheFunc2[T1, T2, Tr any](ctx context.Context, cacher ICacher, expire time.Duration, fn func(context.Context, T1, T2) (Tr, error),
-	key string, t1 T1, t2 T2) (tr Tr, err error) {
+func CacheFunc2[T1, T2, Tr any](ctx context.Context, cacher ICacher, key string, expire time.Duration,
+	fn func(context.Context, T1, T2) (Tr, error), t1 T1, t2 T2) (tr Tr, err error) {
 
 	retValue, err := cacher.Get(ctx, key)
 	if err == nil {
@@ -120,8 +120,8 @@ func CacheFunc2[T1, T2, Tr any](ctx context.Context, cacher ICacher, expire time
 	return data.(Tr), err
 }
 
-func CacheFunc3[T1, T2, T3, Tr any](ctx context.Context, cacher ICacher, expire time.Duration, fn func(context.Context, T1, T2, T3) (Tr, error),
-	key string, t1 T1, t2 T2, t3 T3) (tr Tr, err error) {
+func CacheFunc3[T1, T2, T3, Tr any](ctx context.Context, cacher ICacher, key string, expire time.Duration,
+	fn func(context.Context, T1, T2, T3) (Tr, error), t1 T1, t2 T2, t3 T3) (tr Tr, err error) {
 
 	retValue, err := cacher.Get(ctx, key)
 	if err == nil {
