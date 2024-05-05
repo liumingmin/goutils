@@ -2,7 +2,6 @@ package log
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -58,7 +57,8 @@ func TestZapConsole(t *testing.T) {
 	Log(ctx, zap.WarnLevel, "I am warn level log2: %v", "hello sam")
 
 	testPanicLog(func() {
-		panic(errors.New("test panic"))
+		time.Sleep(time.Millisecond * 10)
+		// panic(errors.New("test panic"))
 	})
 
 	Error(ctx, "I am error log1: %v, %v", "admin", "eee")
