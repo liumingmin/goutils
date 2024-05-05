@@ -65,20 +65,6 @@ func TestWsHub(t *testing.T) {
 	if err == nil {
 		t.Error(conn)
 	}
-
-	conn1 := &Connection{}
-	conn1.init()
-	ClientConnHub.registerConn(conn1)
-
-	time.Sleep(time.Millisecond * 200)
-	conn, err = ClientConnHub.Find(conn1.Id())
-	if err != nil {
-		t.Error(err)
-	}
-
-	if conn != conn1 {
-		t.Error(conn)
-	}
 }
 
 func TestWsOption(t *testing.T) {
@@ -601,6 +587,15 @@ func TestWssDialConnect(t *testing.T) {
 
 	if len(ClientConnHub.ConnectionIds()) != 100 {
 		t.Error(len(ClientConnHub.ConnectionIds()))
+	}
+
+	conn0, err := ClientConnHub.Find("a0-0-")
+	if err != nil {
+		t.Error(err)
+	}
+
+	if conn0.UserId() != "a0" {
+		t.Error(conn0)
 	}
 
 	//kick client connect again
