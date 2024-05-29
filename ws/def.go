@@ -49,6 +49,7 @@ type IConnection interface {
 	UserId() string
 	Type() int
 	DeviceId() string
+	Source() string
 	Version() int
 	Charset() int
 	ClientIp() string
