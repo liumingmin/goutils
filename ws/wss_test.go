@@ -593,7 +593,9 @@ func TestWssDialConnect(t *testing.T) {
 		t.Error(len(ClientConnHub.ConnectionIds()))
 	}
 
-	conn0, err := ClientConnHub.Find("a0-0-")
+	dummmyMeta := ConnectionMeta{UserId: "a0"}
+
+	conn0, err := ClientConnHub.Find(dummmyMeta.BuildConnId())
 	if err != nil {
 		t.Error(err)
 	}
