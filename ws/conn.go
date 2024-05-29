@@ -104,6 +104,7 @@ type ConnectionMeta struct {
 	UserId   string //userId
 	Typed    int    //客户端类型枚举
 	DeviceId string //设备ID
+	Source   string //defines where the connection comes from
 	Version  int    //版本
 	Charset  int    //客户端使用的字符集
 
@@ -112,7 +113,7 @@ type ConnectionMeta struct {
 }
 
 func (m *ConnectionMeta) BuildConnId() string {
-	return fmt.Sprintf("%v-%v-%v", m.UserId, m.Typed, m.DeviceId)
+	return fmt.Sprintf("%v-%v-%v-%v", m.UserId, m.Typed, m.DeviceId, m.Source)
 }
 
 func (c *Connection) Id() string {
@@ -129,6 +130,10 @@ func (c *Connection) Type() int {
 
 func (c *Connection) DeviceId() string {
 	return c.meta.DeviceId
+}
+
+func (c *Connection) Source() string {
+	return c.meta.Source
 }
 
 func (c *Connection) Version() int {

@@ -151,6 +151,7 @@ func TestWssRequestResponse(t *testing.T) {
 			UserId:   r.URL.Query().Get("uid"),
 			Typed:    0,
 			DeviceId: "",
+			Source:   "",
 			Version:  0,
 			Charset:  0,
 		}
@@ -270,6 +271,7 @@ func TestWssRequestResponseWithTimeout(t *testing.T) {
 			UserId:   r.URL.Query().Get("uid"),
 			Typed:    0,
 			DeviceId: "",
+			Source:   "",
 			Version:  0,
 			Charset:  0,
 		}
@@ -399,6 +401,7 @@ func TestWssSendMessage(t *testing.T) {
 			UserId:   r.URL.Query().Get("uid"),
 			Typed:    gocast.ToInt(r.URL.Query().Get("typed")),
 			DeviceId: r.URL.Query().Get("deviceId"),
+			Source:   r.URL.Query().Get("source"),
 			Version:  gocast.ToInt(r.URL.Query().Get("version")),
 			Charset:  gocast.ToInt(r.URL.Query().Get("charset")),
 		}
@@ -535,6 +538,7 @@ func TestWssDialConnect(t *testing.T) {
 			UserId:   r.URL.Query().Get("uid"),
 			Typed:    0,
 			DeviceId: "",
+			Source:   "",
 			Version:  0,
 			Charset:  0,
 		}
@@ -655,6 +659,7 @@ func TestWssDialRetryConnect(t *testing.T) {
 			UserId:   r.URL.Query().Get("uid"),
 			Typed:    0,
 			DeviceId: "",
+			Source:   "",
 			Version:  0,
 			Charset:  0,
 		}
@@ -699,6 +704,7 @@ func TestAutoReDialConnect(t *testing.T) {
 			UserId:   r.URL.Query().Get("uid"),
 			Typed:    0,
 			DeviceId: "",
+			Source:   "",
 			Version:  0,
 			Charset:  0,
 		}
