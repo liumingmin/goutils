@@ -446,8 +446,8 @@ func (c *Connection) writeToConnection() {
 			}
 
 			if err := c.conn.WriteControl(websocket.PingMessage, pingPayload, time.Now().Add(c.writeWait)); err != nil {
-				if errNet, ok := err.(net.Error); (ok && errNet.Timeout()) || (ok && errNet.Temporary()) {
-					log.Debug(ctx, "%v send ping. timeout. id: %v, error: %v", c.typ, c.id, errNet)
+				if c.isNetTimeoutErr(err) {
+					log.Debug(ctx, "%v send ping. timeout. id: %v, error: %v", c.typ, c.id, err)
 					continue
 				}
 
@@ -529,12 +529,12 @@ func (c *Connection) readMsgFromWs() {
 		}
 
 		c.conn.SetReadDeadline(time.Now().Add(c.readWait))
-		messageType, data, err := c.readMessageData() //c.conn.ReadMessage()
+		messageType, data, err := c.readMessageData()
 
 		if err != nil {
-			if errNet, ok := err.(net.Error); (ok && errNet.Timeout()) || (ok && errNet.Temporary()) {
+			if c.isNetTimeoutErr(err) {
 				log.Debug(ctx, "%v Read failure. retryTimes: %v, id: %v, ptr: %p messageType: %v, error: %v",
-					c.typ, failedRetry, c.id, c, messageType, errNet)
+					c.typ, failedRetry, c.id, c, messageType, err)
 
 				failedRetry++
 				if failedRetry < c.maxFailureRetry {
@@ -543,7 +543,7 @@ func (c *Connection) readMsgFromWs() {
 				}
 
 				log.Info(ctx, "%v Read failure and reach max times. id: %v, ptr: %p messageType: %v, error: %v",
-					c.typ, c.id, c, messageType, errNet)
+					c.typ, c.id, c, messageType, err)
 				return
 			}
 
@@ -567,10 +567,7 @@ func (c *Connection) readMsgFromWs() {
 }
 
 func (c *Connection) isErrEOF(err error) bool {
-	if err == io.EOF {
-		return true
-	}
-	return false
+	return err == io.EOF
 }
 
 func (c *Connection) readMessageData() (messageType int, dataBuffer []byte, err error) {
@@ -716,14 +713,14 @@ func (c *Connection) doSendMsgToWs(ctx context.Context, message *Message) error 
 
 	failedRetry := 0
 	for {
-		if err := w.Close(); err == nil {
+		if err = w.Close(); err == nil {
 			log.Debug(ctx, "%v finish write message. cid: %v, message: %v", c.typ, c.id, len(message.data))
 			return nil
 		}
 
-		if errNet, ok := err.(net.Error); (ok && errNet.Timeout()) || (ok && errNet.Temporary()) {
+		if c.isNetTimeoutErr(err) {
 			log.Debug(ctx, "%v Write close failed. retryTimes: %v, id: %v, ptr: %p, error: %v",
-				c.typ, failedRetry, c.id, c, errNet)
+				c.typ, failedRetry, c.id, c, err)
 
 			failedRetry++
 			if failedRetry < c.maxFailureRetry {
@@ -732,7 +729,7 @@ func (c *Connection) doSendMsgToWs(ctx context.Context, message *Message) error 
 			}
 
 			log.Info(ctx, "%v Write close failed and reach max times. id: %v, ptr: %p, error: %v",
-				c.typ, failedRetry, c.id, c, errNet)
+				c.typ, failedRetry, c.id, c, err)
 			return errors.New("writer close failed")
 		}
 
@@ -816,4 +813,12 @@ func (c *Connection) IncrCommDataValueBy(key string, delta int) {
 	}
 
 	c.commonData[key] = delta
+}
+
+func (c *Connection) isNetTimeoutErr(err error) bool {
+	var errNet net.Error
+	if ok := errors.As(err, &errNet); ok && errNet.Timeout() {
+		return true
+	}
+	return false
 }

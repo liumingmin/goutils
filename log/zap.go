@@ -69,8 +69,8 @@ func NewZapLogImpl() ILog {
 	}
 
 	// 构造日志
-	logger := zap.New(zapcore.NewTee(cores...), caller, development, zap.AddCallerSkip(1))
-	stackLogger := logger.WithOptions(zap.AddStacktrace(zap.ErrorLevel), zap.AddCallerSkip(1))
+	logger := zap.New(zapcore.NewTee(cores...), caller, development, zap.AddCallerSkip(3))
+	stackLogger := logger.WithOptions(zap.AddStacktrace(zap.ErrorLevel), zap.AddCallerSkip(3))
 
 	return &ZapLogImpl{
 		logger:      logger,

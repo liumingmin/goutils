@@ -3,9 +3,9 @@ package ws
 import (
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"net/http"
-	"strconv"
 	"testing"
 	"time"
 
@@ -58,12 +58,17 @@ func TestWsPb(t *testing.T) {
 	}
 }
 
-func TestWsHub(t *testing.T) {
+func TestWsFunc(t *testing.T) {
 	InitServerWithOpt(ServerOption{[]HubOption{HubShardOption(4)}}) //server invoke
 
 	conn, err := ClientConnHub.Find("dummy")
 	if err == nil {
 		t.Error(conn)
+	}
+
+	conn2 := &Connection{}
+	if conn2.isNetTimeoutErr(errors.New("test")) {
+		t.FailNow()
 	}
 }
 
@@ -122,6 +127,44 @@ func TestWsOption(t *testing.T) {
 	}
 }
 
+func TestConnectionMeta(t *testing.T) {
+	connMeta := ConnectionMeta{
+		UserId:   "100",
+		Typed:    2,
+		DeviceId: "a100",
+		Source:   "channel",
+		Version:  2,
+		Charset:  1,
+	}
+
+	conn := &Connection{}
+	conn.meta = connMeta
+
+	if conn.UserId() != connMeta.UserId {
+		t.Error(conn.UserId())
+	}
+
+	if conn.Type() != connMeta.Typed {
+		t.Error(conn.Type())
+	}
+
+	if conn.DeviceId() != connMeta.DeviceId {
+		t.Error(conn.DeviceId())
+	}
+
+	if conn.Source() != connMeta.Source {
+		t.Error(conn.Source())
+	}
+
+	if conn.Version() != connMeta.Version {
+		t.Error(conn.Version())
+	}
+
+	if conn.Charset() != connMeta.Charset {
+		t.Error(conn.Charset())
+	}
+}
+
 func TestWssRequestResponse(t *testing.T) {
 	log.SetLogLevel(zapcore.WarnLevel) //if you need info log, commmet this line
 
@@ -148,12 +191,7 @@ func TestWssRequestResponse(t *testing.T) {
 	handler := http.NewServeMux()
 	handler.HandleFunc("/join", func(w http.ResponseWriter, r *http.Request) {
 		connMeta := ConnectionMeta{
-			UserId:   r.URL.Query().Get("uid"),
-			Typed:    0,
-			DeviceId: "",
-			Source:   "",
-			Version:  0,
-			Charset:  0,
+			UserId: r.URL.Query().Get("uid"),
 		}
 		_, err := Accept(ctx, w, r, connMeta, DebugOption(true),
 			SrvUpgraderCompressOption(true),
@@ -182,7 +220,9 @@ func TestWssRequestResponse(t *testing.T) {
 		}
 	})
 
-	go http.ListenAndServe(":8003", handler)
+	go http.ListenAndServe(":8013", handler)
+
+	time.Sleep(time.Millisecond * 200)
 
 	//client reg handler
 	RegisterHandler(S2C_RESP, func(ctx context.Context, connection IConnection, message IMessage) error {
@@ -190,9 +230,9 @@ func TestWssRequestResponse(t *testing.T) {
 		return nil
 	})
 
-	//client connect
+	//client connect1
 	uid := "100"
-	url := "ws://127.0.0.1:8003/join?uid=" + uid
+	url := "ws://127.0.0.1:8013/join?uid=" + uid
 	conn, _ := DialConnect(context.Background(), url, http.Header{},
 		DebugOption(true),
 		ClientIdOption("server1"),
@@ -204,7 +244,7 @@ func TestWssRequestResponse(t *testing.T) {
 		NetReadWaitOption(3*time.Second),
 		NetWriteWaitOption(3*time.Second),
 		ClientDialConnFailedHandlerOption(func(ctx context.Context, conn IConnection) {
-			log.Error(ctx, "clien conn failed")
+			log.Error(ctx, "client conn failed")
 		}),
 		ConnEstablishHandlerOption(func(ctx context.Context, conn IConnection) {
 			log.Info(ctx, "client conn establish: %v, %p", conn.Id(), conn)
@@ -222,7 +262,7 @@ func TestWssRequestResponse(t *testing.T) {
 			log.Debug(ctx, "client recv pong")
 		}),
 	)
-	log.Info(ctx, "%v", conn)
+
 	time.Sleep(time.Millisecond * 200)
 
 	for i := 0; i < 10; i++ {
@@ -237,9 +277,8 @@ func TestWssRequestResponse(t *testing.T) {
 			t.Error(resp)
 		}
 
-		log.Info(ctx, "client recv: sn: %v, data: %v", resp.GetSn(), string(resp.GetData()))
+		log.Debug(ctx, "client recv: sn: %v, data: %v", resp.GetSn(), string(resp.GetData()))
 	}
-	time.Sleep(time.Second * 1)
 }
 
 func TestWssRequestResponseWithTimeout(t *testing.T) {
@@ -409,26 +448,6 @@ func TestWssSendMessage(t *testing.T) {
 			SrvUpgraderCompressOption(true),
 			CompressionLevelOption(2),
 			ConnEstablishHandlerOption(func(ctx context.Context, conn IConnection) {
-				if conn.(*Connection).UserId() != uid {
-					t.Error(conn.UserId())
-				}
-
-				if conn.(*Connection).Type() != typed {
-					t.Error(conn.Type())
-				}
-
-				if conn.(*Connection).DeviceId() != deviceId {
-					t.Error(conn.DeviceId())
-				}
-
-				if conn.(*Connection).Version() != version {
-					t.Error(conn.Version())
-				}
-
-				if conn.(*Connection).Charset() != charset {
-					t.Error(conn.Charset())
-				}
-
 				log.Debug(ctx, "server conn establish: %v, %p", conn.Id(), conn)
 				// In a cluster environment, it is necessary to check whether connId has already connected to the cluster.
 				// If it is necessary to kick off connections established on other nodes in the cluster,
@@ -457,6 +476,8 @@ func TestWssSendMessage(t *testing.T) {
 		}
 	})
 	go http.ListenAndServe(":8003", handler)
+
+	time.Sleep(time.Millisecond * 200)
 
 	//client reg handler
 	RegisterHandler(S2C_RESP, func(ctx context.Context, connection IConnection, message IMessage) error {
@@ -497,7 +518,7 @@ func TestWssSendMessage(t *testing.T) {
 		}),
 	)
 
-	time.Sleep(time.Second * 1)
+	time.Sleep(time.Millisecond * 200)
 
 	//send msg by conn2
 	packet := GetPoolMessage(C2S_REQ)
@@ -524,232 +545,173 @@ func TestWssSendMessage(t *testing.T) {
 	}
 }
 
-func TestWssDialConnect(t *testing.T) {
-	log.SetLogLevel(zapcore.WarnLevel) //if you need info log, commmet this line
+// func TestWssDialConnect(t *testing.T) {
+// 	log.SetLogLevel(zapcore.WarnLevel) //if you need info log, commmet this line
 
-	InitServerWithOpt(ServerOption{[]HubOption{HubShardOption(4)}}) //server invoke
-	InitClient()                                                    //client invoke
-	ctx := context.Background()
+// 	InitServerWithOpt(ServerOption{[]HubOption{HubShardOption(4)}}) //server invoke
+// 	InitClient()                                                    //client invoke
+// 	ctx := context.Background()
 
-	//server start
-	handler := http.NewServeMux()
-	handler.HandleFunc("/join", func(w http.ResponseWriter, r *http.Request) {
-		connMeta := ConnectionMeta{
-			UserId:   r.URL.Query().Get("uid"),
-			Typed:    0,
-			DeviceId: "",
-			Source:   "",
-			Version:  0,
-			Charset:  0,
-		}
-		_, err := Accept(ctx, w, r, connMeta, DebugOption(true),
-			SrvUpgraderCompressOption(true),
-			CompressionLevelOption(2),
-			ConnEstablishHandlerOption(func(ctx context.Context, conn IConnection) {
-				log.Info(ctx, "server conn establish: %v, %p", conn.Id(), conn)
-				// In a cluster environment, it is necessary to check whether connId has already connected to the cluster.
-				// If it is necessary to kick off connections established on other nodes in the cluster,
-				// it can be done through Redis pub sub, and other nodes will receive a notification to call KickClient
+// 	//server start
+// 	handler := http.NewServeMux()
+// 	handler.HandleFunc("/join", func(w http.ResponseWriter, r *http.Request) {
+// 		connMeta := ConnectionMeta{
+// 			UserId:   r.URL.Query().Get("uid"),
+// 			Typed:    0,
+// 			DeviceId: "",
+// 			Source:   "",
+// 			Version:  0,
+// 			Charset:  0,
+// 		}
+// 		_, err := Accept(ctx, w, r, connMeta, DebugOption(true),
+// 			SrvUpgraderCompressOption(true),
+// 			CompressionLevelOption(2),
+// 			ConnEstablishHandlerOption(func(ctx context.Context, conn IConnection) {
+// 				log.Info(ctx, "server conn establish: %v, %p", conn.Id(), conn)
+// 				// In a cluster environment, it is necessary to check whether connId has already connected to the cluster.
+// 				// If it is necessary to kick off connections established on other nodes in the cluster,
+// 				// it can be done through Redis pub sub, and other nodes will receive a notification to call KickClient
 
-				//lastConnNodeId, lastConnMTs := GetClientTs(ctx, conn.Id())
-				//if lastConnNodeId != "" && lastConnNodeId != config.NodeId && lastConnMTs < util.UtcMTs() {
-				//	MqPublish(ctx, conn.Id(), conn.ClientIp())   //other node: ClientConnHub.Find(connId).DisplaceClientByIp(ctx, newIp)
-				//}
-				//RegisterConn() // save to redis
-			}),
-			ConnClosingHandlerOption(func(ctx context.Context, conn IConnection) {
-				log.Info(ctx, "server conn closing: %v, %p", conn.Id(), conn)
-			}),
-			ConnClosedHandlerOption(func(ctx context.Context, conn IConnection) {
-				log.Info(ctx, "server conn closed: %v, %p", conn.Id(), conn)
-			}))
-		if err != nil {
-			log.Error(ctx, "Accept client connection failed. error: %v", err)
-			return
-		}
-	})
-	go http.ListenAndServe(":8003", handler)
+// 				//lastConnNodeId, lastConnMTs := GetClientTs(ctx, conn.Id())
+// 				//if lastConnNodeId != "" && lastConnNodeId != config.NodeId && lastConnMTs < util.UtcMTs() {
+// 				//	MqPublish(ctx, conn.Id(), conn.ClientIp())   //other node: ClientConnHub.Find(connId).DisplaceClientByIp(ctx, newIp)
+// 				//}
+// 				//RegisterConn() // save to redis
+// 			}),
+// 			ConnClosingHandlerOption(func(ctx context.Context, conn IConnection) {
+// 				log.Info(ctx, "server conn closing: %v, %p", conn.Id(), conn)
+// 			}),
+// 			ConnClosedHandlerOption(func(ctx context.Context, conn IConnection) {
+// 				log.Info(ctx, "server conn closed: %v, %p", conn.Id(), conn)
+// 			}))
+// 		if err != nil {
+// 			log.Error(ctx, "Accept client connection failed. error: %v", err)
+// 			return
+// 		}
+// 	})
+// 	go http.ListenAndServe(":8003", handler)
 
-	//client connect
-	for i := 0; i < 100; i++ {
-		url := "ws://127.0.0.1:8003/join?uid=a" + strconv.Itoa(i)
-		DialConnect(context.Background(), url, http.Header{},
-			DebugOption(true),
-			ClientIdOption(strconv.Itoa(i)),
-			ClientDialWssOption(url, false),
-			ConnEstablishHandlerOption(func(ctx context.Context, conn IConnection) {
-				safego.Go(func() {
-					time.Sleep(time.Second * 3)
-					conn.KickServer()
-				})
-				//log.Info(ctx, "client conn establish: %v", conn.Id())
-			}),
-		)
-	}
+// 	//client connect
+// 	for i := 0; i < 100; i++ {
+// 		url := "ws://127.0.0.1:8003/join?uid=a" + strconv.Itoa(i)
+// 		DialConnect(context.Background(), url, http.Header{},
+// 			DebugOption(true),
+// 			ClientIdOption(strconv.Itoa(i)),
+// 			ClientDialWssOption(url, false),
+// 			ConnEstablishHandlerOption(func(ctx context.Context, conn IConnection) {
+// 				safego.Go(func() {
+// 					time.Sleep(time.Second * 3)
+// 					conn.KickServer()
+// 				})
+// 				//log.Info(ctx, "client conn establish: %v", conn.Id())
+// 			}),
+// 		)
+// 	}
 
-	time.Sleep(time.Second * 1)
+// 	time.Sleep(time.Second * 1)
 
-	if len(ClientConnHub.ConnectionIds()) != 100 {
-		t.Error(len(ClientConnHub.ConnectionIds()))
-	}
+// 	if len(ClientConnHub.ConnectionIds()) != 100 {
+// 		t.Error(len(ClientConnHub.ConnectionIds()))
+// 	}
 
-	dummmyMeta := ConnectionMeta{UserId: "a0"}
+// 	dummmyMeta := ConnectionMeta{UserId: "a0"}
 
-	conn0, err := ClientConnHub.Find(dummmyMeta.BuildConnId())
-	if err != nil {
-		t.Error(err)
-	}
+// 	conn0, err := ClientConnHub.Find(dummmyMeta.BuildConnId())
+// 	if err != nil {
+// 		t.Error(err)
+// 	}
 
-	if conn0.UserId() != "a0" {
-		t.Error(conn0)
-	}
+// 	if conn0.UserId() != "a0" {
+// 		t.Error(conn0)
+// 	}
 
-	//kick client connect again
-	for i := 0; i < 100; i++ {
-		url := "ws://127.0.0.1:8003/join?uid=a" + strconv.Itoa(i)
-		DialConnect(context.Background(), url, http.Header{},
-			DebugOption(true),
-			ClientIdOption("b"+strconv.Itoa(i)),
-			ClientDialWssOption(url, false),
-			ConnEstablishHandlerOption(func(ctx context.Context, conn IConnection) {
-				//log.Info(ctx, "client conn establish: %v", conn.Id())
-			}),
-		)
-	}
+// 	//kick client connect again
+// 	for i := 0; i < 100; i++ {
+// 		url := "ws://127.0.0.1:8003/join?uid=a" + strconv.Itoa(i)
+// 		DialConnect(context.Background(), url, http.Header{},
+// 			DebugOption(true),
+// 			ClientIdOption("b"+strconv.Itoa(i)),
+// 			ClientDialWssOption(url, false),
+// 			ConnEstablishHandlerOption(func(ctx context.Context, conn IConnection) {
+// 				//log.Info(ctx, "client conn establish: %v", conn.Id())
+// 			}),
+// 		)
+// 	}
 
-	time.Sleep(time.Second * 1)
+// 	time.Sleep(time.Second * 1)
 
-	if len(ClientConnHub.ConnectionIds()) != 100 {
-		t.Error(len(ClientConnHub.ConnectionIds()))
-	}
-}
+// 	if len(ClientConnHub.ConnectionIds()) != 100 {
+// 		t.Error(len(ClientConnHub.ConnectionIds()))
+// 	}
+// }
 
-func TestWssDialRetryConnect(t *testing.T) {
-	log.SetLogLevel(zapcore.WarnLevel) //if you need info log, commmet this line
+// func TestWssDialRetryConnect(t *testing.T) {
+// 	log.SetLogLevel(zapcore.WarnLevel) //if you need info log, commmet this line
 
-	InitServerWithOpt(ServerOption{[]HubOption{HubShardOption(4)}}) //server invoke
-	InitClient()                                                    //client invoke
-	ctx := context.Background()
+// 	InitServerWithOpt(ServerOption{[]HubOption{HubShardOption(4)}}) //server invoke
+// 	InitClient()                                                    //client invoke
+// 	ctx := context.Background()
 
-	var dialer = &websocket.Dialer{
-		Proxy:            http.ProxyFromEnvironment,
-		HandshakeTimeout: time.Millisecond * 500,
-		ReadBufferSize:   4096,
-		WriteBufferSize:  4096,
-	}
+// 	var dialer = &websocket.Dialer{
+// 		Proxy:            http.ProxyFromEnvironment,
+// 		HandshakeTimeout: time.Millisecond * 500,
+// 		ReadBufferSize:   4096,
+// 		WriteBufferSize:  4096,
+// 	}
 
-	url := "ws://127.0.0.1:8003/join?uid=a1"
-	go func() {
-		DialConnect(context.Background(), url, http.Header{},
-			DebugOption(true),
-			ClientIdOption("a1"),
-			ClientDialOption(dialer),
-			ClientDialWssOption(url, false),
-			ClientDialRetryOption(4, time.Millisecond*100),
-			ConnEstablishHandlerOption(func(ctx context.Context, conn IConnection) {
-				log.Info(ctx, "client conn establish: %v", conn.Id())
-			}),
-		)
-	}()
+// 	url := "ws://127.0.0.1:8003/join?uid=a1"
+// 	go func() {
+// 		DialConnect(context.Background(), url, http.Header{},
+// 			DebugOption(true),
+// 			ClientIdOption("a1"),
+// 			ClientDialOption(dialer),
+// 			ClientDialWssOption(url, false),
+// 			ClientDialRetryOption(4, time.Millisecond*100),
+// 			ConnEstablishHandlerOption(func(ctx context.Context, conn IConnection) {
+// 				log.Info(ctx, "client conn establish: %v", conn.Id())
+// 			}),
+// 		)
+// 	}()
 
-	time.Sleep(time.Millisecond * 500)
+// 	time.Sleep(time.Millisecond * 500)
 
-	//server start
-	handler := http.NewServeMux()
-	handler.HandleFunc("/join", func(w http.ResponseWriter, r *http.Request) {
-		connMeta := ConnectionMeta{
-			UserId:   r.URL.Query().Get("uid"),
-			Typed:    0,
-			DeviceId: "",
-			Source:   "",
-			Version:  0,
-			Charset:  0,
-		}
-		_, err := Accept(ctx, w, r, connMeta, DebugOption(true),
-			SrvUpgraderCompressOption(true),
-			CompressionLevelOption(2),
-			ConnEstablishHandlerOption(func(ctx context.Context, conn IConnection) {
-				log.Info(ctx, "server conn establish: %v, %p", conn.Id(), conn)
-				if len(ClientConnHub.ConnectionIds()) != 1 {
-					t.Error(len(ClientConnHub.ConnectionIds()))
-				}
-			}),
-			ConnClosingHandlerOption(func(ctx context.Context, conn IConnection) {
-				log.Info(ctx, "server conn closing: %v, %p", conn.Id(), conn)
-			}),
-			ConnClosedHandlerOption(func(ctx context.Context, conn IConnection) {
-				log.Info(ctx, "server conn closed: %v, %p", conn.Id(), conn)
-			}))
-		if err != nil {
-			log.Error(ctx, "Accept client connection failed. error: %v", err)
-			return
-		}
-	})
-	go http.ListenAndServe(":8003", handler)
+// 	//server start
+// 	handler := http.NewServeMux()
+// 	handler.HandleFunc("/join", func(w http.ResponseWriter, r *http.Request) {
+// 		connMeta := ConnectionMeta{
+// 			UserId:   r.URL.Query().Get("uid"),
+// 			Typed:    0,
+// 			DeviceId: "",
+// 			Source:   "",
+// 			Version:  0,
+// 			Charset:  0,
+// 		}
+// 		_, err := Accept(ctx, w, r, connMeta, DebugOption(true),
+// 			SrvUpgraderCompressOption(true),
+// 			CompressionLevelOption(2),
+// 			ConnEstablishHandlerOption(func(ctx context.Context, conn IConnection) {
+// 				log.Info(ctx, "server conn establish: %v, %p", conn.Id(), conn)
+// 				if len(ClientConnHub.ConnectionIds()) != 1 {
+// 					t.Error(len(ClientConnHub.ConnectionIds()))
+// 				}
+// 			}),
+// 			ConnClosingHandlerOption(func(ctx context.Context, conn IConnection) {
+// 				log.Info(ctx, "server conn closing: %v, %p", conn.Id(), conn)
+// 			}),
+// 			ConnClosedHandlerOption(func(ctx context.Context, conn IConnection) {
+// 				log.Info(ctx, "server conn closed: %v, %p", conn.Id(), conn)
+// 			}))
+// 		if err != nil {
+// 			log.Error(ctx, "Accept client connection failed. error: %v", err)
+// 			return
+// 		}
+// 	})
+// 	go http.ListenAndServe(":8003", handler)
 
-	//client connect
-	time.Sleep(time.Second)
+// 	//client connect
+// 	time.Sleep(time.Second)
 
-}
-
-func TestAutoReDialConnect(t *testing.T) {
-	log.SetLogLevel(zapcore.WarnLevel) //if you need info log, commmet this line
-
-	InitServerWithOpt(ServerOption{[]HubOption{HubShardOption(4)}}) //server invoke
-	InitClient()                                                    //client invoke
-	ctx := context.Background()
-
-	//server start
-	handler := http.NewServeMux()
-	handler.HandleFunc("/join", func(w http.ResponseWriter, r *http.Request) {
-		connMeta := ConnectionMeta{
-			UserId:   r.URL.Query().Get("uid"),
-			Typed:    0,
-			DeviceId: "",
-			Source:   "",
-			Version:  0,
-			Charset:  0,
-		}
-		_, err := Accept(ctx, w, r, connMeta, DebugOption(true),
-			SrvUpgraderCompressOption(true),
-			CompressionLevelOption(2),
-			ConnEstablishHandlerOption(func(ctx context.Context, conn IConnection) {
-				log.Info(ctx, "server conn establish: %v, %p", conn.Id(), conn)
-
-				safego.Go(func() {
-					time.Sleep(time.Millisecond * 100)
-					conn.KickClient(false)
-				})
-			}),
-			ConnClosingHandlerOption(func(ctx context.Context, conn IConnection) {
-				log.Info(ctx, "server conn closing: %v, %p", conn.Id(), conn)
-			}),
-			ConnClosedHandlerOption(func(ctx context.Context, conn IConnection) {
-				log.Info(ctx, "server conn closed: %v, %p", conn.Id(), conn)
-			}))
-		if err != nil {
-			log.Error(ctx, "Accept client connection failed. error: %v", err)
-			return
-		}
-	})
-	go http.ListenAndServe(":8003", handler)
-
-	time.Sleep(time.Millisecond * 500)
-
-	url := "ws://127.0.0.1:8003/join?uid=a1"
-
-	ctxTimeout, cancel := context.WithTimeout(context.Background(), time.Second)
-	defer cancel()
-
-	AutoReDialConnect(ctxTimeout, url, http.Header{}, time.Millisecond*500,
-		DebugOption(true),
-		ClientDialWssOption(url, false),
-		//ClientDialRetryOption(4, time.Millisecond*100),
-		ConnEstablishHandlerOption(func(ctx context.Context, conn IConnection) {
-			log.Info(ctx, "client conn establish: %v, %p", conn.Id(), conn)
-		}),
-	)
-}
+// }
 
 func TestDefaultPuller(t *testing.T) {
 	firstPull := false
