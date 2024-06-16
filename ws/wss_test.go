@@ -645,73 +645,52 @@ func TestWssSendMessage(t *testing.T) {
 // 	}
 // }
 
-// func TestWssDialRetryConnect(t *testing.T) {
-// 	log.SetLogLevel(zapcore.WarnLevel) //if you need info log, commmet this line
+func TestWssAutoRetryDialConnect(t *testing.T) {
+	log.SetLogLevel(zapcore.WarnLevel) //if you need info log, commmet this line
 
-// 	InitServerWithOpt(ServerOption{[]HubOption{HubShardOption(4)}}) //server invoke
-// 	InitClient()                                                    //client invoke
-// 	ctx := context.Background()
+	InitServerWithOpt(ServerOption{[]HubOption{HubShardOption(4)}}) //server invoke
+	InitClient()                                                    //client invoke
 
-// 	var dialer = &websocket.Dialer{
-// 		Proxy:            http.ProxyFromEnvironment,
-// 		HandshakeTimeout: time.Millisecond * 500,
-// 		ReadBufferSize:   4096,
-// 		WriteBufferSize:  4096,
-// 	}
+	//server start
+	ctx := context.Background()
+	handler := http.NewServeMux()
+	handler.HandleFunc("/join", func(w http.ResponseWriter, r *http.Request) {
+		connMeta := ConnectionMeta{
+			UserId:   r.URL.Query().Get("uid"),
+			Typed:    0,
+			DeviceId: "",
+			Source:   "",
+			Version:  0,
+			Charset:  0,
+		}
+		_, err := Accept(ctx, w, r, connMeta,
+			ConnEstablishHandlerOption(func(ctx context.Context, conn IConnection) {
+				log.Info(ctx, "server conn establish: %v, %p", conn.Id(), conn)
+				go func() { conn.KickClient(false) }()
+			}),
+			ConnClosedHandlerOption(func(ctx context.Context, conn IConnection) {
+				log.Info(ctx, "server conn closed: %v, %p", conn.Id(), conn)
+			}))
+		if err != nil {
+			log.Error(ctx, "Accept client connection failed. error: %v", err)
+			return
+		}
+	})
+	go http.ListenAndServe(":8003", handler)
 
-// 	url := "ws://127.0.0.1:8003/join?uid=a1"
-// 	go func() {
-// 		DialConnect(context.Background(), url, http.Header{},
-// 			DebugOption(true),
-// 			ClientIdOption("a1"),
-// 			ClientDialOption(dialer),
-// 			ClientDialWssOption(url, false),
-// 			ClientDialRetryOption(4, time.Millisecond*100),
-// 			ConnEstablishHandlerOption(func(ctx context.Context, conn IConnection) {
-// 				log.Info(ctx, "client conn establish: %v", conn.Id())
-// 			}),
-// 		)
-// 	}()
+	//client connect
+	time.Sleep(time.Second)
 
-// 	time.Sleep(time.Millisecond * 500)
-
-// 	//server start
-// 	handler := http.NewServeMux()
-// 	handler.HandleFunc("/join", func(w http.ResponseWriter, r *http.Request) {
-// 		connMeta := ConnectionMeta{
-// 			UserId:   r.URL.Query().Get("uid"),
-// 			Typed:    0,
-// 			DeviceId: "",
-// 			Source:   "",
-// 			Version:  0,
-// 			Charset:  0,
-// 		}
-// 		_, err := Accept(ctx, w, r, connMeta, DebugOption(true),
-// 			SrvUpgraderCompressOption(true),
-// 			CompressionLevelOption(2),
-// 			ConnEstablishHandlerOption(func(ctx context.Context, conn IConnection) {
-// 				log.Info(ctx, "server conn establish: %v, %p", conn.Id(), conn)
-// 				if len(ClientConnHub.ConnectionIds()) != 1 {
-// 					t.Error(len(ClientConnHub.ConnectionIds()))
-// 				}
-// 			}),
-// 			ConnClosingHandlerOption(func(ctx context.Context, conn IConnection) {
-// 				log.Info(ctx, "server conn closing: %v, %p", conn.Id(), conn)
-// 			}),
-// 			ConnClosedHandlerOption(func(ctx context.Context, conn IConnection) {
-// 				log.Info(ctx, "server conn closed: %v, %p", conn.Id(), conn)
-// 			}))
-// 		if err != nil {
-// 			log.Error(ctx, "Accept client connection failed. error: %v", err)
-// 			return
-// 		}
-// 	})
-// 	go http.ListenAndServe(":8003", handler)
-
-// 	//client connect
-// 	time.Sleep(time.Second)
-
-// }
+	url := "ws://127.0.0.1:8003/join?uid=a1"
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
+	defer cancel()
+	AutoReDialConnect(ctx, url, http.Header{}, time.Second*3,
+		ClientDialWssOption(url, false),
+		ConnClosedHandlerOption(func(ctx context.Context, conn IConnection) {
+			log.Info(ctx, "client conn closed: %v, %p", conn.Id(), conn)
+		}),
+	)
+}
 
 func TestDefaultPuller(t *testing.T) {
 	firstPull := false
