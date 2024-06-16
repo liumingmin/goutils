@@ -249,8 +249,8 @@ func (c *Connection) SendMsg(ctx context.Context, payload IMessage, sc SendCallb
 
 func (c *Connection) SendRequestMsg(ctx context.Context, reqMsg IMessage, sc SendCallback) (respMsg IMessage, err error) {
 	sn := atomic.AddUint32(&c.snCounter, 2)
-	if sn == 0 {
-		sn = atomic.AddUint32(&c.snCounter, 2)
+	if sn%2 != uint32(c.ConnType()) {
+		sn += 1
 	}
 	(reqMsg.(*Message)).setSn(sn)
 
