@@ -125,7 +125,7 @@ func genReqDoc(ctx context.Context, moduleName, moduleUri string, paramMap map[s
 	return sb.String()
 }
 
-func genRespDoc(ctx context.Context, moduleName, moduleUri string, paramMap map[string]string, respStructNames []string,
+func genRespDoc(ctx context.Context, _, moduleUri string, paramMap map[string]string, respStructNames []string,
 	resps []interface{}) string {
 	respRemark := paramMap[PARAM_RESP_REMARK]
 	respModelPath := paramMap[PARAM_RESP_MODEL_PATH]
@@ -167,7 +167,7 @@ func genRespDoc(ctx context.Context, moduleName, moduleUri string, paramMap map[
 	return sb.String()
 }
 
-func genJson(ctx context.Context, instance interface{}) string {
+func genJson(_ context.Context, instance interface{}) string {
 	sb := strings.Builder{}
 
 	sb.WriteString("```json\n")
@@ -225,7 +225,7 @@ func genDocTableContent(ctx context.Context, filePath, typeName string) string {
 	return sb.String()
 }
 
-func findTypeStructByName(ctx context.Context, filePath, typeName string) string {
+func findTypeStructByName(_ context.Context, filePath, typeName string) string {
 	reg, _ := regexp.Compile(fmt.Sprintf(MODEL_TYPE_REGX, typeName))
 
 	absPath := filePath
@@ -261,7 +261,7 @@ func findTypeStructByName(ctx context.Context, filePath, typeName string) string
 	return ""
 }
 
-func genDocTableLine(ctx context.Context, line string) string {
+func genDocTableLine(_ context.Context, line string) string {
 	fieldName, _ := utils.ParseContentByTag(line, "json:\"", "\"")
 	if specCharIdx := strings.Index(fieldName, ","); specCharIdx >= 0 { //去掉,omitempty 之类
 		fieldName = fieldName[:specCharIdx]

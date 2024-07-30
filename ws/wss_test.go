@@ -363,7 +363,9 @@ func TestWssRequestResponseWithTimeout(t *testing.T) {
 	log.Info(ctx, "%v", conn)
 	time.Sleep(time.Millisecond * 200)
 
-	toCtx, _ := context.WithTimeout(ctx, time.Second*1)
+	toCtx, cancel := context.WithTimeout(ctx, time.Second*1)
+	defer cancel()
+
 	packet := GetPoolMessage(C2S_REQ_TIMEOUT)
 	packet.SetData([]byte("client rpc req info timeout"))
 	resp, err := conn.SendRequestMsg(toCtx, packet, nil)

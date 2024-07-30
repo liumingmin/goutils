@@ -141,7 +141,7 @@ func (c *Client) Verify(addr string) error {
 // Only servers that advertise the AUTH extension support this function.
 func (c *Client) Auth(a smtp.Auth) error {
 	encoding := base64.StdEncoding
-	mech, resp, err := a.Start(&smtp.ServerInfo{c.serverName, c.tls, c.auth})
+	mech, resp, err := a.Start(&smtp.ServerInfo{Name: c.serverName, TLS: c.tls, Auth: c.auth})
 	if err != nil {
 		c.Quit()
 		return err

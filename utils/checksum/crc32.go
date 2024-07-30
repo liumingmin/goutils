@@ -58,9 +58,6 @@ func CompareChecksumFiles(ctx context.Context, root string, checksumPath string)
 		return err
 	}
 	paths := GetCheckFileList(ctx, checkInfo)
-	if err != nil {
-		return err
-	}
 	err = ChecksumFilesWithCheckInfo(root, checkInfo, paths)
 	if err != nil {
 		return err

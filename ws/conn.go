@@ -209,7 +209,7 @@ func (c *Connection) IsStopped() bool {
 	return atomic.LoadInt32(&c.stopped) == 1
 }
 
-func (c *Connection) setStop(ctx context.Context) {
+func (c *Connection) setStop(_ context.Context) {
 	atomic.CompareAndSwapInt32(&c.stopped, 0, 1)
 
 	close(c.writeStop)
