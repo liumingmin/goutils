@@ -12,7 +12,7 @@ func (n testConstHashNode) Id() string {
 }
 
 func (n testConstHashNode) Health() bool {
-	return "node8" != string(n)
+	return string(n) != "node8"
 }
 
 func TestConstHash(t *testing.T) {

@@ -5,7 +5,6 @@ import (
 	"crypto/sha1"
 	"errors"
 	"io"
-	"io/ioutil"
 	"net"
 	"net/http"
 	"net/url"
@@ -36,7 +35,7 @@ func drainBody(b io.ReadCloser) (r1, r2 io.ReadCloser, err error) {
 	if err = b.Close(); err != nil {
 		return nil, nil, err
 	}
-	return ioutil.NopCloser(&buf), ioutil.NopCloser(bytes.NewReader(buf.Bytes())), nil
+	return io.NopCloser(&buf), io.NopCloser(bytes.NewReader(buf.Bytes())), nil
 }
 
 func DumpBodyAsReader(req *http.Request) (reader io.ReadCloser, err error) {
@@ -51,7 +50,10 @@ func DumpBodyAsReader(req *http.Request) (reader io.ReadCloser, err error) {
 func DumpBodyAsBytes(req *http.Request) (copy []byte, err error) {
 	var reader io.ReadCloser
 	reader, err = DumpBodyAsReader(req)
-	copy, err = ioutil.ReadAll(reader)
+	if err != nil {
+		return
+	}
+	copy, err = io.ReadAll(reader)
 	return
 }
 
@@ -66,7 +68,7 @@ func DefaultPooledClient() *http.Client {
 	return gTransport
 }
 
-func initHc() {
+func InitHc() {
 	gTransport = &http.Client{
 		Transport: defaultPooledTransport(),
 	}

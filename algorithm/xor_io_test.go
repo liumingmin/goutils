@@ -3,7 +3,6 @@ package algorithm
 import (
 	"bytes"
 	"io"
-	"io/ioutil"
 	"math/rand"
 	"os"
 	"path/filepath"
@@ -30,12 +29,12 @@ func TestXorIO(t *testing.T) {
 
 	cipherBs := w.Bytes()
 	xr := NewXORReader(bytes.NewReader(cipherBs), testXorKey)
-	rdata, err := ioutil.ReadAll(xr)
+	rdata, err := io.ReadAll(xr)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	if bytes.Compare(data, rdata) != 0 {
+	if !bytes.Equal(data, rdata) {
 		t.FailNow()
 	}
 }
@@ -89,10 +88,10 @@ func TestDeCipherXor(t *testing.T) {
 		}
 	}()
 
-	bs1, _ := ioutil.ReadFile(testXorOrigFilePath)
-	bs2, _ := ioutil.ReadFile(testXorRecoverFilePath)
+	bs1, _ := os.ReadFile(testXorOrigFilePath)
+	bs2, _ := os.ReadFile(testXorRecoverFilePath)
 
-	if bytes.Compare(bs1, bs2) != 0 {
+	if !bytes.Equal(bs1, bs2) {
 		t.FailNow()
 	}
 }
@@ -137,10 +136,10 @@ func TestXORReaderAt(t *testing.T) {
 		}
 	}()
 
-	bs1, _ := ioutil.ReadFile(testXorOrigFilePath)
-	bs2, _ := ioutil.ReadFile(testXorRecoverFilePath)
+	bs1, _ := os.ReadFile(testXorOrigFilePath)
+	bs2, _ := os.ReadFile(testXorRecoverFilePath)
 
-	if bytes.Compare(bs1, bs2) != 0 {
+	if !bytes.Equal(bs1, bs2) {
 		t.FailNow()
 	}
 }

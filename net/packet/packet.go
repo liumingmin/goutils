@@ -35,6 +35,8 @@ func (p *DataPacket) Unpack(reader io.Reader) error {
 		return errors.New("packet flag error")
 	}
 
+	p.flag = [2]byte(flagBytes)
+
 	lengthByte := headerBytes[2:4]
 	protocolIdByte := headerBytes[4:6]
 

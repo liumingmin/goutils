@@ -9,7 +9,7 @@ type State string
 type Guard func(subject Stater, goal State) bool
 
 var (
-	InvalidTransition = errors.New("invalid transition")
+	ErrInvalidTransition = errors.New("invalid transition")
 )
 
 // Transition is the change between States
@@ -32,9 +32,7 @@ type Ruleset map[Transition][]Guard
 
 // AddRule adds Guards for the given Transition
 func (r Ruleset) AddRule(t Transition, guards ...Guard) {
-	for _, guard := range guards {
-		r[t] = append(r[t], guard)
-	}
+	r[t] = append(r[t], guards...)
 }
 
 // AddTransition adds a transition with a default rule
@@ -73,11 +71,9 @@ func (r Ruleset) Permitted(subject Stater, goal State) bool {
 		}
 
 		for range guards {
-			select {
-			case o := <-outcome:
-				if !o {
-					return false
-				}
+			o, ok := <-outcome
+			if !ok || !o {
+				return false
 			}
 		}
 
@@ -108,7 +104,7 @@ func (m Machine) Transition(goal State) error {
 		return nil
 	}
 
-	return InvalidTransition
+	return ErrInvalidTransition
 }
 
 // New initializes a machine

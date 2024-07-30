@@ -2,7 +2,7 @@ package ws
 
 import (
 	"context"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"time"
 
@@ -93,7 +93,7 @@ func DialConnect(ctx context.Context, sUrl string, header http.Header, opts ...C
 		func() {
 			if resp != nil && resp.Body != nil {
 				defer resp.Body.Close()
-				ioutil.ReadAll(resp.Body)
+				io.ReadAll(resp.Body)
 			}
 		}()
 

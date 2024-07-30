@@ -87,7 +87,6 @@ func BenchmarkBitmap_Exists(b *testing.B) {
 
 	//b.Log("start compare")
 	//b.StartTimer()
-	b.N = 1000000000
 	for i := 0; i < b.N; i++ {
 		bitmap.Exists(uint32(i))
 	}

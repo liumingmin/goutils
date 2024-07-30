@@ -2,7 +2,6 @@ package conf
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 	"reflect"
 	"strings"
@@ -271,7 +270,7 @@ var (
 )
 
 func LoadConf(path string) {
-	c, err := ioutil.ReadFile(path)
+	c, err := os.ReadFile(path)
 	if err != nil {
 		fmt.Fprint(os.Stderr, err)
 		return

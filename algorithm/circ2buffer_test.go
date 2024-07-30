@@ -11,7 +11,7 @@ var incrementBlock = make([]byte, BLOCK_SIZE)
 var incrementBlock2 = make([]byte, BLOCK_SIZE)
 
 func init() {
-	for i, _ := range incrementBlock {
+	for i := range incrementBlock {
 		incrementBlock[i] = byte(i)
 		incrementBlock2[i] = byte(i + BLOCK_SIZE)
 	}
@@ -82,7 +82,7 @@ func TestWriteTwoBlocksGet(t *testing.T) {
 	b.Write(incrementBlock)
 	b.Write(incrementBlock2)
 
-	if bytes.Compare(b.GetBlock(), incrementBlock2) != 0 {
+	if !bytes.Equal(b.GetBlock(), incrementBlock2) {
 		t.Errorf("Get block did not return the right value: %s", b.GetBlock())
 	}
 }
@@ -92,7 +92,7 @@ func TestWriteSingleByteGetSingleByte(t *testing.T) {
 	singleByte := []byte{0}
 	b.Write(singleByte)
 
-	if bytes.Compare(b.GetBlock(), singleByte) != 0 {
+	if !bytes.Equal(b.GetBlock(), singleByte) {
 		t.Errorf("Get block did not return the right value: %s", b.GetBlock())
 	}
 }
@@ -102,7 +102,7 @@ func TestWriteTwoBlocksGetEvicted(t *testing.T) {
 	b.Write(incrementBlock)
 	b.Write(incrementBlock2)
 
-	if bytes.Compare(b.Evicted(), incrementBlock) != 0 {
+	if !bytes.Equal(b.Evicted(), incrementBlock) {
 		t.Errorf("Evicted did not return the right value: %s", b.Evicted())
 	}
 }
@@ -158,7 +158,7 @@ func TestWritingAfterTruncating(t *testing.T) {
 		)
 	}
 
-	if bytes.Compare(block, []byte{4, 5, 6, 7, 8, 9, 34, 46}) != 0 {
+	if !bytes.Equal(block, []byte{4, 5, 6, 7, 8, 9, 34, 46}) {
 		t.Errorf(
 			"Unexpected block content after truncation: %v (%v)",
 			block,

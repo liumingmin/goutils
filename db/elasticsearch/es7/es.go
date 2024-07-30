@@ -103,7 +103,7 @@ func initClient(dbconf *conf.Elasticsearch) (ret *Client, err error) {
 //}
 
 func GetEsClient(key string) *Client {
-	client, _ := esClients[key]
+	client := esClients[key]
 	return client
 }
 
@@ -268,7 +268,7 @@ func (t *Client) UpdateById(ctx context.Context, esIndexName, id string, updateM
 	})
 
 	var b strings.Builder
-	for field, _ := range updateM {
+	for field := range updateM {
 		fmt.Fprintf(&b, "ctx._source.%s=params.%s;", field, field)
 	}
 	_, err = t.Update().Index(esIndexName).Id(id).

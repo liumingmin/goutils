@@ -3,8 +3,8 @@ package proxy
 import (
 	"database/sql"
 	"fmt"
-	"io/ioutil"
 	"net"
+	"os"
 	"testing"
 	"time"
 
@@ -12,7 +12,7 @@ import (
 )
 
 func getSshClient(t *testing.T) *ssh.Client {
-	pemBytes, _ := ioutil.ReadFile("")
+	pemBytes, _ := os.ReadFile("")
 	config, err := NewSshClient("127.0.0.1:28822", "app", pemBytes, "")
 	if err != nil {
 		t.Fatalf("NewSshClient failed %v", err)

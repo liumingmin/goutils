@@ -13,7 +13,6 @@ type CircuitBreaker interface {
 }
 
 type Error struct {
-	error
 	Msg string
 }
 

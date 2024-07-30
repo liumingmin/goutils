@@ -176,7 +176,7 @@ func TestDllConvertSlice(t *testing.T) {
 	header.Len = len(origSlice)
 	header.Cap = header.Len
 
-	if bytes.Compare(origSlice, slice) != 0 {
+	if !bytes.Equal(origSlice, slice) {
 		t.FailNow()
 	}
 }

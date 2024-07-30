@@ -32,16 +32,8 @@ func TestSendEmail(t *testing.T) {
 
 	if err != nil {
 		t.Log(err)
-		return
 	}
-
-	return
 }
 
 func TestMain(m *testing.M) {
-	// if runtime.GOOS != "windows" {
-	// 	return
-	// }
-
-	// m.Run()
 }

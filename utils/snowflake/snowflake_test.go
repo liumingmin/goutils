@@ -3,17 +3,17 @@ package snowflake
 import "testing"
 
 func TestSnowflake(t *testing.T) {
-	n, err := NewNode(-1)
+	_, err := NewNode(-1)
 	if err == nil {
 		t.FailNow()
 	}
 
-	n, err = NewNode(1024)
+	_, err = NewNode(1024)
 	if err == nil {
 		t.FailNow()
 	}
 
-	n, err = NewNode(2)
+	n, err := NewNode(2)
 	if err != nil {
 		t.Fatal(err)
 	}

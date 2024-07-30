@@ -12,7 +12,6 @@ import (
 
 var testTempDirPath = filepath.Join(os.TempDir(), "goutils_checksum")
 var testChecksumName = "goutils"
-var testChecmsumFileName = "goutils.checksum"
 
 func TestCompareChecksumFiles(t *testing.T) {
 	checkSumPath, err := GenerateChecksumFile(context.Background(), testTempDirPath, testChecksumName)

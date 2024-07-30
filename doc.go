@@ -2,7 +2,7 @@ package main
 
 import (
 	"fmt"
-	"io/ioutil"
+	"os"
 	"os/exec"
 	"path/filepath"
 	"regexp"
@@ -64,7 +64,7 @@ var cnSwitchStr = "**其他语言版本: [English](README.md), [中文](README_z
 
 // dir := filepath.Dir(filePath)
 func genDocByTestFile(dir string, level int, sb *strings.Builder, isCn bool) map[string]string {
-	files, _ := ioutil.ReadDir(dir)
+	files, _ := os.ReadDir(dir)
 
 	nextLevel := level + 1
 
@@ -96,21 +96,21 @@ func genDocByTestFile(dir string, level int, sb *strings.Builder, isCn bool) map
 					sb.Reset()
 					continue
 				}
-				ioutil.WriteFile(readmePath, []byte("<!-- toc -->\n"+content), 0666)
+				os.WriteFile(readmePath, []byte("<!-- toc -->\n"+content), 0666)
 				sb.Reset()
 
 				if err := exec.Command("cmd", "/c", "markdown-toc --maxdepth 2 -i "+readmePath).Run(); err != nil {
 					fmt.Println(err)
 				}
 
-				bs1, _ := ioutil.ReadFile(readmePath)
+				bs1, _ := os.ReadFile(readmePath)
 				fileContent := string(bs1)
 				if isCn {
 					fileContent = cnSwitchStr + fileContent
 				} else {
 					fileContent = enSwitchStr + fileContent
 				}
-				ioutil.WriteFile(readmePath, []byte(fileContent), 0666)
+				os.WriteFile(readmePath, []byte(fileContent), 0666)
 
 			}
 			continue
@@ -118,7 +118,7 @@ func genDocByTestFile(dir string, level int, sb *strings.Builder, isCn bool) map
 
 		if strings.HasSuffix(file.Name(), "_test.go") {
 			codeFilePath := dir + "/" + file.Name()
-			bs, err := ioutil.ReadFile(codeFilePath)
+			bs, err := os.ReadFile(codeFilePath)
 			if err != nil {
 				continue
 			}

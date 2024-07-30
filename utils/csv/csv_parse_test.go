@@ -127,7 +127,7 @@ func TestParseShortCsv(t *testing.T) {
 		t.Error(dt.Rows())
 	}
 
-	dt, err = ReadCsvToDataTable(context.Background(), strings.NewReader(""), '\t',
+	_, err = ReadCsvToDataTable(context.Background(), strings.NewReader(""), '\t',
 		[]string{"id", "name", "remark"}, "", []string{"name"}) //pk default cols[0]
 	if err != ErrCsvIsEmpty {
 		t.Error(err)

@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"fmt"
 	"html/template"
-	"io/ioutil"
 	"log"
 	"os"
 	"path/filepath"
@@ -17,9 +16,9 @@ func main() {
 		return
 	}
 
-	bs, _ := ioutil.ReadFile(GetCurrentDirectory() + "\\auto_doc_code.tpl")
+	bs, _ := os.ReadFile(GetCurrentDirectory() + "\\auto_doc_code.tpl")
 	docStr := genDocCodeFromTpl(string(bs), os.Args[1], os.Args[2])
-	ioutil.WriteFile(strings.ToLower(os.Args[1])+"_test.go", []byte(docStr), 0666)
+	os.WriteFile(strings.ToLower(os.Args[1])+"_test.go", []byte(docStr), 0666)
 }
 
 func genDocCodeFromTpl(tplFileContent, moduleName, moduleTitle string) string {

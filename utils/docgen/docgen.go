@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -69,7 +68,7 @@ func GenDoc(ctx context.Context, docName, docFilePath string, maxdepth int, modu
 
 	sb.WriteString(moduleDocs)
 
-	ioutil.WriteFile(docFilePath, []byte(sb.String()), 0666)
+	os.WriteFile(docFilePath, []byte(sb.String()), 0666)
 
 	if err := exec.Command("cmd", "/c", fmt.Sprintf("markdown-toc --maxdepth %d -i %s", maxdepth, docFilePath)).Run(); err != nil {
 		fmt.Println(err)
@@ -92,9 +91,9 @@ func GenModuleDoc(ctx context.Context, moduleName, moduleUri string, paramMap ma
 
 func genReqDoc(ctx context.Context, moduleName, moduleUri string, paramMap map[string]string, reqStructNames []string,
 	reqCase interface{}) string {
-	method, _ := paramMap[PARAM_MODULE_METHOD]
-	reqRemark, _ := paramMap[PARAM_REQ_REMARK]
-	reqModelPath, _ := paramMap[PARAM_REQ_MODEL_PATH]
+	method := paramMap[PARAM_MODULE_METHOD]
+	reqRemark := paramMap[PARAM_REQ_REMARK]
+	reqModelPath := paramMap[PARAM_REQ_MODEL_PATH]
 
 	if method == "" {
 		method = "POST:application/json"
@@ -128,8 +127,8 @@ func genReqDoc(ctx context.Context, moduleName, moduleUri string, paramMap map[s
 
 func genRespDoc(ctx context.Context, moduleName, moduleUri string, paramMap map[string]string, respStructNames []string,
 	resps []interface{}) string {
-	respRemark, _ := paramMap[PARAM_RESP_REMARK]
-	respModelPath, _ := paramMap[PARAM_RESP_MODEL_PATH]
+	respRemark := paramMap[PARAM_RESP_REMARK]
+	respModelPath := paramMap[PARAM_RESP_MODEL_PATH]
 
 	sb := strings.Builder{}
 
@@ -201,7 +200,7 @@ func genDocTableContent(ctx context.Context, filePath, typeName string) string {
 
 	sb := strings.Builder{}
 
-	bs, _ := ioutil.ReadFile(structFilePath)
+	bs, _ := os.ReadFile(structFilePath)
 	content := string(bs)
 
 	reg, _ := regexp.Compile(fmt.Sprintf(MODEL_TYPE_REGX, typeName))
@@ -240,14 +239,14 @@ func findTypeStructByName(ctx context.Context, filePath, typeName string) string
 		dir = filepath.Dir(absPath)
 	}
 
-	files, _ := ioutil.ReadDir(dir)
+	files, _ := os.ReadDir(dir)
 	for _, file := range files {
 		if file.IsDir() {
 			continue
 		}
 
 		codeFilePath := dir + "/" + file.Name()
-		bs, err := ioutil.ReadFile(codeFilePath)
+		bs, err := os.ReadFile(codeFilePath)
 		if err != nil {
 			continue
 		}

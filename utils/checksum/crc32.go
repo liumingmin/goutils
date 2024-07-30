@@ -271,7 +271,7 @@ func GetChecksumInfo(ctx context.Context, checksumPath string) (checkInfo map[st
 
 func GetCheckFileList(ctx context.Context, checkInfo map[string]*ChecksumInfo) []string {
 	var files []string
-	for k, _ := range checkInfo {
+	for k := range checkInfo {
 		files = append(files, k)
 	}
 	return files

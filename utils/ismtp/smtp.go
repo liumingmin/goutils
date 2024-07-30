@@ -163,6 +163,9 @@ func (c *Client) Auth(a smtp.Auth) error {
 		switch code {
 		case 334:
 			msg, err = encoding.DecodeString(msg64)
+			if err != nil {
+				return err
+			}
 		case 235:
 			// the last message isn't base64 because it isn't a challenge
 			msg = []byte(msg64)

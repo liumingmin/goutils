@@ -27,11 +27,13 @@ func newSaramaAsyncProducer(opt *conf.KafkaProducer) (ret *saramaAsyncProducer, 
 	// 默认异步读取,避免阻塞
 	if opt.ReturnSuccess {
 		go func() {
-			tk := time.Tick(time.Second)
+			tk := time.NewTicker(time.Second)
+			defer tk.Stop()
+
 			for ret.version == 0 {
 				select {
 				case <-ret.Successes():
-				case <-tk:
+				case <-tk.C:
 				}
 			}
 		}()
@@ -39,11 +41,13 @@ func newSaramaAsyncProducer(opt *conf.KafkaProducer) (ret *saramaAsyncProducer, 
 	// 默认异步读取,避免阻塞
 	if opt.ReturnError {
 		go func() {
-			tk := time.Tick(time.Second)
+			tk := time.NewTicker(time.Second)
+			defer tk.Stop()
+
 			for ret.version == 0 {
 				select {
 				case <-ret.Errors():
-				case <-tk:
+				case <-tk.C:
 				}
 			}
 		}()
@@ -66,25 +70,29 @@ func (p *saramaAsyncProducer) AsyncHandle(mh ProducerMessageHandler, eh Producer
 	ver := atomic.AddInt32(&p.version, 1)
 	if p.option.ReturnSuccess && mh != nil {
 		go func() {
-			tk := time.Tick(time.Second)
+			tk := time.NewTicker(time.Second)
+			defer tk.Stop()
+
 			for p.version == ver {
 				mh(<-p.Successes())
 				select {
 				case m := <-p.Successes():
 					mh(m)
-				case <-tk:
+				case <-tk.C:
 				}
 			}
 		}()
 	}
 	if p.option.ReturnError && eh != nil {
 		go func() {
-			tk := time.Tick(time.Second)
+			tk := time.NewTicker(time.Second)
+			defer tk.Stop()
+
 			for p.version == ver {
 				select {
 				case e := <-p.Errors():
 					eh(e)
-				case <-tk:
+				case <-tk.C:
 				}
 			}
 		}()

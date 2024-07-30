@@ -35,12 +35,13 @@ func (g *saramaConsumerGroup) Consume(topic string, mh ConsumerMessageHandler, e
 func (g *saramaConsumerGroup) ConsumeM(topics []string, mh ConsumerMessageHandler, eh ConsumerErrorHandler) (err error) {
 	ver := atomic.AddInt32(&g.version, 1)
 	go func() {
-		tk := time.Tick(time.Second)
+		tk := time.NewTicker(time.Second)
+		defer tk.Stop()
 		for ver == g.version {
 			select {
 			case e := <-g.Errors():
 				eh(e)
-			case <-tk:
+			case <-tk.C:
 			}
 		}
 	}()
@@ -50,7 +51,6 @@ func (g *saramaConsumerGroup) ConsumeM(topics []string, mh ConsumerMessageHandle
 			return
 		}
 	}
-	return nil
 }
 
 func newSaramaConsumerGroup(opt *conf.KafkaConsumer) (ret *saramaConsumerGroup, err error) {
