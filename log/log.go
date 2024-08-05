@@ -81,6 +81,7 @@ func ContextWithTraceId() context.Context {
 }
 
 func ContextWithTraceIdFromParent(parent context.Context) context.Context {
+	//lint:ignore SA1029 support some self feature
 	return context.WithValue(parent, LOG_TRACE_CTX_KEY, NewTraceId())
 }
 
