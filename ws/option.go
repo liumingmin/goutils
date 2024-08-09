@@ -26,15 +26,18 @@ func DebugOption(debug bool) ConnOption {
 	}
 }
 
+func OptionLogRecover(ctx context.Context, c IConnection, funcName string) {
+	log.Recover(ctx, func(e interface{}) string {
+		return fmt.Sprintf("%v %v panic, error is: %v", c.ConnType(), funcName, e)
+	})
+}
+
 // callback
 func ConnEstablishHandlerOption(handler EventHandler) ConnOption {
 	return func(conn *Connection) {
 		if handler != nil {
 			conn.connEstablishHandler = func(ctx context.Context, c IConnection) {
-				defer log.Recover(ctx, func(e interface{}) string {
-					return fmt.Sprintf("%v connEstablishHandler panic, error is: %v", c.ConnType(), e)
-				})
-
+				defer OptionLogRecover(ctx, c, "connEstablishHandler")
 				handler(ctx, c)
 			}
 		}
@@ -45,10 +48,7 @@ func ConnClosingHandlerOption(handler EventHandler) ConnOption {
 	return func(conn *Connection) {
 		if handler != nil {
 			conn.connClosingHandler = func(ctx context.Context, c IConnection) {
-				defer log.Recover(ctx, func(e interface{}) string {
-					return fmt.Sprintf("%v connClosingHandler panic, error is: %v", c.ConnType(), e)
-				})
-
+				defer OptionLogRecover(ctx, c, "connClosingHandler")
 				handler(ctx, c)
 			}
 		}
@@ -59,10 +59,7 @@ func ConnClosedHandlerOption(handler EventHandler) ConnOption {
 	return func(conn *Connection) {
 		if handler != nil {
 			conn.connClosedHandler = func(ctx context.Context, c IConnection) {
-				defer log.Recover(ctx, func(e interface{}) string {
-					return fmt.Sprintf("%v connClosedHandler panic, error is: %v", c.ConnType(), e)
-				})
-
+				defer OptionLogRecover(ctx, c, "connClosedHandler")
 				handler(ctx, c)
 			}
 		}
@@ -73,10 +70,7 @@ func RecvPingHandlerOption(handler EventHandler) ConnOption {
 	return func(conn *Connection) {
 		if handler != nil {
 			conn.recvPingHandler = func(ctx context.Context, c IConnection) {
-				defer log.Recover(ctx, func(e interface{}) string {
-					return fmt.Sprintf("%v recvPingHandler panic, error is: %v", c.ConnType(), e)
-				})
-
+				defer OptionLogRecover(ctx, c, "recvPingHandler")
 				handler(ctx, c)
 			}
 		}
@@ -87,10 +81,7 @@ func RecvPongHandlerOption(handler EventHandler) ConnOption {
 	return func(conn *Connection) {
 		if handler != nil {
 			conn.recvPongHandler = func(ctx context.Context, c IConnection) {
-				defer log.Recover(ctx, func(e interface{}) string {
-					return fmt.Sprintf("%v recvPongHandler panic, error is: %v", c.ConnType(), e)
-				})
-
+				defer OptionLogRecover(ctx, c, "recvPongHandler")
 				handler(ctx, c)
 			}
 		}
@@ -252,10 +243,7 @@ func ClientDialConnFailedHandlerOption(handler EventHandler) ConnOption {
 	return func(conn *Connection) {
 		if handler != nil {
 			conn.dialConnFailedHandler = func(ctx context.Context, c IConnection) {
-				defer log.Recover(ctx, func(e interface{}) string {
-					return fmt.Sprintf("%v dialConnFailedHandler panic, error is: %v", c.ConnType(), e)
-				})
-
+				defer OptionLogRecover(ctx, c, "dialConnFailedHandler")
 				handler(ctx, c)
 			}
 		}

@@ -72,22 +72,15 @@ func DialConnect(ctx context.Context, sUrl string, header http.Header, opts ...C
 	}
 
 	var conn *websocket.Conn
+	var resp *http.Response
+	var err error
+
 	for retry := 1; retry <= connection.dialRetryNum; retry++ {
-		var err error
-		var resp *http.Response
 		conn, resp, err = connection.dialer.DialContext(ctx, sUrl, header)
 		if err != nil {
-			if retry < connection.dialRetryNum {
-				log.Warn(ctx, "Failed to connect to server, sleep and try again. retry: %v, error: %v, url: %v", retry, err, sUrl)
-				time.Sleep(connection.dialRetryInterval)
-				continue
-			} else {
-				log.Error(ctx, "Failed to connect to server, leave it. retry: %v, error: %v", retry, err)
-				if connection.dialConnFailedHandler != nil {
-					connection.dialConnFailedHandler(ctx, connection)
-				}
-				return nil, err
-			}
+			log.Warn(ctx, "Failed to connect to server, sleep and try again. retry: %v, error: %v, url: %v", retry, err, sUrl)
+			time.Sleep(connection.dialRetryInterval)
+			continue
 		}
 
 		func() {
@@ -97,8 +90,16 @@ func DialConnect(ctx context.Context, sUrl string, header http.Header, opts ...C
 			}
 		}()
 
-		log.Debug(ctx, "Success connect to server. retry: %v", retry)
+		log.Debug(ctx, "Success connect to server: %v", sUrl)
 		break
+	}
+
+	if err != nil {
+		log.Error(ctx, "Failed connect to server: %v", sUrl)
+		if connection.dialConnFailedHandler != nil {
+			connection.dialConnFailedHandler(ctx, connection)
+		}
+		return nil, err
 	}
 
 	connection.conn = conn

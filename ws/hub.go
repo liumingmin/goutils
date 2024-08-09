@@ -198,10 +198,9 @@ func initClient() IHub {
 			displaceMsg := dataMsg.(*P_DISPLACE)
 			log.Info(ctx, "client: %v displaced by %v at %v", string(displaceMsg.OldIp), string(displaceMsg.NewIp),
 				time.Unix(0, displaceMsg.Ts))
-			return nil
+		} else {
+			log.Debug(ctx, "client displaced")
 		}
-
-		log.Info(ctx, "client displaced")
 		return nil
 	})
 
