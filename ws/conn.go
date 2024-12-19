@@ -52,8 +52,8 @@ type Connection struct {
 	debug          bool                  //debug日志输出
 	isPool         bool                  //poolObject 池对象
 
-	snCounter uint32   //sn counter, atomic add(2), server_start=1 client_start=0
-	snChanMap sync.Map //sn channel store map, map[uint32]chan IMessage
+	snCounter uint32    //sn counter, atomic add(2), server_start=1 client_start=0
+	snChanMap *sync.Map //sn channel store map, map[uint32]chan IMessage
 
 	connEstablishHandler  EventHandler
 	connClosingHandler    EventHandler
@@ -93,6 +93,9 @@ func (c *Connection) init() {
 	c.writeDone = make(chan interface{})
 	c.readDone = make(chan interface{})
 
+	c.snCounter = 0
+	c.snChanMap = new(sync.Map)
+
 	defaultNetParamsOption()(c)
 
 	//client
@@ -101,12 +104,13 @@ func (c *Connection) init() {
 }
 
 type ConnectionMeta struct {
-	UserId   string //userId
-	Typed    int    //客户端类型枚举
-	DeviceId string //设备ID
-	Source   string //defines where the connection comes from
-	Version  int    //版本
-	Charset  int    //客户端使用的字符集
+	UserId          string //userId
+	Typed           int    //客户端类型枚举
+	DeviceId        string //设备ID
+	Source          string //defines where the connection comes from
+	Version         int    //版本
+	Charset         int    //客户端使用的字符集
+	DisableConnPool bool   //是否禁用链接池
 
 	//inner set
 	clientIp string
@@ -188,9 +192,6 @@ func (c *Connection) reset() {
 
 	c.debug = false
 	c.isPool = false
-
-	c.snCounter = 0
-	c.snChanMap = sync.Map{}
 
 	c.upgrader = nil
 	c.dialer = nil

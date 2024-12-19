@@ -47,7 +47,13 @@ func Accept(ctx context.Context, w http.ResponseWriter, r *http.Request, meta Co
 		meta.clientIp = ip.RemoteAddress(r)
 	}
 
-	connection := getPoolConnection()
+	var connection *Connection
+	if meta.DisableConnPool {
+		connection = &Connection{}
+		connection.init()
+	} else {
+		connection = getPoolConnection()
+	}
 
 	connection.id = meta.BuildConnId()
 	connection.typ = CONN_KIND_SERVER
