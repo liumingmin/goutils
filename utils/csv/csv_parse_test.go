@@ -56,7 +56,7 @@ func TestParseCsvRaw(t *testing.T) {
 16	name16	16	remark16
 17	name17	17	remark17
 18	name18	18	remark18
-19	name19	19	remark19`)
+19	name19	19	remark19`, '\t')
 
 	dt := container.NewDataTable(records[0], "id", []string{"name"}, 20)
 	dt.PushAll(records[1:])

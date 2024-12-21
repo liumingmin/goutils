@@ -1,7 +1,6 @@
 package csv
 
 import (
-	"bytes"
 	"context"
 	"encoding/csv"
 	"errors"
@@ -11,7 +10,6 @@ import (
 
 	"github.com/liumingmin/goutils/container"
 	"github.com/liumingmin/goutils/log"
-	"github.com/liumingmin/goutils/utils"
 )
 
 var (
@@ -89,42 +87,32 @@ func ReadCsvToData(ctx context.Context, reader io.Reader, comma rune, colNames [
 }
 
 func ParseCsv(ctx context.Context, reader io.Reader, comma rune) (records [][]string, err error) {
-	bs, err := io.ReadAll(reader)
-	if err != nil {
-		log.Error(ctx, "Read bytes failed, error: %v", err)
-		return
-	}
-
-	var fileContent []byte
-	if utils.IsUtf8(bs) {
-		fileContent = bs
-	} else if utils.IsGBK(bs) {
-		fileContent, err = utils.GBK2UTF8(bs)
-		if err != nil {
-			log.Error(ctx, "GBK2UTF8 failed, error: %v", err)
-			return
-		}
-	} else {
-		err = errors.New("unsupport encoding")
-		return
-	}
-
-	csvReader := csv.NewReader(bytes.NewReader(fileContent))
+	csvReader := csv.NewReader(reader)
 	csvReader.Comma = comma
 	csvReader.LazyQuotes = true
 	records, err = csvReader.ReadAll() // `rows` is of type [][]string
 	if err != nil {
-		records = ParseCsvRaw(ctx, string(fileContent))
+		var content []byte
+		content, err = io.ReadAll(reader)
+		if err != nil {
+			log.Error(ctx, "Read bytes failed, error: %v", err)
+			return
+		}
+
+		records = ParseCsvRaw(ctx, string(content), comma)
 		err = nil
 		log.Error(ctx, "Read bytes failed. error: %v, try parse raw: %v", err, len(records))
 	}
 	return
 }
 
-func ParseCsvRaw(ctx context.Context, content string) (records [][]string) {
+func ParseCsvRaw(ctx context.Context, content string, comma rune) (records [][]string) {
+	commaStr := string(comma)
+
 	rowStrs := strings.Split(content, "\n")
 	for _, rowStr := range rowStrs {
-		row := strings.Split(rowStr, "\t")
+		rowStr = strings.TrimSpace(rowStr)
+		row := strings.Split(rowStr, commaStr)
 		records = append(records, row)
 	}
 	return
