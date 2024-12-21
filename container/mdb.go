@@ -30,6 +30,16 @@ func (r *DataRow) UInt64(fieldName string) uint64 {
 	return i
 }
 
+func (r *DataRow) SetString(fieldName, fieldValue string) {
+	if colIdx, ok := r.colMap[fieldName]; ok {
+		if colIdx >= len(r.row) {
+			return
+		}
+
+		r.row[colIdx] = fieldValue
+	}
+}
+
 func (r *DataRow) Data() []string {
 	return r.row
 }

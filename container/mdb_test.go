@@ -67,6 +67,11 @@ func TestDataTable(t *testing.T) {
 	if !reflect.DeepEqual(testDt.RowsByIndexPredicate("code", "C2", func(dr *DataRow) bool { return dr.String("name") == "N3" })[0].Data(), []string{"2", "C2", "N3"}) {
 		t.Error("RowsByIndexPredicate")
 	}
+
+	testDt.Row("9").SetString("code", "new9")
+	if testDt.Row("9").String("code") != "new9" {
+		t.Error(testDt.Row("9"))
+	}
 }
 
 func TestDataSet(t *testing.T) {
