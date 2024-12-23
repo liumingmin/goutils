@@ -6,9 +6,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/liumingmin/goutils/algorithm"
 	"github.com/liumingmin/goutils/log"
 	"github.com/liumingmin/goutils/utils/safego"
+	"github.com/zeebo/xxh3"
 )
 
 // 连接管理器
@@ -215,7 +215,7 @@ type shardHub struct {
 }
 
 func (h *shardHub) Find(id string) (IConnection, error) {
-	idx := algorithm.Crc16s(id) % uint16(len(h.hubs))
+	idx := xxh3.HashString(id) % uint64(len(h.hubs))
 	return h.hubs[idx].Find(id)
 }
 
@@ -234,12 +234,12 @@ func (h *shardHub) ConnectionIds() []string {
 }
 
 func (h *shardHub) registerConn(conn *Connection) {
-	idx := algorithm.Crc16s(conn.Id()) % uint16(len(h.hubs))
+	idx := xxh3.HashString(conn.Id()) % uint64(len(h.hubs))
 	h.hubs[idx].registerConn(conn)
 }
 
 func (h *shardHub) unregisterConn(conn *Connection) {
-	idx := algorithm.Crc16s(conn.Id()) % uint16(len(h.hubs))
+	idx := xxh3.HashString(conn.Id()) % uint64(len(h.hubs))
 	h.hubs[idx].unregisterConn(conn)
 }
 

@@ -10,6 +10,7 @@ require (
 	github.com/gorilla/websocket v1.5.3
 	github.com/olivere/elastic v6.2.37+incompatible
 	github.com/olivere/elastic/v7 v7.0.32
+	github.com/zeebo/xxh3 v1.0.2
 	go.mongodb.org/mongo-driver v1.14.1
 	go.uber.org/zap v1.26.0
 	golang.org/x/crypto v0.25.0
@@ -39,6 +40,7 @@ require (
 	github.com/jcmturner/rpc/v2 v2.0.3 // indirect
 	github.com/josharian/intern v1.0.0 // indirect
 	github.com/klauspost/compress v1.17.6 // indirect
+	github.com/klauspost/cpuid/v2 v2.0.9 // indirect
 	github.com/mailru/easyjson v0.7.7 // indirect
 	github.com/montanaflynn/stats v0.7.1 // indirect
 	github.com/pierrec/lz4/v4 v4.1.21 // indirect
