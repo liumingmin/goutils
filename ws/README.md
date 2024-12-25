@@ -10,6 +10,10 @@
 * Zero-copy message data
 * Multi-language support (Go/JavaScript/TypeScript/C++)
 
+# Performance
+![connections](connections.png "connections")
+![memory](memory.png "memory")
+
 # Module Usage
 ## plug and play
 Using GoLang to write a simple server:

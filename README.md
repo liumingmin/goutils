@@ -22,14 +22,62 @@ This repository aims to provide Golang developers with a series of practical and
 # Moudles
 
 - [Algorithm Module](algorithm/README.md)
+    - Double circle buffer
+    - Crc16
+    - Descart combination
+    - Xor reader and writer
 - [Cache Module](cache/README.md)
+    - Generics-based function caching
 - [YAML Configuration Module](conf/README.md)
 - [Container Module](container/README.md)
+    - Bitmap
+    - Buffer pool
+    - Consistent hashing
+    - Generics-based sync pool
+    - Generics-based common lock wrapper
+    - Memory db struct
+    - Generics-based Queue
+    - Red Black Tree
 - [Database Module](db/README.md)
+    - Elasticsearch
+    - Kafka
+    - Mongo
+    - Redis
 - [Logging Library](log/README.md)
+    - Zap wrapper
 - [Network Library](net/README.md)
+    - Support Http1.x and 2.0 HttpClient
+    - Support Http1.x and 2.0 HttpServer    
+    - Ip utils
+    - Binary Net Packet Protocol
+    - Ssh proxy client
 - [General Utility Library](utils/README.md)
+    - CircuitBreaker
+    - Checksum utils
+    - Type convert utils
+    - Csv and MDB DataTable reader and writer
+    - Distributed lock
+    - Use gotest generate markdown document utils
+    - Finite state machine
+    - Http utils
+    - Email utils
+    - Safe goroutine
+    - Snowflake id generater
+    - Support timeout synchronous multi-call 
+    - Window dll invoke
+    - UTF-8 encoding convert
+    - File utils
+    - Math utils
+    - Reflect utils
+    - String parser
+    - String utils
+    - Struct utils
+    - Struct tags utils
 - [WebSocket Client and Server Library](ws/README.md)
+    - Go Websocket client and server(100,000 concurrent 2.3G memory usage)
+    - Cpp Websocket client     
+    - Ts Websocket client 
+    - Js Websocket client
 
 # Roadmap
 
@@ -55,14 +103,14 @@ This repository aims to provide Golang developers with a series of practical and
 
 * **Goal:** Elevate project performance and scalability
 * **Key Metrics:**
-    * Major code undergoes performance testing and meets performance expectations
-    * Code coverage for all code surpasses 80%
+    * [x] Major code undergoes performance testing and meets performance expectations
+    * [x] Code coverage for all code surpasses 80%
     * GitHub Star exceeds 500
 * **Tasks:**
-    * Identify performance bottlenecks and implement targeted optimizations
-    * Employ load testing tools to evaluate project performance and make continuous improvements
-    * Refine code structure and design to enhance code maintainability and extensibility
-    * Release new versions and document version change logs
+    * [x] Identify performance bottlenecks and implement targeted optimizations
+    * [x] Employ load testing tools to evaluate project performance and make continuous improvements
+    * [x] Refine code structure and design to enhance code maintainability and extensibility
+    * [x] Release new versions and document version change logs
 
 ### Phase 3: Community Operation and Promotion
 
@@ -72,7 +120,7 @@ This repository aims to provide Golang developers with a series of practical and
     * Establish an independent official website
     * Actively participate in open-source community events
 * **Tasks:**
-    * Set up community communication platforms, such as forums or QQ groups
+    * Set up community communication platforms, such as forums or Discord
     * Organize online and offline technical exchange events to share project experiences
     * Write blog posts, technical tutorials, etc., to disseminate project knowledge
     * Actively participate in relevant open-source conferences and events to promote the project
