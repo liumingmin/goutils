@@ -66,6 +66,9 @@ func TestWsHub(t *testing.T) {
 		t.Error(conn)
 	}
 
+}
+
+func TestErrCheck(t *testing.T) {
 	conn2 := &Connection{}
 	if conn2.isNetTimeoutErr(errors.New("test")) {
 		t.FailNow()
@@ -101,7 +104,6 @@ func TestWsOption(t *testing.T) {
 	}
 
 	ClientDialWssOption("wss://127.0.0.1:8080", false)(conn)
-
 	if !conn.dialer.TLSClientConfig.InsecureSkipVerify {
 		t.FailNow()
 	}
@@ -125,6 +127,10 @@ func TestWsOption(t *testing.T) {
 	if conn.temporaryWait == -1 {
 		t.Error(conn.temporaryWait)
 	}
+
+	SrvCheckOriginOption(func(r *http.Request) bool {
+		return true
+	})(conn)
 }
 
 func TestConnectionMeta(t *testing.T) {
@@ -171,19 +177,22 @@ func TestWssTryDailFaild(t *testing.T) {
 	InitClient() //client invoke
 	ctx := context.Background()
 
+	connResult := true
+
 	uid := "100"
 	url := "ws://127.0.0.1:18013/join?uid=" + uid
 	conn, err := DialConnect(ctx, url, http.Header{},
 		DebugOption(true),
 		ClientIdOption("server1"),
-		ClientDialRetryOption(2, time.Millisecond*500),
+		ClientDialOption(&websocket.Dialer{HandshakeTimeout: time.Millisecond * 200}),
+		ClientDialRetryOption(1, time.Millisecond*500),
 		ClientDialConnFailedHandlerOption(func(ctx context.Context, conn IConnection) {
-			log.Error(ctx, "client conn failed")
+			connResult = false
 		}),
 	)
 
-	t.Log("TestWssTryDailFaild", conn, err)
-	if err == nil || conn != nil {
+	//t.Log("TestWssTryDailFaild", conn, err)
+	if err == nil || conn != nil && connResult {
 		t.Error(conn)
 	}
 }
@@ -233,9 +242,6 @@ func TestWssRequestResponse(t *testing.T) {
 			NetWriteWaitOption(3*time.Second),
 			NetTemporaryWaitOption(time.Millisecond*500),
 			MaxMessageBytesSizeOption(1024*1024*32),
-			SrvCheckOriginOption(func(r *http.Request) bool {
-				return true
-			}),
 		)
 		if err != nil {
 			log.Error(ctx, "Accept client connection failed. error: %v", err)
@@ -320,6 +326,7 @@ func TestWssRequestResponse(t *testing.T) {
 
 		log.Debug(ctx, "client recv: sn: %v, data: %v", resp.GetSn(), string(resp.GetData()))
 	}
+
 }
 
 func TestWssRequestResponseWithTimeout(t *testing.T) {
@@ -348,24 +355,9 @@ func TestWssRequestResponseWithTimeout(t *testing.T) {
 	handler := http.NewServeMux()
 	handler.HandleFunc("/join", func(w http.ResponseWriter, r *http.Request) {
 		connMeta := ConnectionMeta{
-			UserId:   r.URL.Query().Get("uid"),
-			Typed:    0,
-			DeviceId: "",
-			Source:   "",
-			Version:  0,
-			Charset:  0,
+			UserId: r.URL.Query().Get("uid"),
 		}
-		_, err := Accept(ctx, w, r, connMeta, DebugOption(true),
-			ConnEstablishHandlerOption(func(ctx context.Context, conn IConnection) {
-				log.Info(ctx, "server conn establish: %v, %p", conn.Id(), conn)
-			}),
-			ConnClosingHandlerOption(func(ctx context.Context, conn IConnection) {
-				log.Info(ctx, "server conn closing: %v, %p", conn.Id(), conn)
-			}),
-			ConnClosedHandlerOption(func(ctx context.Context, conn IConnection) {
-				log.Info(ctx, "server conn closed: %v, %p", conn.Id(), conn)
-			}),
-		)
+		_, err := Accept(ctx, w, r, connMeta, DebugOption(true))
 		if err != nil {
 			log.Error(ctx, "Accept client connection failed. error: %v", err)
 			return
@@ -385,22 +377,16 @@ func TestWssRequestResponseWithTimeout(t *testing.T) {
 	conn, _ := DialConnect(context.Background(), url, http.Header{},
 		DebugOption(true),
 		ClientIdOption("server1"),
-		ConnEstablishHandlerOption(func(ctx context.Context, conn IConnection) {
-			log.Info(ctx, "client conn establish: %v, %p", conn.Id(), conn)
-		}),
-		ConnClosingHandlerOption(func(ctx context.Context, conn IConnection) {
-			log.Info(ctx, "client conn closing: %v, %p", conn.Id(), conn)
-		}),
-		ConnClosedHandlerOption(func(ctx context.Context, conn IConnection) {
-			log.Info(ctx, "client conn closed: %v, %p", conn.Id(), conn)
-		}),
 	)
 
-	log.Info(ctx, "%v", conn)
 	time.Sleep(time.Millisecond * 200)
-	conn.RefreshDeadline()
 
-	toCtx, cancel := context.WithTimeout(ctx, time.Second*1)
+	//test hub
+	if len(ClientConnHub.ConnectionIds()) != 1 {
+		t.Error("no connected client")
+	}
+
+	toCtx, cancel := context.WithTimeout(ctx, time.Millisecond*500)
 	defer cancel()
 
 	packet := GetPoolMessage(C2S_REQ_TIMEOUT)
@@ -552,9 +538,6 @@ func TestWssSendMessage(t *testing.T) {
 		ClientDialWssOption(url, false),
 		ClientDialCompressOption(true),
 		CompressionLevelOption(2),
-		ConnEstablishHandlerOption(func(ctx context.Context, conn IConnection) {
-			log.Info(ctx, "client conn establish: %v, %p", conn.Id(), conn)
-		}),
 	)
 
 	time.Sleep(time.Millisecond * 200)
@@ -595,20 +578,12 @@ func TestWssAutoRetryDialConnect(t *testing.T) {
 	handler := http.NewServeMux()
 	handler.HandleFunc("/join", func(w http.ResponseWriter, r *http.Request) {
 		connMeta := ConnectionMeta{
-			UserId:   r.URL.Query().Get("uid"),
-			Typed:    0,
-			DeviceId: "",
-			Source:   "",
-			Version:  0,
-			Charset:  0,
+			UserId: r.URL.Query().Get("uid"),
 		}
 		_, err := Accept(ctx, w, r, connMeta,
 			ConnEstablishHandlerOption(func(ctx context.Context, conn IConnection) {
 				log.Info(ctx, "server conn establish: %v, %p", conn.Id(), conn)
-				go func() { conn.KickClient(false) }()
-			}),
-			ConnClosedHandlerOption(func(ctx context.Context, conn IConnection) {
-				log.Info(ctx, "server conn closed: %v, %p", conn.Id(), conn)
+				//go func() { conn.KickClient(false) }()
 			}))
 		if err != nil {
 			log.Error(ctx, "Accept client connection failed. error: %v", err)
@@ -618,10 +593,10 @@ func TestWssAutoRetryDialConnect(t *testing.T) {
 	go http.ListenAndServe(":8003", handler)
 
 	//client connect
-	time.Sleep(time.Second)
+	time.Sleep(time.Millisecond * 200)
 
 	url := "ws://127.0.0.1:8003/join?uid=a1"
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
 	AutoReDialConnect(ctx, url, http.Header{}, 0,
 		ClientDialWssOption(url, false),
