@@ -294,6 +294,8 @@ func TestWssRequestResponse(t *testing.T) {
 
 	time.Sleep(time.Millisecond * 200)
 
+	conn.RefreshDeadline()
+
 	//test hub
 	if len(ClientConnHub.ConnectionIds()) != 1 {
 		t.Error("no connected client")

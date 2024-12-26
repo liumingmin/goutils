@@ -37,5 +37,5 @@ func TestSerializeDataTableToCsvFile(t *testing.T) {
 
 	var buffer bytes.Buffer
 	SerializeDataTableToCsv(context.Background(), dt, &buffer, '\t')
-	t.Log(string(buffer.Bytes()))
+	t.Log(buffer.String())
 }

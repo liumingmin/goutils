@@ -3,6 +3,7 @@
 
 [![Go](https://github.com/liumingmin/goutils/actions/workflows/go.yml/badge.svg)](https://github.com/liumingmin/goutils/actions/workflows/go.yml)
 [![Go Report Card](https://goreportcard.com/badge/github.com/liumingmin/goutils)](https://goreportcard.com/report/github.com/liumingmin/goutils)
+![Static Badge](https://img.shields.io/badge/staticcheck-passing-%2330a147)
 [![codecov](https://codecov.io/gh/liumingmin/goutils/graph/badge.svg?token=BQRDOY3CDX)](https://codecov.io/gh/liumingmin/goutils)
 ![GitHub last commit](https://img.shields.io/github/last-commit/liumingmin/goutils)
 ![GitHub Tag](https://img.shields.io/github/v/tag/liumingmin/goutils)
@@ -19,7 +20,7 @@ This repository aims to provide Golang developers with a series of practical and
 - Easy to integrate: low connection, can be integrated with various projects, such as go-zero.
 - Function focus: The tool library theme implements tools for various common functions. In order to avoid reinventing the wheel without developing your own SQL ORM, make more use of the powerful ORM solutions of the open source community. Only by standing on the shoulders of giants can you go further.
 
-# Moudles
+# Modules
 
 - [Algorithm Module](algorithm/README.md)
     - Double circle buffer
