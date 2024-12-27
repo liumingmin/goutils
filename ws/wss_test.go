@@ -194,6 +194,19 @@ func TestConnectionMeta(t *testing.T) {
 	}
 }
 
+func TestCloseWrite(t *testing.T) {
+	conn := &Connection{}
+	SendBufferOption(8)(conn)
+
+	conn.sendBuffer <- NewMessage(1).(*Message)
+	conn.sendBuffer <- NewMessage(1).(*Message)
+
+	err := conn.closeWrite(context.Background())
+	if err != nil {
+		t.Error(err)
+	}
+}
+
 func TestWssTryDailFaild(t *testing.T) {
 	log.SetLogLevel(zapcore.WarnLevel) //if you need info log, commmet this line
 

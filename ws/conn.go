@@ -317,7 +317,7 @@ func (c *Connection) SignalPullSend(ctx context.Context, pullChannelId int) (err
 	return nil
 }
 
-func (c *Connection) closeWrite(ctx context.Context) {
+func (c *Connection) closeWrite(ctx context.Context) error {
 	size := len(c.sendBuffer)
 	for i := 0; i < size; i++ {
 		select {
@@ -325,7 +325,7 @@ func (c *Connection) closeWrite(ctx context.Context) {
 			if isok {
 				putPoolMessage(msg)
 			} else {
-				return //buffer is closed
+				return nil //buffer is closed
 			}
 		default:
 			goto ExitFor
@@ -337,6 +337,7 @@ ExitFor:
 	if err != nil {
 		log.Error(ctx, "%v close writer panic, error is: %v", c.typ, err)
 	}
+	return err
 }
 
 func (c *Connection) closePull(ctx context.Context) {
