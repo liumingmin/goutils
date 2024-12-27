@@ -17,7 +17,24 @@ import (
 	"google.golang.org/protobuf/proto"
 )
 
-func TestWsPb(t *testing.T) {
+func TestWsType(t *testing.T) {
+	client := ConnType(CONN_KIND_CLIENT)
+	if client.String() != "client" {
+		t.Error(client.String())
+	}
+
+	server := ConnType(CONN_KIND_SERVER)
+	if server.String() != "server" {
+		t.Error(server.String())
+	}
+
+	noneConnType := ConnType(3)
+	if noneConnType.String() != "" {
+		t.Error(noneConnType.String())
+	}
+
+	/////
+
 	if *P_BASE_s2c_err_displace.Enum() != P_BASE_s2c_err_displace {
 		t.FailNow()
 	}
@@ -84,6 +101,12 @@ func TestWsOption(t *testing.T) {
 		t.Error(conn.upgrader)
 	}
 
+	pullChan, ok := conn.GetPullChannel(0)
+	if ok || pullChan != nil {
+		t.Error(pullChan, ok)
+	}
+
+	////
 	pullChannelIds := []int{}
 	SrvPullChannelsOption(pullChannelIds)(conn)
 	if conn.pullChannelMap != nil {
