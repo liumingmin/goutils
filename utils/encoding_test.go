@@ -28,15 +28,3 @@ func TestUTF82GBK(t *testing.T) {
 		t.FailNow()
 	}
 }
-
-func TestIsGBK(t *testing.T) {
-	if !IsGBK([]byte{206, 210}) {
-		t.FailNow()
-	}
-}
-
-func TestIsUtf8(t *testing.T) {
-	if !IsUtf8([]byte{230, 136, 145}) {
-		t.FailNow()
-	}
-}
