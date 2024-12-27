@@ -2,6 +2,7 @@ package utils
 
 import (
 	"context"
+	"fmt"
 	"sync"
 	"time"
 )
@@ -79,4 +80,32 @@ func Sleep(ctx context.Context, duration time.Duration) {
 	case <-timer.C:
 		return
 	}
+}
+
+var globalCloseChanMutex sync.Mutex
+
+func SafeCloseChan[T any](mutex *sync.Mutex, ch chan T) (err error) {
+	defer func() {
+		if e := recover(); e != nil {
+			err = fmt.Errorf("close chan panic, error is: %v", e)
+		}
+	}()
+
+	if mutex == nil {
+		mutex = &globalCloseChanMutex
+	}
+
+	mutex.Lock()
+	defer mutex.Unlock()
+
+	select {
+	case _, isok := <-ch:
+		if isok {
+			close(ch)
+		}
+	default:
+		close(ch)
+	}
+
+	return nil
 }

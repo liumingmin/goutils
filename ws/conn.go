@@ -15,6 +15,7 @@ import (
 
 	"github.com/gorilla/websocket"
 	"github.com/liumingmin/goutils/log"
+	"github.com/liumingmin/goutils/utils"
 	"github.com/liumingmin/goutils/utils/safego"
 )
 
@@ -261,7 +262,7 @@ func (c *Connection) SendRequestMsg(ctx context.Context, reqMsg IMessage, sc Sen
 	err = c.SendMsg(ctx, reqMsg, sc)
 	if err != nil {
 		c.snChanMap.Delete(sn)
-		close(ch)
+		utils.SafeCloseChan(nil, ch)
 		return nil, err
 	}
 
@@ -317,20 +318,25 @@ func (c *Connection) SignalPullSend(ctx context.Context, pullChannelId int) (err
 }
 
 func (c *Connection) closeWrite(ctx context.Context) {
-	defer log.Recover(ctx, func(e interface{}) string {
-		return fmt.Sprintf("%v Close writer panic, error is: %v", c.typ, e)
-	})
-
 	size := len(c.sendBuffer)
 	for i := 0; i < size; i++ {
-		msg, isok := <-c.sendBuffer
-		if isok {
-			putPoolMessage(msg)
-		} else {
-			return //buffer has closed
+		select {
+		case msg, isok := <-c.sendBuffer:
+			if isok {
+				putPoolMessage(msg)
+			} else {
+				return //buffer is closed
+			}
+		default:
+			goto ExitFor
 		}
 	}
-	close(c.sendBuffer)
+ExitFor:
+
+	err := utils.SafeCloseChan(nil, c.sendBuffer)
+	if err != nil {
+		log.Error(ctx, "%v close writer panic, error is: %v", c.typ, err)
+	}
 }
 
 func (c *Connection) closePull(ctx context.Context) {
@@ -339,21 +345,7 @@ func (c *Connection) closePull(ctx context.Context) {
 	}
 
 	for _, pullChannel := range c.pullChannelMap {
-		func() {
-			defer log.Recover(ctx, func(e interface{}) string {
-				return fmt.Sprintf("Close reader panic, error is: %v", e)
-			})
-
-			select {
-			case _, isok := <-pullChannel:
-				if isok {
-					close(pullChannel)
-				}
-				break
-			default:
-				close(pullChannel)
-			}
-		}()
+		utils.SafeCloseChan(nil, pullChannel)
 	}
 }
 
@@ -516,14 +508,15 @@ func (c *Connection) readFromConnection() {
 }
 
 func (c *Connection) readMsgFromWs() {
-	defer log.Recover(context.Background(), func(e interface{}) string {
+	ctx := log.ContextWithTraceId()
+
+	defer log.Recover(ctx, func(e interface{}) string {
 		return fmt.Sprintf("%v readMsgFromWs failed, error: %v", c.typ, e)
 	})
 
 	failedRetry := 0
 
 	for {
-		ctx := log.ContextWithTraceId()
 		if c.IsStopped() {
 			log.Info(ctx, "%v connect is stopped. id: %v, ptr: %p", c.typ, c.id, c)
 			return
@@ -534,7 +527,7 @@ func (c *Connection) readMsgFromWs() {
 
 		if err != nil {
 			if c.isNetTimeoutErr(err) {
-				log.Debug(ctx, "%v Read failure. retryTimes: %v, id: %v, ptr: %p messageType: %v, error: %v",
+				log.Info(ctx, "%v Read failure. retryTimes: %v, id: %v, ptr: %p messageType: %v, error: %v",
 					c.typ, failedRetry, c.id, c, messageType, err)
 
 				failedRetry++
@@ -543,13 +536,11 @@ func (c *Connection) readMsgFromWs() {
 					continue
 				}
 
-				log.Info(ctx, "%v Read failure and reach max times. id: %v, ptr: %p messageType: %v, error: %v",
-					c.typ, c.id, c, messageType, err)
 				return
 			}
 
-			if websocket.IsCloseError(err, websocket.CloseNormalClosure, websocket.CloseGoingAway,
-				websocket.CloseNoStatusReceived) || c.IsStopped() {
+			if websocket.IsCloseError(err, websocket.CloseNormalClosure, websocket.CloseGoingAway, websocket.CloseNoStatusReceived) ||
+				c.IsStopped() {
 				log.Debug(ctx, "%v Conn closed. id: %v, ptr: %p, msgType: %v, err: %v",
 					c.typ, c.id, c, messageType, err)
 			} else {
@@ -720,7 +711,7 @@ func (c *Connection) doSendMsgToWs(ctx context.Context, message *Message) error 
 		}
 
 		if c.isNetTimeoutErr(err) {
-			log.Debug(ctx, "%v Write close failed. retryTimes: %v, id: %v, ptr: %p, error: %v",
+			log.Info(ctx, "%v Write failed. retryTimes: %v, id: %v, ptr: %p, error: %v",
 				c.typ, failedRetry, c.id, c, err)
 
 			failedRetry++
@@ -728,20 +719,17 @@ func (c *Connection) doSendMsgToWs(ctx context.Context, message *Message) error 
 				time.Sleep(c.temporaryWait)
 				continue
 			}
-
-			log.Info(ctx, "%v Write close failed and reach max times. id: %v, ptr: %p, error: %v",
-				c.typ, failedRetry, c.id, c, err)
-			return errors.New("writer close failed")
+			return errors.New("writer failed")
 		}
 
-		if websocket.IsCloseError(err, websocket.CloseNormalClosure, websocket.CloseGoingAway,
-			websocket.CloseNoStatusReceived) || c.IsStopped() {
+		if websocket.IsCloseError(err, websocket.CloseNormalClosure, websocket.CloseGoingAway, websocket.CloseNoStatusReceived) ||
+			c.IsStopped() {
 			log.Debug(ctx, "%v Websocket close error. client id: %v, ptr: %p, error: %v",
 				c.typ, c.id, c, err)
 		} else {
 			log.Warn(ctx, "%v Writer close failed. id: %v, ptr: %p, error: %v", c.typ, c.id, c, err)
 		}
-		return errors.New("writer close failed")
+		return errors.New("writer failed")
 	}
 }
 
