@@ -6,40 +6,41 @@
 
 BYTE QWsConnection::m_packetHeadFlag[2] = {254, 239};
 
-QWsConnection::QWsConnection(const QString& url, const HttpHeaders& mapHeaders, uint32_t retryInterval, QObject* parent)
-    : QObject(parent)
-      , m_pWs(nullptr)
-      , m_bConnected(false)
-      , m_strUrl(url)
-      , m_nRetryInterval(retryInterval)
-      , m_nSnCounter(0)
-      , m_mapHeaders(mapHeaders)
+QWsConnection::QWsConnection(const QString &url, const HttpHeaders &mapHeaders, uint32_t retryInterval, QObject *parent)
+    : QObject(parent), m_pWs(nullptr), m_bConnected(false), m_strUrl(url), m_nRetryInterval(retryInterval), m_nSnCounter(0), m_mapHeaders(mapHeaders)
 {
     m_pWs = new QWebSocket;
     m_pWs->setParent(this);
 
-    connect(m_pWs, &QWebSocket::connected, [this]()
-    {
+    connect(m_pWs, &QWebSocket::connected, this, [this]()
+            {
+        m_connDeadline = std::chrono::steady_clock::now() + std::chrono::seconds(m_nTimeWait);
         m_bConnected = true;
         if (m_establishHandler)
         {
             m_establishHandler(m_pWs);
-        }
-    });
+        } });
 
-    connect(m_pWs, &QWebSocket::disconnected, [this]()
-    {
+    connect(m_pWs, &QWebSocket::disconnected, this, [this]()
+            {
         m_bConnected = false;
         if (m_closeHandler)
         {
             m_closeHandler(m_pWs);
-        }
+        } });
 
-        if (m_nRetryInterval > 0)
-            QTimer::singleShot(m_nRetryInterval, this, &QWsConnection::Connect);
-    });
+    if (m_nRetryInterval > 0)
+    {
+        m_pReconnTimer = new QTimer(this);
+        m_pReconnTimer->setInterval(m_nRetryInterval);
+        connect(m_pReconnTimer, &QTimer::timeout, this, [this]()
+                {
+            if (!m_bConnected)
+                Connect(); });
+        m_pReconnTimer->start();
+    }
 
-    connect(m_pWs, QOverload<QAbstractSocket::SocketError>::of(&QWebSocket::error),
+    connect(m_pWs, QOverload<QAbstractSocket::SocketError>::of(&QWebSocket::error), this,
             [this](QAbstractSocket::SocketError err)
             {
                 if (m_errHandler)
@@ -48,8 +49,8 @@ QWsConnection::QWsConnection(const QString& url, const HttpHeaders& mapHeaders, 
                 }
             });
 
-    connect(m_pWs, &QWebSocket::binaryMessageReceived, [this](const QByteArray& message)
-    {
+    connect(m_pWs, &QWebSocket::binaryMessageReceived, this, [this](const QByteArray &message)
+            {
         const auto msgPack = _UnpackMsg(message);
 
         bool bIsValidMsg = _CheckMsgPackErr(msgPack);
@@ -79,6 +80,8 @@ QWsConnection::QWsConnection(const QString& url, const HttpHeaders& mapHeaders, 
         bool exist = m_mapMsgHandler.contains(msgPack.protocolId);
         if (exist)
         {
+            // send message receive confirm
+            SendResponseMsg(msgPack.protocolId, msgPack.sn, "");
             const auto handler = m_mapMsgHandler[msgPack.protocolId];
             handler(m_pWs, msgPack.dataBuffer);
         }
@@ -86,18 +89,43 @@ QWsConnection::QWsConnection(const QString& url, const HttpHeaders& mapHeaders, 
         if (msgPack.sn == 0 && !exist && m_errHandler)
         {
             m_errHandler(m_pWs, QAbstractSocket::SocketError::UnknownSocketError, "protocolId's handler not found");
-        }
-    });
+        } });
 
-    m_mapMsgHandler[ws::P_BASE::s2c_err_displace] = [this](QWebSocket* ws, const QByteArray& data)
-    {
-        _OnDisplaced(ws, data);
-    };
+    m_pPingTimer = new QTimer(this);
+    m_pPingTimer->setInterval(24000);
+    connect(m_pPingTimer, &QTimer::timeout, this, [this]()
+            {
+        if (m_pWs->isValid())
+            m_pWs->ping(); });
+
+    m_nTimeWait = 60;
+    m_pDeadlineTimer = new QTimer(this);
+    m_pDeadlineTimer->setInterval(1000);
+    m_connDeadline = std::chrono::steady_clock::now() + std::chrono::seconds(m_nTimeWait);
+    connect(m_pDeadlineTimer, &QTimer::timeout, this, [this]()
+            {
+        if(m_pPingTimer->isActive() &&  m_connDeadline < std::chrono::steady_clock::now())
+        {
+            _Reset();
+        } });
+    m_pDeadlineTimer->start();
+
+    connect(m_pWs, &QWebSocket::pong, this, [this](quint64 elapsed, const QByteArray &)
+            { m_connDeadline = std::chrono::steady_clock::now() + std::chrono::seconds(m_nTimeWait); });
+    // m_mapMsgHandler[ws::P_BASE::s2c_err_displace] = [this](QWebSocket* ws, const QByteArray& data)
+    //{
+    //     _OnDisplaced(ws, data);
+    // };
 }
-
 
 QWsConnection::~QWsConnection()
 {
+    if (m_pReconnTimer)
+        m_pReconnTimer->stop();
+
+    m_pDeadlineTimer->stop();
+    m_pPingTimer->stop();
+
     Close();
 }
 
@@ -109,14 +137,14 @@ void QWsConnection::AcceptAllSelfSignCert()
     m_pWs->ignoreSslErrors();
 }
 
-void QWsConnection::AcceptSelfSignCert(const QString& caCertPath)
+void QWsConnection::AcceptSelfSignCert(const QString &caCertPath)
 {
     QList<QSslCertificate> certs = QSslCertificate::fromPath(caCertPath);
     QSslConfiguration sslConfiguration = m_pWs->sslConfiguration();
     sslConfiguration.addCaCertificates(certs);
 
     QList<QSslError> expectedSslErrors;
-    for (auto& cert : certs)
+    for (auto &cert : certs)
     {
         QSslError ignoreError(QSslError::InvalidPurpose, cert);
         expectedSslErrors.append(ignoreError);
@@ -129,7 +157,7 @@ void QWsConnection::RegisterMsgHandler(uint32_t protocolId, MsgHandler handler)
     m_mapMsgHandler.insert(protocolId, handler);
 }
 
-QWsConnection::State QWsConnection::SendMsg(uint32_t protocolId, const QByteArray& data)
+QWsConnection::State QWsConnection::SendMsg(uint32_t protocolId, const QByteArray &data)
 {
     auto sent = m_pWs->sendBinaryMessage(_PackMsg(protocolId, 0, data));
     if (sent > 0)
@@ -139,8 +167,8 @@ QWsConnection::State QWsConnection::SendMsg(uint32_t protocolId, const QByteArra
     return STATE_SEND_FAILED;
 }
 
-QWsConnection::State QWsConnection::SendRequestMsg(uint32_t protocolId, const QByteArray& request,
-                                                   uint32_t nTimeoutMs, QByteArray& response)
+QWsConnection::State QWsConnection::SendRequestMsg(uint32_t protocolId, const QByteArray &request,
+                                                   uint32_t nTimeoutMs, QByteArray &response)
 {
     State nRetCode = STATE_SEND_FAILED;
 
@@ -183,14 +211,14 @@ QWsConnection::State QWsConnection::SendRequestMsg(uint32_t protocolId, const QB
     }
 
 Exit0:
-    {
-        std::lock_guard<std::mutex> lk(m_mapSnPromiseMutex);
-        m_mapSnPromise.erase(sn);
-    }
+{
+    std::lock_guard<std::mutex> lk(m_mapSnPromiseMutex);
+    m_mapSnPromise.erase(sn);
+}
     return nRetCode;
 }
 
-QWsConnection::State QWsConnection::SendResponseMsg(uint32_t protocolId, uint32_t reqSn, const QByteArray& data)
+QWsConnection::State QWsConnection::SendResponseMsg(uint32_t protocolId, uint32_t reqSn, const QByteArray &data)
 {
     auto sent = m_pWs->sendBinaryMessage(_PackMsg(protocolId, reqSn, data));
     if (sent > 0)
@@ -198,6 +226,28 @@ QWsConnection::State QWsConnection::SendResponseMsg(uint32_t protocolId, uint32_
         return STATE_OK;
     }
     return STATE_SEND_FAILED;
+}
+
+void QWsConnection::SetPingInterval(uint64_t nInterval)
+{
+    m_pPingTimer->setInterval(nInterval);
+}
+
+void QWsConnection::SetPing(bool bEnable)
+{
+    if (bEnable)
+    {
+        if (m_pPingTimer->isActive())
+        {
+            m_pPingTimer->stop();
+        }
+
+        m_pPingTimer->start();
+    }
+    else
+    {
+        m_pPingTimer->stop();
+    }
 }
 
 void QWsConnection::Connect()
@@ -211,12 +261,14 @@ void QWsConnection::Connect()
         request.setRawHeader(QByteArray::fromStdString(iter->first), QByteArray::fromStdString(iter->second));
     }
 
+    m_connDeadline = std::chrono::steady_clock::now() + std::chrono::seconds(10);
     m_pWs->open(request);
 }
 
 void QWsConnection::Close()
 {
-    m_nRetryInterval = 0;
+    if (m_pReconnTimer)
+        m_pReconnTimer->stop();
 
     _Reset();
 }
@@ -233,6 +285,9 @@ void QWsConnection::_Reset()
 
     std::lock_guard<std::mutex> lk(m_mapSnPromiseMutex);
     m_mapSnPromise.clear();
+
+    // must clear the old header data
+    m_mapHeaders.clear();
 }
 
 uint32_t QWsConnection::_GetNextSn()
@@ -246,7 +301,7 @@ uint32_t QWsConnection::_GetNextSn()
     return sn;
 }
 
-QByteArray QWsConnection::_PackMsg(uint32_t protocolId, uint32_t sn, const QByteArray& dataBuffer)
+QByteArray QWsConnection::_PackMsg(uint32_t protocolId, uint32_t sn, const QByteArray &dataBuffer)
 {
     BYTE packetLength[4];
     BYTE protocolIdArray[4];
@@ -257,16 +312,16 @@ QByteArray QWsConnection::_PackMsg(uint32_t protocolId, uint32_t sn, const QByte
     qToLittleEndian(sn, &snArray);
 
     QByteArray byteArray;
-    byteArray.append((const char*)m_packetHeadFlag, 2);
-    byteArray.append((const char*)packetLength, 4);
-    byteArray.append((const char*)protocolIdArray, 4);
-    byteArray.append((const char*)snArray, 4);
+    byteArray.append((const char *)m_packetHeadFlag, 2);
+    byteArray.append((const char *)packetLength, 4);
+    byteArray.append((const char *)protocolIdArray, 4);
+    byteArray.append((const char *)snArray, 4);
     byteArray.append(dataBuffer);
 
     return byteArray;
 }
 
-QWsConnection::innerMsgPack QWsConnection::_UnpackMsg(const QByteArray& rawMsg)
+QWsConnection::innerMsgPack QWsConnection::_UnpackMsg(const QByteArray &rawMsg)
 {
     BYTE packetLength[4];
     BYTE protocolIdArray[4];
@@ -286,22 +341,22 @@ QWsConnection::innerMsgPack QWsConnection::_UnpackMsg(const QByteArray& rawMsg)
     return msgPack;
 }
 
-void QWsConnection::_OnDisplaced(QWebSocket* ws, const QByteArray& msgData)
+void QWsConnection::_OnDisplaced(QWebSocket *ws, const QByteArray &msgData)
 {
-    ws::P_DISPLACE displacedMsg;
-    bool result = displacedMsg.ParseFromArray(msgData.data(), msgData.size());
-    if (!result)
-        return;
+    // ws::P_DISPLACE displacedMsg;
+    // bool result = displacedMsg.ParseFromArray(msgData.data(), msgData.size());
+    // if (!result)
+    //     return;
 
-    if (m_displacedHandler)
-    {
-        m_displacedHandler(m_pWs, QString::fromStdString(displacedMsg.old_ip()),
-                           QString::fromStdString(displacedMsg.new_ip()),
-                           displacedMsg.ts());
-    }
+    // if (m_displacedHandler)
+    //{
+    //     m_displacedHandler(m_pWs, QString::fromStdString(displacedMsg.old_ip()),
+    //                        QString::fromStdString(displacedMsg.new_ip()),
+    //                        displacedMsg.ts());
+    // }
 }
 
-bool QWsConnection::_CheckMsgPackErr(const innerMsgPack& msgPack)
+bool QWsConnection::_CheckMsgPackErr(const innerMsgPack &msgPack)
 {
     if (msgPack.packetHeadFlag[0] != m_packetHeadFlag[0] || msgPack.packetHeadFlag[1] != m_packetHeadFlag[1])
     {

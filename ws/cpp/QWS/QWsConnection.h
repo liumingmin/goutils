@@ -1,10 +1,10 @@
 #pragma once
 #include <QtCore>
-#include <QWebSocket>
+#include <QtWebSockets/QWebSocket>
 
 typedef unsigned char BYTE;
 
-class QWsConnection : public QObject
+class  QWsConnection : public QObject
 {
     Q_OBJECT
 
@@ -43,6 +43,10 @@ public:
     inline void SetErrHandler(ErrHandler errHandler) { m_errHandler = errHandler; }
     inline void SetDisplacedHandler(DisplacedHandler displacedHandler) { m_displacedHandler = displacedHandler; }
 
+    inline void SetTimeWait(uint64_t timeWait) { m_nTimeWait = timeWait; };
+    void SetPingInterval(uint64_t nInterval);
+    void SetPing(bool bEnable);
+
 public slots:
     void Connect();
     void Close();
@@ -69,11 +73,17 @@ protected:
     void _Reset();
     uint32_t _GetNextSn();
 
+
 private:
-    QWebSocket*                                     m_pWs;
-    bool                                            m_bConnected;
+    QWebSocket*                                     m_pWs = NULL;
+    QTimer*                                         m_pReconnTimer = NULL;
+    QTimer*                                         m_pPingTimer = NULL;
+    QTimer*                                         m_pDeadlineTimer = NULL;
+    uint64_t                                        m_nTimeWait = 0;
+    std::chrono::time_point<std::chrono::steady_clock>  m_connDeadline;
+    bool                                            m_bConnected = false;
     QString                                         m_strUrl;
-    uint32_t                                        m_nRetryInterval;
+    uint32_t                                        m_nRetryInterval = 0;
     HttpHeaders                                     m_mapHeaders;
 
     QHash<uint32_t, MsgHandler>                     m_mapMsgHandler;
@@ -82,10 +92,9 @@ private:
     ErrHandler                                      m_errHandler;
     DisplacedHandler                                m_displacedHandler;
 
-    std::atomic_uint32_t                            m_nSnCounter;       //sn counter, atomic
+    std::atomic_uint32_t                            m_nSnCounter = 0;   //sn counter, atomic
     std::map<uint32_t, std::promise<QByteArray>>    m_mapSnPromise;     //sn channel store map
     std::mutex                                      m_mapSnPromiseMutex;//sn channel store map lock
 
     static BYTE                                     m_packetHeadFlag[2];
 };
-
