@@ -1,5 +1,17 @@
 **Read this in other languages: [English](README.md), [中文](README_zh.md).**
 
+# ws Module
+
+## Documentation
+
+| Document | Description |
+|---|---|
+| [Architecture](docs/architecture.md) | Technical architecture: wire protocol, connection lifecycle, Hub, object pools, concurrency model |
+| [API Reference](docs/api.md) | Complete API documentation: interfaces, options, message handling, RPC, Puller, examples |
+| [Architecture (中文)](docs/architecture_zh.md) | 技术架构文档 |
+| [API Reference (中文)](docs/api_zh.md) | API 开发文档 |
+
+---
 
 # Introduction to the ws Module
 * Interface-oriented programming, automatic connection management

@@ -1,5 +1,17 @@
 **其他语言版本: [English](README.md), [中文](README_zh.md).**
 
+# ws 模块
+
+## 文档
+
+| 文档 | 说明 |
+|---|---|
+| [技术架构](docs/architecture_zh.md) | 技术架构文档：线协议、连接生命周期、Hub、对象池、并发模型 |
+| [API 文档](docs/api_zh.md) | 完整 API 文档：接口、选项、消息处理、RPC、Puller、示例 |
+| [Architecture (English)](docs/architecture.md) | Technical architecture documentation |
+| [API Reference (English)](docs/api.md) | API documentation |
+
+---
 
 # ws模块简介
 
